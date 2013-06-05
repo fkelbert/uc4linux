@@ -12,17 +12,32 @@
 
 #include <sys/syscall.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "dataCont.h"
 #include "list_of_events.h"
 #include "event.h"
 #include "logger.h"
-#include "data_flow_monitor.h"
 #include "network_utils.h"
 #include "data_flow_monitor_service.h"
 #include "libpbl/pbl.h"
 #include "control_monitor.h"
 
+#include <fcntl.h>
+#include <sys/param.h>
+#include <sys/syscall.h>
+
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <sys/reg.h>
+#include <sys/syscall.h>
+#include <stdio.h>
+#include <sys/user.h>
+#include <string.h>
+#include <stdlib.h>
+#include <pwd.h>
 
 typedef struct data_flow_monitor_s data_flow_monitor_t;
 typedef data_flow_monitor_t* data_flow_monitor_ptr;

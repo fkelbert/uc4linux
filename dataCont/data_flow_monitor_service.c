@@ -210,7 +210,7 @@ void service_handler_dataForSink(SoupMessage *msg, GValueArray *params) {
 	char *cont;
 	char *val;
 	char **mechanisms;
-	unsigned int i, j;
+	unsigned int i;
 
 
 

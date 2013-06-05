@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -std=c99 \
+CFLAGS = -std=gnu99 \
   -Wall -W \
   -I. \
   -I../logger \
@@ -8,11 +8,12 @@ CFLAGS = -std=c99 \
   -I../event \
   -I../syscall_handler \
   -I../control_monitor \
-  -I/usr/local/include \
-  -I/usr/local/include/glib-2.0 \
-  -I/usr/local/lib/glib-2.0/include \
-  -I/usr/local/include/libsoup-2.4 \
-  -I/usr/local/include/libxml2
+  -I/usr/include \
+  -I/usr/include/glib-2.0 \
+  -I/usr/lib/glib-2.0/include \
+  -I/usr/lib/i386-linux-gnu/glib-2.0/include/ \
+  -I/usr/include/libsoup-2.4 \
+  -I/usr/include/libxml2
 
 OBJ_UTILS = ../logger/logger.o \
 			../event/event.o \

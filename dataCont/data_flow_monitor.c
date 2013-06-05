@@ -88,8 +88,7 @@ unsigned int data_flow_monitor_update(data_flow_monitor_ptr data_flow_monitor, e
 	char *HOSTxPID;
 	char *HOSTxPID2;
 
-	char* USER="";
-
+//	char* USER="";
 
 	char* FD="";
 	char* FN="";
@@ -118,9 +117,11 @@ unsigned int data_flow_monitor_update(data_flow_monitor_ptr data_flow_monitor, e
 		strncpy(ADDR+12,"  ADDR",6);
 	}
 
+/*
 	if (event->n_params>3){
 		USER=strdup(event->params[3].param_value);
 	}
+*/
 
 	if (event->n_params>4){
 		FN=strdup(event->params[4].param_value);
@@ -262,10 +263,9 @@ unsigned int data_flow_monitor_update(data_flow_monitor_ptr data_flow_monitor, e
 		break;
 
 	case SYS_read: //read
-	case 29: //recvfrom
-	case 27: //recvmsg
-	case 173: //pread
-	case 120: //readv
+	case SYS_recvfrom: //recvfrom
+	case SYS_recvmsg: //recvmsg
+	case SYS_readv: //readv
 		/*
 		 * 0 - pid
 		 * 1 - command
@@ -298,7 +298,6 @@ unsigned int data_flow_monitor_update(data_flow_monitor_ptr data_flow_monitor, e
 	case SYS_sendmsg://sendmsg
 	case SYS_writev://writev
 	case SYS_sendto://sendto
-	//case SYS_pwrite://pwrite
 	case SYS_ftruncate://ftruncate
 		/*
 		 * 0 - pid
@@ -592,7 +591,7 @@ unsigned int data_flow_monitor_update(data_flow_monitor_ptr data_flow_monitor, e
 
 		break;
 
-	case 73://munmap
+	case SYS_munmap://munmap
 		/*
 		 * 0 - pid
 		 * 1 - command
