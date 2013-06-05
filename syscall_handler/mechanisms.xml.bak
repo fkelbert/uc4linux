@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+
+<monitorConfiguration
+	xmlns="http://www.master-fp7.eu/Master-EnfLang-FHG"
+	xmlns:event="http://www.master-fp7.eu/event"
+	xmlns:propositionalLogic="http://www.master-fp7.eu/propositionalLogic"
+	xmlns:pastOSL="http://www.master-fp7.eu/pastOSL"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.master-fp7.eu event.xsd
+						http://www.master-fp7.eu propositionalLogic.xsd
+						http://www.master-fp7.eu pastOSL.xsd
+						http://www.master-fp7.eu Master-EnfLang-FHG.xsd">
+
+
+					
+<controlMechanism>
+  <id>BlockTestDATA</id>
+  <description>
+    File 'contacts.data' or any copy of it can be used no more than 5 times
+	after it has been opened the first time and within the first 30 time steps.
+	After the 5th time and after 30 time steps, every attempt to open the file
+	results in opening a predefined message (/home/neisse/DEMO)
+  </description>
+  <triggerEvent xmlns="http://www.master-fp7.eu/event">
+    <id>open</id>
+    <parameter name="user" value="neisse"/>
+    <parameter name="filename" value="/home/neisse/contacts.data" type="dataUsage"/>
+  </triggerEvent>
+  <condition xmlns="http://www.master-fp7.eu/pastOSL">
+<!--    <and>
+	  <XPathEval>
+        /triggerEvent/parameter[@name='command']/@value='nano'
+      </XPathEval>!-->
+	  <or>
+	    <before timeInterval="1300">
+	      <not><always><not>
+		    <event xmlns="http://www.master-fp7.eu/event">
+		      <id>open</id>
+			  <parameter name="filename" value="/home/neisse/contacts.data" type="dataUsage"/>
+		    </event>
+          </not></always></not>
+		</before>
+        <not>
+		<repmax limit="15000">
+		  <event xmlns="http://www.master-fp7.eu/event">
+		    <id>open</id>
+		    <parameter name="filename" value="/home/neisse/contacts.data" type="dataUsage"/>
+          </event>
+        </repmax>
+		</not>
+      </or>		
+<!--    </and> 	  -->
+  </condition>
+  <actions>
+    <allow>
+      <modify>
+        <parameter name="filename" value="/home/neisse/DEMO" />
+      </modify>
+    </allow>  
+  </actions>  
+  </controlMechanism>
+
+</monitorConfiguration>
+ 
+ 

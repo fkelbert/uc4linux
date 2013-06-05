@@ -1,0 +1,17 @@
+[INFO]  XML file [mechanisms.xml] parsed
+[INFO]  XML file [mechanisms.xml] is valid according to schema [Master-EnfLang-FHG.xsd]
+
+[INFO]  - Adding new control mechanism [BlockTestCONT]
+[INFO]    trigger=[open]
+[INFO]    condition=[XPathEval(
+      /triggerEvent/parameter[@name='command']/@value='nano'
+    )]
+[INFO]    trigger=[open]
+[INFO]    action=[INHIBIT]
+
+[INFO]  - Adding new control mechanism [BlockTestDATA]
+[INFO]    trigger=[open]
+[INFO]    condition=[XPathEval(
+      /triggerEvent/parameter[@name='command']/@value='nano'
+    )]
+[INFO]    trigger=[open]

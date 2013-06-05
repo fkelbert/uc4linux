@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<eventTrace 
+  xmlns="http://www.master-fp7.eu/event"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.master-fp7.eu event.xsd"
+>
+	<event>
+		<id>login</id>
+		<type>syscall</type>
+		<parameter name="username" value="neisse"/>
+		<parameter name="component" value="lap235"/>
+	</event>
+</eventTrace>

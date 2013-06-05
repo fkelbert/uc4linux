@@ -1,0 +1,15 @@
+
+-------------------------
+contID = 0, dataID = 0
+cont size = 0, data size = 0
+
+length=0 : 
+
+Empty Alias Function!
+
+Empty Naming Function!
+
+-------------------------
+
+
+

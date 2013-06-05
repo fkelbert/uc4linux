@@ -1,0 +1,18 @@
+[DEBUG] Initializing control monitors
+[DEBUG] Initializing IF tracking
+[TRACE] Initializing Glib
+[TRACE] Starting gloop thread
+[TRACE] Creating XML-RPC HTTP server port 8082
+[INFO]  Adding handler [/data_flow_monitor_service]
+[DEBUG] IF tracking initialized
+[DEBUG] Initializing past monitors
+[TRACE] Past monitors initialized
+[TRACE] Control monitors initialized
+[TRACE] Loading mechanisms.xml
+[INFO]  XML file [mechanisms.xml] parsed
+[DEBUG] Schema [Master-EnfLang-FHG.xsd] loaded
+[INFO]  XML file [mechanisms.xml] is valid according to schema [Master-EnfLang-FHG.xsd]
+[TRACE] Initializing file descriptors table
+[TRACE] Creating XML-RPC HTTP server port 8081
+[INFO]  Adding handler [/syscall_handler]
+[DEBUG] Starting past monitor update thread usleep=[662]

@@ -1,0 +1,1383 @@
+/*
+ * dataCont.c
+ *
+ *  Created on: 28/giu/2010
+ *      Author: lovat
+ */
+
+#include "dataCont.h"
+
+
+/*
+ * This function returns a pointer to a data node with:
+ * 		field dataID = data_ID
+ * 		field contained = NULL
+ *
+ */
+
+data_ptr data_new(char* data_ID){
+	int i;
+	data_ptr dp = (data_ptr) malloc(sizeof(data_t));
+	dp->data_ID = (char *) malloc (sizeof(char) * MAX_DATA_ID); //MAX_DATA_ID = size of the field (in char)
+	for (i=0; i< MAX_DATA_ID; i++){
+		dp->data_ID[i]=data_ID[i];
+	}
+	dp->contained = NULL;
+	return dp;
+}
+
+unsigned int data_free(data_ptr data, int mode){
+   if (data==NULL) return 2;
+
+   list_of_cont_ptr loc;
+
+   if (mode>0){
+     loc=data->contained;
+     while (loc!=NULL){
+       cont_free(loc->cont,mode-1);
+       loc=loc->next;
+     }
+   }
+
+   free(data->data_ID);
+   return 0;
+}
+
+unsigned int data_equals(data_ptr data1, data_ptr data2){  //by equals we mean "with the same ID". we don't look into the list of contained. otherwise we have to do the same for the containers and we fall into a loop.
+	int i=0;
+	if ((data1==NULL)&&(data2==NULL)) return 0;  //0 = equals
+	if ((data1==NULL)||(data2==NULL)) return 2;  //2 = one of the two data pointer is NULL
+				//assumption: if the pointer is not NULL then data has been initialized (ID field not NULL)
+
+	while ((data1->data_ID[i]==data2->data_ID[i])&&(data1->data_ID[i]!='\0')&&(data2->data_ID[i]!='\0')) {
+		i++;
+	}
+
+	if (data1->data_ID[i]==data2->data_ID[i]) {
+		return 0;	  //0 = equals
+	} else{
+		return 1;  //1 = data IDs are different
+	}
+}
+
+
+data_ptr data_copy (data_ptr data){ //copies the data but not the list of references to containers in which the original data was stored (scared of loops, or distributing references to the original object)
+	int i;
+	list_of_cont_ptr ptr_src, ptr_dst;
+
+	data_ptr dp = data_new(data->data_ID); //new data node
+
+/*	if (list_of_cont_length(data->contained) > 0) {
+		ptr_src = data->contained;
+		ptr_dst = list_of_cont_new();
+		dp->contained= ptr_dst;
+		while (ptr_src->next != NULL) {
+			ptr_dst->next=list_of_cont_new();
+			(ptr_dst->next)->prev = ptr_dst;
+			ptr_dst->cont=ptr_src->cont;
+			ptr_dst=ptr_dst->next;
+			ptr_src=ptr_src->next;
+		}
+		ptr_dst->cont=ptr_src->cont;
+	}
+*/
+	return dp;
+}
+
+cont_ptr data_share(data_ptr data1, data_ptr data2){
+	list_of_cont_ptr l1,l2;
+	if ((data1==NULL)||(data2==NULL)) return NULL;
+	l1=data1->contained;
+	l2=data2->contained;
+
+	while (l1!=NULL){
+		l2=data2->contained;
+		while (l2!=NULL){
+			if (cont_equals(l1->cont,l2->cont)==0) return cont_copy(l1->cont);
+			l2=l2->next;
+		}
+		l1=l1->next;
+	}
+	return NULL;
+}
+
+/*
+ *
+ */
+
+cont_ptr cont_new(char* cont_ID){
+	int i;
+	cont_ptr cp = (cont_ptr) malloc(sizeof(cont_t));
+	cp->cont_ID = (char* ) malloc (sizeof(char) * MAX_CONT_ID); //MAX_CONT_ID = size of the field (in char)
+	for (i=0; i<MAX_CONT_ID; i++){
+			cp->cont_ID[i]=cont_ID[i];
+		};
+	cp->contained = NULL;
+	return cp;
+}
+unsigned int cont_free(cont_ptr cont, int mode){
+  if (cont==NULL) return 2;
+
+  list_of_data_ptr lod;
+
+  if (mode>0){
+    lod=cont->contained;
+    while (lod!=NULL){
+      data_free(lod->data,mode-1);
+      lod=lod->next;
+    }
+  }
+
+  free(cont->cont_ID);
+  return 0;
+
+}
+
+
+cont_ptr cont_copy (cont_ptr cont){//copies the cont but not the list of data stored in the original container (scared of loops, or distributing references to the original object)
+	int i;
+	list_of_data_ptr ptr_src, ptr_dst;
+
+	cont_ptr cp = cont_new(cont->cont_ID); //new cont node
+
+/*	if (list_of_data_length(cont->contained) > 0) {
+		ptr_src = cont->contained;
+		ptr_dst = list_of_data_new();
+		cp->contained= ptr_dst;
+		while (ptr_src->next != NULL) {
+			ptr_dst->next=list_of_data_new();
+			(ptr_dst->next)->prev = ptr_dst;
+			ptr_dst->data=ptr_src->data;
+			ptr_dst=ptr_dst->next;
+			ptr_src=ptr_src->next;
+		}
+		ptr_dst->data=ptr_src->data;
+	}
+*/
+	return cp;
+}
+
+
+unsigned int cont_equals(cont_ptr cont1, cont_ptr cont2){  //by equals we mean "with the same ID". we don't look into the list of contained. otherwise we have to do the same for the containers and we fall into a loop.
+	int i=0;
+	if ((cont1==NULL)&&(cont2==NULL)) return 0;  //0 = equals
+	if ((cont1==NULL)||(cont2==NULL)) return 2;  //2 = one of the two cont pointer is NULL
+						//assumption: if the pointer is not NULL then cont has been initialized (ID field not NULL)
+	while ((cont1->cont_ID[i]==cont2->cont_ID[i])&&(cont1->cont_ID[i]!='\0')&&(cont2->cont_ID[i]!='\0')) {
+		i++;
+	}
+
+	if (cont1->cont_ID[i]==cont2->cont_ID[i]) {
+		return 0;	  //0 = equals
+	} else {
+		return 1;  //1 = cont IDs are different
+	}
+}
+
+data_ptr cont_share(cont_ptr cont1, cont_ptr cont2){
+	list_of_data_ptr l1,l2;
+	if ((cont1==NULL)||(cont2==NULL)) return NULL;
+	l1=cont1->contained;
+	l2=cont2->contained;
+
+	while (l1!=NULL){
+		l2=cont2->contained;
+		while (l2!=NULL){
+			if (data_equals(l1->data,l2->data)==0) return data_copy(l1->data);
+			l2=l2->next;
+		}
+		l1=l1->next;
+	}
+	return NULL;
+}
+
+
+/*
+ *
+ */
+
+list_of_data_ptr list_of_data_new(){
+	list_of_data_ptr lodp = (list_of_data_ptr) malloc (sizeof(list_of_data_t));
+	lodp->data = NULL;
+	lodp->prev = NULL;
+	lodp->next = NULL;
+	return lodp;
+}
+unsigned int list_of_data_free(list_of_data_ptr list_of_data, int mode){
+  list_of_data_ptr lod=list_of_data;
+  if (lod==NULL) {
+    free(list_of_data);
+    return 2;
+  }
+
+  while(lod!=NULL){
+    data_free(lod->data, mode-1);
+    lod=lod->next;
+  }
+
+  free(list_of_data);
+  return 0;
+
+}
+
+unsigned int list_of_data_length(list_of_data_ptr list_of_data){
+	unsigned int n;
+	list_of_data_ptr ptr;
+
+	n=0;
+	ptr=list_of_data;
+
+	if (ptr!=NULL) {
+		if (ptr->data==NULL) return 0;
+	}
+
+	while (ptr!=NULL){
+		ptr=ptr->next;
+		n++;
+	}
+
+	return n;
+}
+
+unsigned int list_of_data_add(list_of_data_ptr list_of_data, data_ptr data){
+	list_of_data_ptr ptr = list_of_data;
+
+
+	if (ptr != NULL) { 					//if list is not empty
+		if (data_equals(ptr->data,data)==0) { 		//check if data is the first element
+					return 1;   		//1 = element is already present in the list
+		}
+										//else go through the list
+		while (ptr->next!=NULL) {
+			if (data_equals(ptr->data, data)==0) {
+				return 1;   			//1 = element is already present in the list
+			}
+			ptr=ptr->next;
+		}
+	}
+										//if this point is reached, then the element is not present
+										//into the list or the list is empty
+	if (list_of_data==NULL){
+		list_of_data=list_of_data_new();
+		list_of_data->data=data;
+	} else {
+		if (list_of_data->data==NULL){
+			list_of_data->data=data;
+		}else{
+			ptr->next=list_of_data_new();
+			(ptr->next)->prev=ptr;
+
+			ptr=ptr->next;
+			ptr->data=data;
+		}
+	}
+
+	return 0; // OK, element added
+
+}
+
+unsigned int list_of_data_remove(list_of_data_ptr* list_of_data, data_ptr data, int mode){
+	list_of_data_ptr ptr = *list_of_data;
+	list_of_data_ptr tmp_ptr;
+
+	if (ptr==NULL) return 1;			//list is empty: element not found
+
+									//if list is not empty
+
+
+	if (data_equals(ptr->data,data)==0) {							//check if data is the first element
+
+		*list_of_data=(*list_of_data)->next;	//skip the first element   ************* to check
+
+		if ((*list_of_data)!=NULL) (*list_of_data)->prev=NULL;
+
+		if (mode==0) ptr->data=NULL;  //if mode==0 data is not deleted, only its reference
+
+		list_of_data_free(ptr,mode-1);				//free the memory
+		//free(ptr);
+
+		return 0;					   		//0 = element is deleted, correct execution
+
+
+	}
+									//else go through the list
+
+
+	while (ptr->next!=NULL) {
+		if ((ptr->next)->data == data) {
+			tmp_ptr=(ptr->next)->next;
+			ptr->next->next = NULL;
+			ptr->next->prev = NULL;
+
+			if (mode==0) (ptr->next)->data=NULL;	//if mode==0 data is not deleted, only its reference
+
+			list_of_data_free (ptr->next,mode-1);
+			//free (ptr->next);
+
+			ptr->next=tmp_ptr;
+			if (ptr->next!=NULL) ptr->next->prev=ptr;
+			return 0;   			//0 = element is deleted, correct execution
+		}
+		ptr=ptr->next;
+	}
+
+		return 1;   			//1 = element not found
+
+}
+
+data_ptr list_of_data_find(list_of_data_ptr list_of_data, char* data){
+	list_of_data_ptr ptr = list_of_data;
+	data_ptr tmp_ptr;
+
+	unsigned int n=0;
+
+	tmp_ptr=data_new(data);
+
+
+	/*
+	 * nullness checks for parameters
+	 */
+
+	if (ptr==NULL) return NULL;			//list is empty: element not found
+
+	if (data_equals(ptr->data,tmp_ptr)==0)	{
+		data_free(tmp_ptr,1);
+		//free(tmp_ptr);
+		return ptr->data; //check if data is the first element
+	}
+
+									//else go through the list
+	while (ptr->next!=NULL) {
+		n++;
+		if (data_equals((ptr->next)->data,tmp_ptr)==0) {
+			data_free(tmp_ptr,1);
+			//free(tmp_ptr);
+			return ptr->next->data; //check if data is the first element
+		}
+		ptr=ptr->next;
+	}
+		return NULL;   			//element not found
+}
+
+
+list_of_data_ptr list_of_data_append (list_of_data_ptr list_of_data_1, list_of_data_ptr list_of_data_2){
+	list_of_data_ptr lod= list_of_data_new();
+	if (list_of_data_1!=NULL){
+		while (list_of_data_1->next!=NULL) {
+			list_of_data_add(lod, list_of_data_1->data);
+			list_of_data_1=list_of_data_1->next;
+		}
+		list_of_data_add(lod, list_of_data_1->data);
+	}
+	if (list_of_data_2!=NULL){
+		while (list_of_data_2->next!=NULL) {
+			list_of_data_add(lod, list_of_data_2->data);
+			list_of_data_2=list_of_data_2->next;
+		}
+		list_of_data_add(lod, list_of_data_2->data);
+
+	}
+	return lod;
+}
+
+/*
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
+list_of_cont_ptr list_of_cont_new(){
+	list_of_cont_ptr locp= (list_of_cont_ptr) malloc (sizeof(list_of_cont_t));
+	locp->cont = NULL;
+	locp->prev = NULL;
+	locp->next = NULL;
+	return locp;
+}
+unsigned int list_of_cont_free(list_of_cont_ptr list_of_cont, int mode){
+  list_of_cont_ptr loc=list_of_cont;
+  if (loc==NULL) {
+    free(list_of_cont);
+    return 2;
+  }
+
+  while(loc!=NULL){
+    cont_free(loc->cont, mode-1);
+    loc=loc->next;
+  }
+
+  free(list_of_cont);
+  return 0;
+};
+
+unsigned int list_of_cont_length(list_of_cont_ptr list_of_cont){
+	unsigned int n;
+	list_of_cont_ptr ptr;
+
+	n=0;
+	ptr=list_of_cont;
+
+	if (ptr!=NULL){
+		if (ptr->cont==NULL) return 0;
+	}
+
+	while (ptr!=NULL){
+		ptr=ptr->next;
+		n++;
+	}
+	return n;
+}
+
+unsigned int list_of_cont_add (list_of_cont_ptr list_of_cont, cont_ptr cont){
+	list_of_cont_ptr ptr = list_of_cont;
+
+	if (ptr != NULL) { 	//if list is not empty
+
+		if (cont_equals(ptr->cont,cont)==0) { 		//check if cont is the first element
+
+				return 1;   		//1 = element is already present in the list
+		}
+										//else go through the list
+		while (ptr->next!=NULL) {
+			if (cont_equals(ptr->cont,cont)==0) {
+
+				return 1;   			//1 = element is already present in the list
+			}
+			ptr=ptr->next;
+		}
+	}
+										//if this point is reached, then the element is not present
+										//into the list or the list is empty
+	if (list_of_cont==NULL){
+
+		list_of_cont=list_of_cont_new();
+		list_of_cont->cont=cont;
+	} else {
+		if (list_of_cont->cont==NULL){
+
+			list_of_cont->cont=cont;
+		}else{
+
+
+			ptr->next=list_of_cont_new();
+			(ptr->next)->prev=ptr;
+
+			ptr=ptr->next;
+			ptr->cont=cont;
+		}
+	}
+
+	return 0; // OK, element added
+
+}
+
+unsigned int list_of_cont_remove(list_of_cont_ptr* list_of_cont, cont_ptr cont, int mode){
+	list_of_cont_ptr ptr = *list_of_cont;
+	list_of_cont_ptr tmp_ptr;
+
+	if (ptr==NULL) return 1;			//list is empty: element not found
+										//if list is not empty
+	if (cont_equals(ptr->cont,cont)==0) {							//check if cont is the first element
+
+			(*list_of_cont)=(*list_of_cont)->next;	//skip the first element
+
+			if ((*list_of_cont)!=NULL) (*list_of_cont)->prev=NULL;  //if the list was composed by more than 1 element, let's set the prev point of the former second element (now first) to null
+
+			if (mode==0) ptr->cont=NULL;		//if mode==0 then the container is not deleted
+
+			list_of_cont_free(ptr, mode-1);				//free the memory
+			//free(ptr);
+
+			return 0;					   		//0 = element is deleted, correct execution
+	}
+									//else go through the list
+
+	while (ptr->next!=NULL) {
+		if ((ptr->next)->cont == cont) {
+			tmp_ptr=(ptr->next)->next;
+			ptr->next->next = NULL;
+			ptr->next->prev = NULL;
+
+			if (mode==0) (ptr->next)->cont=NULL;		//if mode==0 the container is not deleted, only its reference
+
+			list_of_cont_free (ptr->next,mode-1);
+			//free(ptr->next);
+
+			ptr->next=tmp_ptr;
+			if (ptr->next!=NULL) ptr->next->prev=ptr;
+			return 0;   			//0 = element is deleted, correct execution
+		}
+		ptr=ptr->next;
+	}
+
+		return 1;   			//1 = element not found
+
+}
+
+
+
+cont_ptr list_of_cont_find(list_of_cont_ptr list_of_cont, char* cont){
+	int i=0;
+	list_of_cont_ptr ptr = list_of_cont;
+	cont_ptr tmp_ptr;
+
+	tmp_ptr=cont_new(cont);
+
+
+	/*
+	 * nullness checks for parameters
+	 */
+
+
+	if (ptr==NULL) return NULL;			//list is empty: element not found
+
+	if (cont_equals(ptr->cont,tmp_ptr)==0)	{
+		cont_free(tmp_ptr, 1);
+		//free(tmp_ptr);
+		return ptr->cont; //check if cont is the first element
+	}
+
+									//else go through the list
+
+
+
+	while (ptr->next!=NULL) {
+		if (cont_equals((ptr->next)->cont,tmp_ptr)==0) {
+			cont_free(tmp_ptr,1);
+			//free(tmp_ptr);
+			return ptr->next->cont; //check if cont is the first element
+		}
+
+		ptr=ptr->next;
+	}
+
+
+
+	return NULL;   			//NULL = element not found
+}
+
+
+
+list_of_cont_ptr list_of_cont_append (list_of_cont_ptr list_of_cont_1, list_of_cont_ptr list_of_cont_2){
+	list_of_cont_ptr lod= list_of_cont_new();
+	if (list_of_cont_1!=NULL){
+		while (list_of_cont_1->next!=NULL) {
+			list_of_cont_add(lod, list_of_cont_1->cont);
+			list_of_cont_1=list_of_cont_1->next;
+		}
+		list_of_cont_add(lod, list_of_cont_1->cont);
+	}
+	if (list_of_cont_2!=NULL){
+		while (list_of_cont_2->next!=NULL) {
+			list_of_cont_add(lod, list_of_cont_2->cont);
+			list_of_cont_2=list_of_cont_2->next;
+		}
+		list_of_cont_add(lod, list_of_cont_2->cont);
+
+	}
+	return lod;
+}
+
+
+
+/*
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
+
+
+
+
+
+dataCont_ptr dataCont_new(){
+	int i;
+	dataCont_ptr dcp= (dataCont_ptr) malloc (sizeof(dataCont_t));
+
+
+	dcp->data_ID_counter = (char*) malloc (sizeof(char) * (MAX_DATA_ID));
+	for (i=1; i<(MAX_DATA_ID - 1); i++){
+		dcp->data_ID_counter[i]='0';
+	}
+	dcp->data_ID_counter[0]='D';
+	dcp->data_ID_counter[(MAX_DATA_ID - 1)]='\0';
+
+	dcp->cont_ID_counter = (char*) malloc (sizeof(char) * (MAX_CONT_ID));
+	for (i=1; i< (MAX_CONT_ID-1); i++){
+		dcp->cont_ID_counter[i]='0';
+	}
+	dcp->cont_ID_counter[0]='C';
+	dcp->cont_ID_counter[(MAX_CONT_ID - 1)]='\0';
+
+	dcp->cont = list_of_cont_new();
+	dcp->data = list_of_data_new();
+
+	dcp->cont_alias = cont_alias_new();
+
+	return dcp;
+}
+
+unsigned int dataCont_free(dataCont_ptr dataCont){
+
+}
+
+
+/*
+ *
+ */
+
+
+char* dataCont_getNewContID(dataCont_ptr dataCont){
+	int i;
+	char* id = (char *) malloc (sizeof(char) * MAX_CONT_ID);
+
+	for (i=0; i<MAX_CONT_ID; i++) id[i]=dataCont->cont_ID_counter[i];
+
+	dataCont->cont_ID_counter[MAX_CONT_ID - 2]++; //MAX NUM OF CONTAINERS = 10; ***********************************************
+
+	return id;
+}
+
+char* dataCont_getNewDataID(dataCont_ptr dataCont){
+	int i;
+	char* id = (char *) malloc (sizeof(char) * MAX_DATA_ID);
+
+	for (i=0; i<MAX_DATA_ID; i++) id[i]=dataCont->data_ID_counter[i];
+
+	dataCont->data_ID_counter[MAX_CONT_ID - 2]++; //MAX NUM OF CONTAINERS = 10; ***********************************************
+
+	return id;
+}
+
+
+unsigned int dataCont_updateContIDCounter(dataCont_ptr dataCont, char* cont_ID){
+	/*
+	 * TO BE IMPLEMENTED
+
+	if (dataCont->cont_ID_counter[MAX_CONT_ID - 2]<cont_ID[MAX_CONT_ID - 2]){
+		dataCont->cont_ID_counter[MAX_CONT_ID - 2]=cont_ID[MAX_CONT_ID - 2];
+	}
+	*/
+	return 0;
+
+}
+
+unsigned int dataCont_updateDataIDCounter(dataCont_ptr dataCont, char* data_ID){
+	/*
+	 * TO BE IMPLEMENTED
+	 */
+
+	if (dataCont->data_ID_counter[MAX_DATA_ID - 2]<data_ID[MAX_DATA_ID - 2]){
+		dataCont->data_ID_counter[MAX_DATA_ID - 2]=data_ID[MAX_DATA_ID - 2];
+	}
+	return 0;
+
+}
+
+
+unsigned int dataCont_newCont(dataCont_ptr dataCont, char* cont_ID){
+	cont_ptr cp;
+
+
+	if ((cont_ID!=NULL)&&(list_of_cont_find(dataCont->cont,cont_ID)==NULL)){
+		cp = cont_new(cont_ID);
+		dataCont_updateContIDCounter(dataCont, cont_ID);
+
+		list_of_cont_add (dataCont->cont, cp);
+
+		return 0; 					//OK
+	} else return 1;				//cont_ID == NULL
+
+}
+
+
+unsigned int dataCont_newData(dataCont_ptr dataCont, char* data_ID){
+	data_ptr dp;
+	if (data_ID!=NULL){
+		dp = data_new(data_ID);
+		dataCont_updateDataIDCounter(dataCont, data_ID);
+
+		list_of_data_add (dataCont->data, dp);
+		return 0; 					//OK
+	} else return 1;				//data_ID == NULL
+}
+
+
+
+unsigned int dataCont_appendContent(dataCont_ptr dataCont, char* cont_src, char* cont_dst){
+
+  if ((cont_src==NULL)||(cont_dst==NULL)) return 2;
+
+  list_of_data_ptr lod=NULL;
+  cont_ptr src=list_of_cont_find(dataCont->cont, cont_src);
+  cont_ptr dst=list_of_cont_find(dataCont->cont, cont_dst);;
+
+
+  if ((src==NULL)) return 1;
+  if (dst==NULL){
+    dataCont_newCont(dataCont, cont_dst);
+    dst=list_of_cont_find(dataCont->cont, cont_dst);
+  }
+
+  lod=src->contained;
+
+  while (lod!=NULL){
+    dataCont_addDataCont(dataCont, (lod->data->data_ID), cont_dst);
+    lod=lod->next;
+  }
+
+  return 0;
+
+}
+
+
+unsigned int dataCont_addDataCont(dataCont_ptr dataCont, char* data, char* cont){
+	/*
+	 * checks for nullness of parameters
+	 *
+	 */
+
+
+
+  if (cont==NULL) return 2;
+
+  dataCont_newCont(dataCont, cont);
+
+  if (data==NULL) return 1;
+
+
+	unsigned int result=0;
+	data_ptr d = list_of_data_find(dataCont->data, data);   // retrieve the pointer to the element (if  present)
+
+	cont_ptr c = list_of_cont_find(dataCont->cont, cont);	// retrieve the pointer to the element (if  present)
+
+
+
+
+
+	if ((d==NULL)||(c==NULL)) {
+		if (d==NULL){
+			dataCont_newData(dataCont, data);
+			d = list_of_data_find(dataCont->data, data);   // retrieve the pointer to the element (if  present)
+		}
+		if (c==NULL){
+			dataCont_newCont(dataCont, cont);
+			c = list_of_cont_find(dataCont->cont, cont);	// retrieve the pointer to the element (if  present)
+		}
+		result = 1;   //1 = error
+	}
+
+
+	if (d->contained==NULL)	d->contained = list_of_cont_new();
+	if (c->contained==NULL)	c->contained = list_of_data_new();
+
+
+	if (list_of_cont_find(d->contained,cont)==NULL) {
+
+	  result = result + list_of_cont_add(d->contained, c);
+	}
+
+	if (list_of_data_find(c->contained,data)==NULL){
+
+	  result = result + list_of_data_add(c->contained, d);
+	}
+
+	if (result != 0) result =1; //1 error
+	return result;
+
+}
+
+unsigned int dataCont_delDataCont(dataCont_ptr dataCont, char* data, char* cont) {
+	/*
+	 * checks for nullness of parameters
+	 *
+	 */
+
+	unsigned int result=0;
+
+	data_ptr d = list_of_data_find(dataCont->data, data);
+	cont_ptr c = list_of_cont_find(dataCont->cont, cont);
+
+
+
+	if ((d==NULL)||(c==NULL)) return 1;   //1 = one of the elements does not exists
+
+	result = result + list_of_data_remove(&(c->contained), d, 0);
+
+	result = result + list_of_cont_remove(&(d->contained), c, 0);   //delete the link from data to container
+
+	/*
+	 *
+	 * if data has no other references, then data has to be deleted
+	 *
+	 */
+	if (list_of_cont_length(d->contained)==0) {
+		list_of_data_remove (&(dataCont->data), d, 1);
+		data_free(d,0);
+	}
+
+
+	if (result != 0) result =1; //1 error
+	return result;
+
+}
+
+
+
+unsigned int dataCont_removeCont(dataCont_ptr dataCont, char* cont){
+
+  if (cont==NULL) return 2;
+
+  cont_ptr c=list_of_cont_find(dataCont->cont, cont);
+  if (c==NULL) return 1;
+
+  list_of_data_ptr lod= c->contained;
+
+  while (lod!=NULL){
+    list_of_data_remove(&(c->contained), lod->data, 0);
+    lod=lod->next;
+  }
+
+  list_of_cont_remove(&(dataCont->cont), c, 0);
+
+  return 1;
+}
+
+
+list_of_data_ptr dataCont_getDataIn(dataCont_ptr dataCont, char* cont_ID){
+	cont_ptr c=list_of_cont_find(dataCont->cont, cont_ID);
+	data_ptr d;
+	list_of_data_ptr list,tmp;
+	if (c==NULL) return NULL;
+
+	tmp=c->contained;
+	list=list_of_data_new();
+
+	while (tmp!=NULL){
+		d=data_copy(tmp->data);
+		list_of_data_add(list, d);
+		tmp=tmp->next;
+	}
+
+	return list;
+}
+
+
+
+
+list_of_cont_ptr dataCont_getContOf(dataCont_ptr dataCont, char* cont_ID){
+	data_ptr d=list_of_data_find(dataCont->data, cont_ID);
+	cont_ptr c;
+	list_of_cont_ptr list,tmp;
+	if (d==NULL) return NULL;
+
+	tmp=d->contained;
+	list=list_of_cont_new();
+
+	while (tmp!=NULL){
+		c=cont_copy(tmp->cont);
+		list_of_cont_add(list, c);
+		tmp=tmp->next;
+	}
+	return list;
+}
+
+
+
+data_ptr dataCont_cont_share(dataCont_ptr dataCont, char* cont1, char* cont2){
+	cont_ptr c1=list_of_cont_find(dataCont->cont,cont1);
+	cont_ptr c2=list_of_cont_find(dataCont->cont,cont2);
+	return cont_share(c1,c2);
+}
+
+cont_ptr dataCont_data_share(dataCont_ptr dataCont, char* data1, char* data2){
+	data_ptr d1=list_of_data_find(dataCont->data,data1);
+	data_ptr d2=list_of_data_find(dataCont->data,data2);
+	return data_share(d1,d2);
+}
+
+
+
+unsigned int dataCont_addInitialCont(dataCont_ptr dataCont, char* contID){
+  char * dataID=NULL;
+  if (list_of_cont_find(dataCont->cont, contID)==NULL){
+    //dataID=dataCont_getNewDataID(dataCont);
+    //dataID = (char *) malloc (sizeof(char) * (strlen(contID)+5));
+    //sprintf (dataID,"INIT-%s",contID);
+
+    printf ("cont=%s\n", contID);
+    dataCont_addDataCont(dataCont, dataID, contID);
+    dataCont_print(dataCont,1);
+    return 1;
+  }
+
+  return 0;
+}
+
+
+
+unsigned int dataCont_addAlias(dataCont_ptr dataCont, char* cont){
+
+}
+
+
+/************************************************************************
+ *
+ *
+ */
+
+
+
+cont_alias_ptr cont_alias_new(){
+  cont_alias_ptr cap=(cont_alias_ptr) malloc (sizeof(cont_alias_t));
+  cap->cont=NULL;
+  cap->alias=NULL;
+  cap->next=NULL;
+  return cap;
+}
+
+
+cont_alias_ptr cont_alias_find(cont_alias_ptr cont_alias, char* cont){
+  if ((cont_alias==NULL)||(cont==NULL)) return NULL;
+
+  cont_alias_ptr cap=cont_alias;
+
+  while (cap!=NULL){
+    if (strcmp(cap->cont,cont)==0) return cap;
+    cap=cap->next;
+  }
+  return NULL;
+
+}
+
+
+unsigned int cont_alias_add(cont_alias_ptr cont_alias, char* cont, char* alias){ //from cont to alias
+  if ((cont_alias==NULL)||(cont==NULL)||(alias==NULL)) return 2;
+
+  cont_alias_ptr tmp, ins_point;
+  cont_alias_list_ptr list;
+  ins_point=cont_alias_find(cont_alias,cont);  //look for the node containing the list of alias for cont
+
+  if (ins_point==NULL){ //if it doesn't exist, create a new node at the end of the current list
+    tmp=cont_alias;
+    while (tmp->next!=NULL) tmp=tmp->next;
+
+    tmp->next=cont_alias_new();
+    tmp=tmp->next;
+    tmp->cont=(char *) malloc (sizeof(char) * strlen(cont)+1);
+    tmp->cont[strlen(cont)]='\0';
+    strcpy (tmp->cont,cont);
+    ins_point=tmp;
+  }
+
+  //now check if the alias is already present
+
+  list=ins_point->alias;
+
+  while(list!=NULL){
+    if (strcmp(list->cont,alias)==0) return 1;
+    list=list->next;
+  }
+
+  //if not present, we add it
+  if (ins_point->alias==NULL){  //first position (empty list)
+    ins_point->alias=(cont_alias_list_ptr) malloc (sizeof(cont_alias_list_t));
+    ins_point->alias->next=NULL;
+    ins_point->alias->cont=(char*)malloc(sizeof(char)*(strlen(alias)+1));
+    ins_point->alias->cont[strlen(alias)]='\0';
+  } else {  //end of the list
+    list=ins_point->alias;
+    while(list->next!=NULL){
+      list=list->next;
+    }
+    list->next=(cont_alias_list_ptr) malloc (sizeof(cont_alias_list_t));
+    list=list->next;
+    list->next=NULL;
+    list->cont=(char*)malloc(sizeof(char)*(strlen(alias)+1));
+    list->cont[strlen(alias)]='\0';
+  }
+
+  return 0;
+}
+
+unsigned int cont_alias_remove(cont_alias_ptr cont_alias, char* cont, char* alias){
+  if ((cont_alias==NULL)||(cont==NULL)||(alias==NULL)) return 2;
+
+  cont_alias_ptr tmp, ins_point;
+  cont_alias_list_ptr list, tmp;
+  ins_point=cont_alias_find(cont_alias,cont);  //look for the node containing the list of alias for cont
+
+  if (ins_point==NULL){ //if it doesn't exist, ok
+    return 1;
+  }
+
+  //now check if the alias is already present
+
+  list=ins_point->alias;
+
+  if (list==NULL) return 1;
+
+  if (strcmp(list->cont,alias)==0) {
+    ins_point->alias=list->next;
+    list->next=NULL;
+    free(list->cont);
+    return 0;
+  }
+
+  while(list->next!=NULL){
+    if (strcmp(list->next->cont,alias)==0) {
+      tmp=list->next->next;
+      list->next->next=NULL;
+      free (list->next->cont);
+      list->next=tmp;
+      return 0;
+    }
+    list=list->next;
+  }
+
+  return 1;
+}
+
+
+
+
+
+
+
+/*******************************************************************************
+
+									PRINT FUNCTIONS
+
+*******************************************************************************/
+
+
+
+
+
+
+void list_of_cont_print(list_of_cont_ptr loc, int mode){
+	list_of_data_ptr lod=NULL;
+
+	printf("\n");
+	if (list_of_cont_length(loc)==0){
+		printf ("Empty list!\n");
+	} else {
+		while (list_of_cont_length(loc)>0){
+			if (mode==0){
+				printf ("|%08x|%08x|%08x|\n",loc->prev,loc,loc->next);
+				printf ("|  <---  |  %s  |  --->  |    ",(loc->cont)->cont_ID);
+			} else{
+				printf ("%s ",(loc->cont)->cont_ID);
+			}
+
+			lod=(loc->cont)->contained;
+
+			if (mode==0){
+				printf ("-> (%d)  :   ", list_of_data_length(lod));
+			}else{
+				if (mode==1){
+					printf ("-> (%d) ", list_of_data_length(lod));
+				}
+			}
+			while (list_of_data_length(lod)> 0){
+				printf("%s ", (lod->data)->data_ID);
+				lod=lod->next;
+			}
+			if (mode==0 && loc->next!=NULL){
+				printf (";\n\n             |   \n");
+				printf ("             V   \n\n");
+			} else {
+				if (mode==1) {
+					printf (";\n");
+				} else{
+					printf (" ");
+				}
+			}
+
+			loc=loc->next;
+		}
+
+		printf ("\n\n\n");
+	}
+}
+
+
+
+void list_of_data_print(list_of_data_ptr lod, int mode){
+	list_of_cont_ptr loc=NULL;
+
+	printf("\n");
+	if (list_of_data_length(lod)==0){
+		printf ("Empty list!\n");
+	} else {
+		while (list_of_data_length(lod)>0){
+			if (mode==0){
+				printf ("|%08x|%08x|%08x|\n",lod->prev,lod,lod->next);
+				printf ("|  <---  |  %s  |  --->  |    ",(lod->data)->data_ID);
+			} else{
+				printf ("%s ",(lod->data)->data_ID);
+			}
+			loc=(lod->data)->contained;
+			if (mode==0){
+				printf ("-> (%d)  :   ", list_of_cont_length(loc));
+			}else{
+				if (mode==1) {
+					printf ("-> (%d) ", list_of_cont_length(loc));
+				}
+			}
+			while (list_of_cont_length(loc)> 0){
+				printf("%s ", (loc->cont)->cont_ID);
+				loc=loc->next;
+			}
+			if (mode==0 && lod->next!=NULL){
+				printf (";\n\n             |   \n");
+				printf ("             V   \n\n");
+			} else {
+				if (mode==1){
+					printf (";\n");
+				}
+				else {
+					printf (" ");
+				}
+			}
+			lod=lod->next;
+		}
+		printf ("\n\n");
+		printf ("===============================================================\n");
+
+	}
+}
+
+
+void cont_alias_print(cont_alias_ptr cont_alias){
+  cont_alias_list_ptr list;
+  cont_alias_ptr tmp;
+
+
+  if (cont_alias==NULL){
+    printf ("\nNo Alias!\n");
+  } else {
+    printf ("\n\nALIAS : \n");
+    tmp=cont_alias;
+    while (tmp!=NULL){
+      printf ("%s >>> {",tmp->cont);
+      list=tmp->alias;
+      while (list!=NULL){
+        printf ("%s ",list->cont);
+        list=list->next;
+      }
+      printf("}\n");
+      tmp=tmp->next;
+    }
+    printf("\n\n");
+
+  }
+
+}
+
+void dataCont_print(dataCont_ptr dataCont, int mode){
+	list_of_cont_ptr loc= dataCont->cont;
+	list_of_data_ptr lod= dataCont->data;
+
+//	list_of_data_print(lod,mode);
+	list_of_cont_print(loc,mode);
+
+	cont_alias_print(dataCont->cont_alias);
+
+}
+
+
+
+
+
+
+
+/*
+int main(){
+	dataCont_ptr dc = dataCont_new();
+	list_of_cont_ptr loc=NULL;
+	list_of_cont_ptr loc2=NULL;
+	list_of_data_ptr lod=NULL;
+	list_of_data_ptr lod2=NULL;
+	data_ptr dp=NULL;
+	cont_ptr cp=NULL;
+	char* c0, *c1, *c2, *c3, *c4, *d0, *d1, *d2, *d3;
+
+	d0 = dataCont_getNewDataID(dc);
+	d1 = dataCont_getNewDataID(dc);
+	d2 = dataCont_getNewDataID(dc);
+	d3 = dataCont_getNewDataID(dc);
+
+	c0 = dataCont_getNewContID(dc);
+	c1 = dataCont_getNewContID(dc);
+	c2 = dataCont_getNewContID(dc);
+	c3 = dataCont_getNewContID(dc);
+	c4 = dataCont_getNewContID(dc);
+
+
+	printf ("c0 (%x) = %s\n",c0,c0);
+	printf ("c1 (%x) = %s\n",c1,c1);
+	printf ("c2 (%x) = %s\n",c2,c2);
+	printf ("c3 (%x) = %s\n\n",c3,c3);
+
+	printf ("d0 (%x) = %s\n",d0,d0);
+	printf ("d1 (%x) = %s\n",d1,d1);
+	printf ("d2 (%x) = %s\n",d2,d2);
+	printf ("d3 (%x) = %s\n",d3,d3);
+
+	printf ("\n////////\n\n");
+
+
+
+	dataCont_print(dc,1);
+
+	printf ("----\n\n");
+
+	dataCont_newData(dc, d0);
+	dataCont_newData(dc, d1);
+	dataCont_newData(dc, d2);
+	dataCont_newData(dc, d3);
+	dataCont_newCont(dc, c0);
+	dataCont_newCont(dc, c1);
+	dataCont_newCont(dc, c2);
+	dataCont_newCont(dc, c3);
+
+	dataCont_print(dc,1);
+
+	printf ("----\n\n");
+
+	dataCont_addDataCont (dc, d0, c0);
+	dataCont_addDataCont (dc, d1, c1);
+	dataCont_addDataCont (dc, d1, c1);
+	dataCont_addDataCont (dc, d3, c2);
+	dataCont_addDataCont (dc, d1, c1);
+	dataCont_addDataCont (dc, d3, c2);
+	dataCont_addDataCont (dc, d2, c3);
+	dataCont_addDataCont (dc, d2, c1);
+	dataCont_addDataCont (dc, d2, c2);
+	dataCont_addDataCont (dc, d3, c3);
+
+	dataCont_print(dc,1);
+
+	printf ("----\n\n\n\n\n");
+
+
+
+	dataCont_delDataCont (dc, d1, c0);
+	printf("####################\n");
+	printf("## DELETE D1 - C0 ##\n");
+	printf("####################\n");
+	dataCont_print(dc,1);
+	getchar();
+
+
+	dataCont_delDataCont (dc, d3, c2);
+	printf("####################\n");
+	printf("## DELETE D3 - C2 ##\n");
+	printf("####################\n");
+	dataCont_print(dc,1);
+	getchar();
+
+
+	dataCont_delDataCont (dc, d3, c2);
+	printf("####################\n");
+	printf("## DELETE D3 - C2 ##\n");
+	printf("####################\n");
+	dataCont_print(dc,1);
+	getchar();
+
+
+	dataCont_delDataCont (dc, d3, c3);
+	printf("####################\n");
+	printf("## DELETE D3 - C3 ##\n");
+	printf("####################\n");
+	dataCont_print(dc,1);
+	getchar();
+
+
+	dataCont_addDataCont (dc, d3, c3);
+	printf("####################\n");
+	printf("##  add  D3 - C3  ##\n");
+	printf("####################\n");
+	dataCont_print(dc,1);
+	getchar();
+
+
+	lod=dataCont_getDataIn (dc, c0);
+	printf("####################\n");
+	printf("##   DATA IN C3   ##\n");
+	printf("####################\n");
+	list_of_data_print(lod,2);
+	getchar();
+
+
+	lod2=dataCont_getDataIn (dc, c0);
+	printf("####################\n");
+	printf("##   DATA IN C1   ##\n");
+	printf("####################\n");
+	list_of_data_print(lod2,2);
+	getchar();
+
+
+	printf("####################\n");
+	printf("##   D0   e   D1  ##\n");
+	printf("####################\n");
+	cp=dataCont_data_share(dc,d0,d1);
+	if (cp==NULL){
+		printf ("They share no container! \n");
+	} else {
+		printf ("They share container %s! \n", cp->cont_ID);
+	}
+	getchar();
+
+	printf("####################\n");
+	printf("##   D1   e   D2  ##\n");
+	printf("####################\n");
+	cp=dataCont_data_share(dc,d1,d2);
+	if (cp==NULL){
+		printf ("They share no container! \n");
+	} else {
+		printf ("They share container %s! \n", cp->cont_ID);
+	}
+	getchar();
+
+
+	printf("####################\n");
+	printf("##   D2   e   D3  ##\n");
+	printf("####################\n");
+	cp=dataCont_data_share(dc,d2,d3);
+	if (cp==NULL){
+		printf ("They share no container! \n");
+	} else {
+		printf ("They share container %s! \n", cp->cont_ID);
+	}
+	getchar();
+
+
+
+//
+//
+//
+//	loc=dataCont_getContOf (dc, d2);
+//	printf("####################\n");
+//	printf("##   CONT OF D2   ##\n");
+//	printf("####################\n");
+//	list_of_cont_print(loc,2);
+//	getchar();
+
+
+
+	return 0;
+}
+*/
