@@ -1,5 +1,4 @@
-#SUBDIRS = logger utilities trust_manager attestation_service event dataCont control_monitor past_monitor shell_wrapper syscall_handler 
-SUBDIRS = logger utilities event dataCont control_monitor past_monitor shell_wrapper syscall_handler 
+SUBDIRS = logger utilities event dataCont control_monitor past_monitor shell_wrapper
 
 all: subdirs
 subdirs:
