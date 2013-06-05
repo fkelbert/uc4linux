@@ -14,7 +14,7 @@ void free_event(event_t* event) {
 			free(event->event_name);
 
 		}
-		if (event->n_params != NULL) {
+		if (event->n_params != 0) {
 			for (k = 0; k < event->n_params; k++) {
 				//plog(LOG_TRACE, "---->>>>> param[%i]=%s value=%s", event->params[k].param_name,event->params[k].param_value);
 				if (event->params[k].param_name != NULL)
