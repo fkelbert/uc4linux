@@ -1,20 +1,22 @@
 CC = gcc
 
-CFLAGS = \
+CFLAGS = -std=gnu99 \
+  -Wall \
   -I. \
-  -I/usr/local/include \
+  -I/usr/include \
   -I../event \
   -I../logger \
   -I../utilities \
   -I../utilities/libpbl \
   -I../dataCont \
-  -I/usr/local/include/libxml2 \
-  -I/usr/local/include/libsoup-2.4 \
-  -I/usr/local/include/libxml2/libxml \
+  -I/usr/include/libxml2 \
+  -I/usr/include/libsoup-2.4 \
+  -I/usr/include/libxml2/libxml \
   -I../control_monitor \
-  -I/usr/local/include/glib-2.0 \
-  -I/usr/local/lib/glib-2.0/include \
-  -I/usr/local/include/libxml2
+  -I/usr/include/glib-2.0 \
+  -I/usr/lib/glib-2.0/include \
+  -I/usr/include/libxml2 \
+  -I/usr/lib/i386-linux-gnu/glib-2.0/include
 
 OBJ_UTILS = \
 	../event/event.o \
@@ -37,7 +39,7 @@ OBJ_UTILS = \
 
 
 LIBS = \
-  -L/usr/local/lib \
+  -L/usr/lib \
   -L/usr/X11R6/lib \
   -lm \
   -lsoup-2.4 \
@@ -49,7 +51,8 @@ LIBS = \
   -lpthread \
 #  -ltspi
   
-all: past_parser.tab.c past_parser.tab.o lex.yy.c lex.yy.o past_monitor.o past_monitor_demo
+#all: past_parser.tab.c past_parser.tab.o lex.yy.c lex.yy.o past_monitor.o past_monitor_demo
+all: past_parser.tab.c past_parser.tab.o lex.yy.c lex.yy.o past_monitor.o
 
 past_parser.tab.c: past_parser.y
 	bison -d past_parser.y
@@ -66,8 +69,8 @@ lex.yy.o: lex.yy.c
 past_monitor.o: past_monitor.c past_monitor.h
 	$(CC) $(CFLAGS)  -c past_monitor.c -o past_monitor.o
 
-past_monitor_demo: past_monitor_demo.o $(OBJ_UTILS) lex.yy.o past_monitor.o
-	$(CC) $(CFLAGS)  $(LIBS) \
+#past_monitor_demo: past_monitor_demo.o $(OBJ_UTILS) lex.yy.o past_monitor.o
+#	$(CC) $(CFLAGS)  $(LIBS) \
 	past_monitor_demo.o -o past_monitor_demo $(OBJ_UTILS) lex.yy.o past_parser.tab.o past_monitor.o -ly -lfl -lm ../utilities/libpbl/libpbl.a
 
 	

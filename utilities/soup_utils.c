@@ -13,8 +13,6 @@ int is_initialized = 0;
 void init_glib() {
 	if (!is_initialized) {
 		plog(LOG_TRACE, "Initializing Glib");
-		g_thread_init (NULL);
-		g_type_init ();
 		is_initialized = 1;
 	}
 }

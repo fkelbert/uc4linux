@@ -1,7 +1,7 @@
 CC = gcc
 
 CFLAGS = -std=gnu99 \
-  -Wall -W \
+  -Wall \
   -I. \
   -I../logger \
   -I../utilities \

@@ -8,7 +8,7 @@
 #define _soup_utils_h
 
 #include <string.h>
-#include <pthread.h>
+#include <glib-object.h>
 #include <stdlib.h>
 #include <libsoup/soup.h>
 
