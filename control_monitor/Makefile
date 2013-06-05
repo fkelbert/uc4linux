@@ -1,6 +1,9 @@
 CC = gcc
 
-CFLAGS = -Wall \
+# TODO: remove -Wno-pointer-sign and fix all warnings
+CFLAGS = -std=gnu90 \
+  -Wall \
+  -Wno-pointer-sign \
   -I. \
   -I../event \
   -I../logger \
@@ -9,11 +12,11 @@ CFLAGS = -Wall \
   -I../past_monitor \
   -I../control_monitor \
   -I../dataCont \
-  -I/usr/local/include \
-  -I/usr/local/include/glib-2.0 \
-  -I/usr/local/lib/glib-2.0/include \
-  -I/usr/local/include/libsoup-2.4 \
-  -I/usr/local/include/libxml2
+  -I/usr/include \
+  -I/usr/include/glib-2.0 \
+  -I/usr/lib/glib-2.0/include \
+  -I/usr/include/libsoup-2.4 \
+  -I/usr/include/libxml2
 
 OBJ_UTILS = \
 	../logger/logger.o \

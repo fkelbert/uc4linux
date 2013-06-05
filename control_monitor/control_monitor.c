@@ -75,8 +75,7 @@ int add_mechanism(char *id, event_t* trigger, char *condition, mechanism_actions
 	mechanism_t* p_mechanism;
 	event_t* p_trigger;
 	mechanism_actions_t *p_actions;
-	int n_actions, i ,j, nr;
-	char *tmpid;
+	int n_actions, i ,j;
 
 	plog(LOG_INFO, "- Adding new control mechanism [%s]", id);
 	plog(LOG_INFO, "  trigger=[%s]", trigger->event_name);
@@ -323,12 +322,10 @@ void reset_mechanism(char *id) {
 	//if mechanism exists, resets mechanism condition
 	// state and mechanism activation time
 	entry_t *entry;
-	mechanism_t *p_mechanism;
 	plog(LOG_DEBUG, "Reseting mechanism [%s]", id);
 	// pthread_mutex_lock(&mtx);
 	entry = lookup(&mechanism_table,id);
 	if(entry){
-		p_mechanism = (mechanism_t *)entry->value;
 		disactivate_past_monitor(id);
 		activate_past_monitor(id);
 	}
