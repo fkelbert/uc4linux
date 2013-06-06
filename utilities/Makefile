@@ -21,7 +21,7 @@ LIBS = \
 
 LOGGER = ../logger/logger.h
 
-all: filesystem_utils.o network_utils.o str_utils.o time_utils.o hash_table.o xml_utils.o soup_utils.o
+all: filesystem_utils.o network_utils.o str_utils.o time_utils.o hash_table.o xml_utils.o soup_utils.o threads.o
 
 filesystem_utils.o: filesystem_utils.c filesystem_utils.h
 	$(CC) $(CFLAGS) -Wall -c filesystem_utils.c -o filesystem_utils.o
@@ -44,6 +44,9 @@ xml_utils.o: xml_utils.c xml_utils.h $(LOGGER)
 soup_utils.o: soup_utils.c soup_utils.h $(LOGGER)
 	$(CC) $(CFLAGS) -c soup_utils.c -o soup_utils.o
 
+threads.o: threads.c threads.h $(LOGGER)
+	$(CC) $(CFLAGS) -c threads.c -o threads.o
+
 #crypto_utils.o: crypto_utils.c crypto_utils.h $(LOGGER)
 #	$(CC) $(CFLAGS) -c crypto_utils.c -o crypto_utils.o
 
@@ -55,6 +58,8 @@ soup_utils.o: soup_utils.c soup_utils.h $(LOGGER)
 
 #openbsd_utils.o: openbsd_utils.c openbsd_utils.h $(LOGGER)
 #	$(CC) $(CFLAGS) -c openbsd_utils.c -o openbsd_utils.o
+
+
 
 install:
 	
