@@ -16,13 +16,10 @@
 #include <unistd.h>
 
 #include "ptrace_interface_pdp.h"
-
 #include "constants.h"
 #include "traceeManager.h"
 
-#define MONITORED_APPLICATION "/usr/bin/xterm"
 #define MULT4(INT) (INT << 2)
-
 #define PTRACE_USED_OPTIONS PTRACE_O_TRACECLONE | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK
 
 

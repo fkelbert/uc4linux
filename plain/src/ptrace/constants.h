@@ -12,4 +12,7 @@
 #define YES 1
 #define NO 0
 
+#define PTRACE_ONLY NO
+#define MONITORED_APPLICATION "/usr/bin/xterm"
+
 #endif /* CONSTANTS_H_ */

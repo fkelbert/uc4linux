@@ -8,14 +8,15 @@
  * @return Structure with the user information.
  */
 struct passwd *getUserInfo(int pid){
+	int buflen = 512;
 	FILE *f;
-	char filename[512];
-	char buffer[512];
+	char filename[buflen];
+	char buffer[buflen];
 	int uid, dummy;
-	struct passwd *user_info = NULL;
+
 	/* Open the status file of the process in order to know
 	 * the user id of the process */
-	sprintf(filename,"/proc/%d/status",pid);
+	snprintf(filename,buflen,"/proc/%d/status",pid);
 	f=fopen(filename,"r");
 	/* Scan the file until we find the uid */
 	do{
@@ -23,6 +24,5 @@ struct passwd *getUserInfo(int pid){
 	}while(strstr(buffer,"Uid") == NULL);
 	/* Get the user struct from the uid */
 
-	user_info = (struct passwd *) getpwuid (uid);
-	return user_info;
+	return ((struct passwd *) getpwuid (uid));
 }

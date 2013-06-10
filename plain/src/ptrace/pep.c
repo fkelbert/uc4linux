@@ -1,6 +1,9 @@
 #include "pep.h"
 
-
+/**
+ * This is the main monitor loop.
+ * Wait for intercepted system calls.
+ */
 void run() {
 	int pid;
 	int status;
@@ -12,98 +15,95 @@ void run() {
 		// wait for child's signal
 		pid = waitpid(-1, &status, __WALL);
 
-		if (pid == -1) {
-			perror(__func__);
-			exit(1);
-		}
+		if (!PTRACE_ONLY) {
 
-		// If the child exited, we stop tracing the process
-		if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			if (pid == -1) {
 				perror(__func__);
 				exit(1);
 			}
-			tmDeleteTracee(pid);
-			if (tmIsEmpty()) {
-				exit(0);
+
+			// If the child exited, we stop tracing the process
+			if (WIFEXITED(status) || WIFSIGNALED(status)) {
+				if (pid == -1) {
+					perror(__func__);
+					exit(1);
+				}
+				tmDeleteTracee(pid);
+				if (tmIsEmpty()) {
+					exit(0);
+				}
+				continue;
 			}
-			continue;
-		}
 
-		// ignore if child is running
-		if (!WIFSTOPPED(status)) {
-			continue;
-		}
-
-		// new processes start with a SIGSTOP;
-		// do some initialization
-		if (WSTOPSIG(status) == SIGSTOP){
-			tmNewTracee(pid);
-			ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
-			continue;
-		}
-
-		syscallnr = ptrace(PTRACE_PEEKUSER, pid, MULT4(ORIG_EAX), NULL);
-
-		if ((tracee = tmGetTracee(pid)) == NULL) {
-			printf("FATAL ERROR, tracee must not be null. This should not happen\n");
-			exit(1);
-		}
-
-		// on fork: attach to the new process
-		if(syscallnr == SYS_clone ||
-				syscallnr == SYS_fork ||
-				syscallnr == SYS_vfork) {
-
-			// the parent's return code is the child's pid
-			ptrace(PTRACE_GETREGS, pid, NULL, &regs);
-			if (regs.eax > 0) {
-				ptrace(PTRACE_ATTACH, regs.eax, NULL, NULL);
+			// ignore if child is running
+			if (!WIFSTOPPED(status)) {
+				continue;
 			}
-		}
 
+			// new processes start with a SIGSTOP;
+			// do some initialization
+			if (WSTOPSIG(status) == SIGSTOP) {
+				tmNewTracee(pid);
+				ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
+				continue;
+			}
 
+			syscallnr = ptrace(PTRACE_PEEKUSER, pid, MULT4(ORIG_EAX), NULL);
 
+			if ((tracee = tmGetTracee(pid)) == NULL) {
+				tmNewTracee(pid);
+			}
 
-		printf("sc %d\n", pid);
+			// on fork: attach to the new process
+			if (syscallnr == SYS_clone || syscallnr == SYS_fork
+					|| syscallnr == SYS_vfork) {
 
-		switch (tracee->status) {
-		case SYSSKIP:
-			// EXECVE stops three times, and this is the second time
-			tracee->status = SYSOUT;
-			break;
-		case SYSIN:
-			// syscall call (into kernel)
+				// the parent's return code is the child's pid
+				ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+				if (regs.eax > 0) {
+					ptrace(PTRACE_ATTACH, regs.eax, NULL, NULL);
+				}
+			}
 
-			// FIXME: handle the call
+			printf("sc %d\n", pid);
 
-			switch (syscallnr) {
-			case SYS_exit:
-				// SYS_exit does not come back
-				tracee->status = SYSIN;
-				break;
-			case SYS_execve:
-				// Execve stops three times, let us skip next time
-				tracee->status = SYSSKIP;
-				break;
-			default:
-				// Next time we will see the return of the system call
+			switch (tracee->status) {
+			case SYSSKIP:
+				// EXECVE stops three times, and this is the second time
 				tracee->status = SYSOUT;
 				break;
+			case SYSIN:
+				// syscall call (into kernel)
+
+				// FIXME: handle the call
+
+				switch (syscallnr) {
+				case SYS_exit:
+					// SYS_exit does not come back
+					tracee->status = SYSIN;
+					break;
+				case SYS_execve:
+					// Execve stops three times, let us skip next time
+					tracee->status = SYSSKIP;
+					break;
+				default:
+					// Next time we will see the return of the system call
+					tracee->status = SYSOUT;
+					break;
+				}
+
+				break;
+			case SYSOUT:
+				// syscall response (into userland)
+
+				// FIXME: handle the call
+
+				tracee->status = SYSIN;
+				break;
 			}
-
-			break;
-		case SYSOUT:
-			// syscall response (into userland)
-
-			// FIXME: handle the call
-
-			tracee->status = SYSIN;
-
-			break;
 		}
 
-		// signal to continue
+		// continue the intercepted process
 		ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
 	}
 }
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
 
 	if (child == -1) {
 		printf("Fork failed. Unable to start initial monitored child.");
-		return 1;
+		return (1);
 	}
 
 	if (child == 0) {
@@ -134,6 +134,6 @@ int main(int argc, char **argv) {
 	tmNewTracee(child);
 
 	run();
-	return 0;
+	return (0);
 }
 

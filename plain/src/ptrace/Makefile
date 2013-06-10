@@ -15,10 +15,13 @@ ptrace-pep: pep.c pep.h helpers.o ptrace_interface_pdp.o traceeManager.o constan
 helpers.o: helpers.c helpers.h
 	$(CC) -c helpers.c -o $(OBJDIR)/helpers.o `pkg-config --cflags --libs $(LIBGLIB)`
 
+tracee.o: tracee.c tracee.h
+	$(CC) -c tracee.c -o $(OBJDIR)/tracee.o
+
 ptrace_interface_pdp.o: ptrace_interface_pdp.c ptrace_interface_pdp.h
 	$(CC) -c ptrace_interface_pdp.c -o $(OBJDIR)/ptrace_interface_pdp.o
 
-traceeManager.o: traceeManager.c traceeManager.h helpers.o
+traceeManager.o: traceeManager.c traceeManager.h helpers.o tracee.o
 	$(CC) -c traceeManager.c -o $(OBJDIR)/traceeManager.o `pkg-config --cflags --libs $(LIBGLIB)`
 
 clean:

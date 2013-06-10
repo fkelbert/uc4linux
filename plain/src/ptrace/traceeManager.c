@@ -2,41 +2,46 @@
 
 GHashTable *tracees;
 
+/**
+ * Initialize management of tracees
+ */
 void tmInit() {
-	tracees = g_hash_table_new(g_int_hash, g_int_equal);
+	tracees = g_hash_table_new_full(g_int_hash, g_int_equal, tmDestroyKey, tmDestroyValue);
 }
 
+
 void tmNewTracee(int pid) {
-	struct tracee *inc = g_hash_table_lookup(tracees, &pid);
-	struct passwd *user_info;
+	struct tracee *tracee;
 
-	if (inc == NULL) {
-		inc = (struct tracee *) malloc(sizeof(struct tracee));
+	if ((tracee = g_hash_table_lookup(tracees, &pid)) == NULL) {
+		// FIXME: this call may return null, handle accordingly
+		tracee = traceeCreate(pid);
 
-		int *x = (int*) malloc(sizeof(int));
-		*x = pid;
+		// FIXME malloc may fail. handle that case
+		int *pidCopy = (int*) malloc(sizeof(int));
+		*pidCopy = pid;
 
-		user_info = (struct passwd *) getUserInfo(pid);
-		int *y = (int*) malloc(sizeof(int));
-		*y = pid;
-
-		inc->status = SYSIN;
-		inc->user_info = user_info;
-
-		g_hash_table_insert(tracees, x, inc);
+		g_hash_table_insert(tracees, pidCopy, tracee);
 	}
 }
 
 void tmDeleteTracee(int pid) {
-	// FIXME: free memory here!?
 	g_hash_table_remove(tracees, &pid);
 }
 
 
 struct tracee *tmGetTracee(int pid) {
-  return g_hash_table_lookup(tracees, &pid);
+  return (g_hash_table_lookup(tracees, &pid));
 }
 
 int tmIsEmpty() {
-	return g_hash_table_size(tracees) == 0;
+	return (g_hash_table_size(tracees) == 0);
+}
+
+void tmDestroyKey(gpointer data) {
+	free(data);
+}
+
+void tmDestroyValue(gpointer data) {
+	traceeDestroy(data);
 }
