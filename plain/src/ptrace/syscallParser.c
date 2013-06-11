@@ -9,6 +9,7 @@
 
 char int_to_str_buf[BUFLEN_INT];
 char long_to_str_buf[BUFLEN_LONG];
+char filename_buf[MAX_FILENAME_LEN];
 
 /*
  * Converts a decimal integer value to a string containing its binary
@@ -105,7 +106,7 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 			eventAddParam(event, "domain", long_to_str_buf);
 
 			long_to_str(
-					ptrace(PTRACE_PEEKDATA, pid, regs->ecx + ADDRESS_SIZE, NULL),
+					ptrace(PTRACE_PEEKDATA, pid, regs->ecx + ADDRESS_WIDTH, NULL),
 					long_to_str_buf, BUFLEN_LONG);
 			eventAddParam(event, "type", long_to_str_buf);
 			break;
@@ -127,7 +128,7 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 			eventAddParam(event, "fd src", long_to_str_buf);
 
 			long_to_str(
-					ptrace(PTRACE_PEEKDATA, pid, regs->ebx + ADDRESS_SIZE, NULL),
+					ptrace(PTRACE_PEEKDATA, pid, regs->ebx + ADDRESS_WIDTH, NULL),
 					long_to_str_buf, BUFLEN_LONG);
 			eventAddParam(event, "fd dst", long_to_str_buf);
 
@@ -135,12 +136,10 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 
 		case SYS_open:
 		case SYS_creat: {
-			char filename[STR_LEN];
-			// The string located in the first argument
-			getString(pid, regs->ebx, filename, STR_LEN);
-			eventAddParam(event, EVENT_PARAM_FILENAME, filename);
+			// filename: first argument
+			eventAddParam(event, EVENT_PARAM_FILENAME, getString(pid, regs->ebx, filename_buf, MAX_FILENAME_LEN));
 
-			// Get the flags of the system call, stored in the second argument
+			// flags: second argument
 			eventAddParam(event, "flags", (char*) byte_to_binary(regs->ecx));
 		}
 			break;
@@ -187,7 +186,7 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 					// destination buffer address in the second position of an
 					// array pointed by the second argument of the call
 					destbufaddr = ptrace(PTRACE_PEEKDATA, pid,
-							regs->ecx + ADDRESS_SIZE, NULL);
+							regs->ecx + ADDRESS_WIDTH, NULL);
 					break;
 			}
 
@@ -228,7 +227,7 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 
 					// Get the address of the msghdr structure
 					long struct_addr = ptrace(PTRACE_PEEKDATA, pid,
-							regs->ecx + ADDRESS_SIZE, NULL);
+							regs->ecx + ADDRESS_WIDTH, NULL);
 					// Get the address of the iovector
 					long iovect_addr = ptrace(PTRACE_PEEKDATA, pid,
 							struct_addr + MULT_ADDR_SIZE(2), NULL);
@@ -280,12 +279,19 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 
 		case SYS_kill:
 			// target process
-			long_to_str(regs.ebx, long_to_str_buf, BUFLEN_LONG);
+			long_to_str(regs->ebx, long_to_str_buf, BUFLEN_LONG);
 			eventAddParam(event, "target", long_to_str_buf);
 
 			// signal parameter
-			long_to_str(regs.ecx, long_to_str_buf, BUFLEN_LONG);
-			eventAddParamInt(event, "signal", long_to_str_buf);
+			long_to_str(regs->ecx, long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "signal", long_to_str_buf);
+			break;
+
+		case SYS_rename:
+			// old filename: first argument
+			// new filename: second argument
+			eventAddParam(event, "oldfilename", getString(pid, regs->ebx, filename_buf, MAX_FILENAME_LEN));
+			eventAddParam(event, "newfilename", getString(pid, regs->ecx, filename_buf, MAX_FILENAME_LEN));
 			break;
 	}
 
