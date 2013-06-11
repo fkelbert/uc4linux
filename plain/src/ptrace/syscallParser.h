@@ -8,6 +8,7 @@
 #ifndef SYSCALLPARSER_H_
 #define SYSCALLPARSER_H_
 
+#include <fcntl.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/syscall.h>

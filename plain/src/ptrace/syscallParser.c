@@ -42,7 +42,7 @@ const char *byte_to_binary(int x) {
  * @param dataStr provided buffer to read into
  * @param length of buffer dataStr
  */
-// FIXME it may be much faster to read from /proc/pid/mem
+// FIXME it may be much faster to read from /proc/pid/mem, in particular for much data
 char *getString(pid_t child, long addr, char *dataStr, int len_buf) {
 	char *laddr;
 	int i, j;
@@ -292,6 +292,21 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 			// new filename: second argument
 			eventAddParam(event, "oldfilename", getString(pid, regs->ebx, filename_buf, MAX_FILENAME_LEN));
 			eventAddParam(event, "newfilename", getString(pid, regs->ecx, filename_buf, MAX_FILENAME_LEN));
+			break;
+
+		case SYS_dup:
+		case SYS_dup2:
+		case SYS_dup3:
+			// FIXME only useful on return
+			eventAddParam(event, EVENT_PARAM_FILEDESCR, regs->ebx);
+			break;
+
+		case SYS_fcntl:
+		case SYS_fcntl64:
+			// behaves as dup() if F_DUPFD or F_DUPFD_CLOEXEC is set
+			if (regs->ecx == F_DUPFD || regs->ecx == F_DUPFD_CLOEXEC) {
+				eventAddParam(event, EVENT_PARAM_FILEDESCR, regs->ebx);
+			}
 			break;
 	}
 

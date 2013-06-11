@@ -121,7 +121,7 @@ void run() {
 
 			parseSyscall(event, tracee->pid, &tracee->status->currentCall,
 					tracee->status->regs);
-//			eventPrint(event);
+			eventPrint(event);
 
 			switch (tracee->status->in_out) {
 				case SYS_STATUS_IN:
