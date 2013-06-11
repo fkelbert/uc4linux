@@ -84,11 +84,21 @@ void run() {
 			}
 		}
 
+
 		// Skip the next desired event
 		// (important for execve which is intercepted three times)
 		if (tracee->status->skipNext == SKIP_DESIRED
 				&& tracee->status->in_out == SYS_STATUS_IN) {
-			tracee->status->in_out = SYS_STATUS_OUT;
+
+			switch (tracee->status->in_out) {
+				case SYS_STATUS_OUT:
+					tracee->status->in_out = SYS_STATUS_IN;
+					break;
+				case SYS_STATUS_IN:
+					tracee->status->in_out = SYS_STATUS_OUT;
+					break;
+			}
+
 			tracee->status->skipNext = SKIP_NO;
 			ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
 			continue;
@@ -127,8 +137,15 @@ void run() {
 				case SYS_STATUS_IN:
 					// syscall call (into kernel)
 
-					// FIXME: handle the call
+					// FIXME: syscall handling happens here
+					switch (tracee->status->currentCall) {
+						case SYS_execve:
+							traceeChangeCommand(tracee,
+									eventGetParam(event, EVENT_PARAM_FILENAME));
+							break;
+					}
 
+					// post processing
 					switch (tracee->status->currentCall) {
 						case SYS_exit:
 							// SYS_exit does not come back
