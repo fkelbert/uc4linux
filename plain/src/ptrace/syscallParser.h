@@ -26,6 +26,7 @@
 event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 		struct user_regs_struct *regs);
 
+char *getString(pid_t child, long addr, char *dataStr, int len_buf);
 
 
 #endif /* SYSCALLPARSER_H_ */

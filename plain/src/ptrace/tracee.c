@@ -1,4 +1,3 @@
-
 #include "tracee.h"
 
 /**
@@ -11,36 +10,50 @@
 struct tracee *traceeCreate(pid_t pid) {
 	struct tracee *tracee = (struct tracee *) calloc(1, sizeof(struct tracee));
 
-	if (tracee != NULL) {
-		tracee->pid = pid;
-		tracee->command = strdup("COMMAND");	//  FIXME: put real command here
+	if (tracee) {
+		// the value of res will be useless, but it will be NULL in case one allocation failed
+		uintptr_t res = 0xFFFFFF;
 
-		tracee->user_info = (struct passwd *) getUserInfo(pid);
-		if (tracee->user_info == NULL) {
-			free(tracee);
-			return NULL;
+		res &= (uintptr_t) (tracee->command = calloc(1, 512));
+		res &= (uintptr_t) (tracee->user_info = (struct passwd *) getUserInfo(
+				pid));
+		res &= (uintptr_t) (tracee->status = calloc(1,
+				sizeof(struct tracee_status)));
+
+		if (res) {
+			res &= (uintptr_t) (tracee->status->regs = calloc(1,
+					sizeof(struct user_regs_struct)));
 		}
 
-		tracee->status = calloc(1, sizeof(struct tracee_status));
-		if (tracee->status == NULL) {
-			free(tracee);
-			return NULL;
+		if (res) {
+			tracee->pid = pid;
+			tracee->status->in_out = SYS_STATUS_IN;
+			tracee->status->skipNext = 0;
+			tracee->status->lastCall = -1;
+			getCmdline(pid, tracee->command, 512);
 		}
+		else {
+			// at least one allocation went wrong
+			if (!tracee->status->regs) {
+				free(tracee->status->regs);
+			}
 
-		tracee->status->regs = calloc(1, sizeof(struct user_regs_struct));
-		if (tracee->status->regs == NULL) {
-			free(tracee->status);
-			free(tracee);
-			return NULL;
+			if (!tracee->status) {
+				free(tracee->status);
+			}
+
+			if (!tracee->user_info) {
+				free(tracee->user_info);
+			}
+
+			if (!tracee->command) {
+				free(tracee->command);
+			}
 		}
-
-		tracee->status->in_out = SYSIN;
 	}
 
 	return (tracee);
 }
-
-
 
 void traceeDestroy(struct tracee *tracee) {
 	if (tracee) {

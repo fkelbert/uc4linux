@@ -15,5 +15,6 @@
 #define long_to_hex(i,buf,len) snprintf(buf,len,"%lx",i)
 
 struct passwd *getUserInfo(int pid);
+char *getCmdline(int pid, char *buf, int len);
 
 #endif /* HELPERS_H_ */

@@ -38,10 +38,11 @@ const char *byte_to_binary(int x) {
  *
  * @param child Pid of the child.
  * @param addr Address in the memory space of the child.
- * @param dataStr String we want to retrieve.
+ * @param dataStr provided buffer to read into
  * @param length of buffer dataStr
  */
-void getString(pid_t child, long addr, char *dataStr, int len_buf) {
+// FIXME it may be much faster to read from /proc/pid/mem
+char *getString(pid_t child, long addr, char *dataStr, int len_buf) {
 	char *laddr;
 	int i, j;
 	/* This structure will contain the final string */
@@ -70,6 +71,8 @@ void getString(pid_t child, long addr, char *dataStr, int len_buf) {
 	}
 	/* We leave the string well formated */
 	dataStr[len_buf] = '\0';
+
+	return (dataStr);
 }
 
 /**
@@ -82,7 +85,7 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 	// change syscallcode and overwrite syscall field
 	if (*syscallcode == SYS_socketcall) {
 		*syscallcode = SOCKET_OFFSET + regs->ebx;
-		eventAddParam(event, "syscall", syscallTable[*syscallcode]);
+		eventAddParam(event, EVENT_PARAM_SYSCALL, syscallTable[*syscallcode]);
 	}
 
 	switch (*syscallcode) {
@@ -135,7 +138,7 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 			char filename[STR_LEN];
 			// The string located in the first argument
 			getString(pid, regs->ebx, filename, STR_LEN);
-			eventAddParam(event, "filename", filename);
+			eventAddParam(event, EVENT_PARAM_FILENAME, filename);
 
 			// Get the flags of the system call, stored in the second argument
 			eventAddParam(event, "flags", (char*) byte_to_binary(regs->ecx));
@@ -158,14 +161,14 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 				case SYS_preadv:
 					// file descriptor in the first argument
 					long_to_str(regs->ebx, long_to_str_buf, BUFLEN_INT);
-					eventAddParam(event, "filedescriptor", long_to_str_buf);
+					eventAddParam(event, EVENT_PARAM_FILEDESCR, long_to_str_buf);
 					break;
 				case SYS_recvfrom:
 				case SYS_recvmsg:
 					// file descriptor in the address pointed by its second argument
 					long_to_str(ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL),
 							long_to_str_buf, BUFLEN_LONG);
-					eventAddParam(event, "filedescriptor", long_to_str_buf);
+					eventAddParam(event, EVENT_PARAM_FILEDESCR, long_to_str_buf);
 					break;
 			}
 
@@ -243,17 +246,29 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 			}
 
 			long_to_str(readsize, long_to_str_buf, BUFLEN_LONG);
-			eventAddParam(event, "size", long_to_str_buf);
+			eventAddParam(event, EVENT_PARAM_SIZE, long_to_str_buf);
 
 			char mybuf[readsize];
 			if (destbufaddr != -1) {
+				// FIXME getString() reads from child using ptrace().
+				// Maybe there is a way to read from the proc file system (/proc) way faster!?
 				getString(pid, destbufaddr, mybuf, readsize);
 			}
-			eventAddParam(event, "content", mybuf);
+//			eventAddParam(event, "content", mybuf);
 		}
 			break;
 			break;
 
+		case SYS_unlink:
+		case SYS_execve:
+			if (DESIRED(event)) {
+				char filename[512];
+				// The filename is in the first argument of the call
+				eventAddParam(event, EVENT_PARAM_FILENAME,
+						getString(pid, regs->ebx, filename, 512));
+			}
+
+			break;
 	}
 
 	return (event);

@@ -3,14 +3,21 @@
 #define TRACEE_H_
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/user.h>
 
 #include "constants.h"
 #include "helpers.h"
 
+#define SKIP_NO 0
+#define SKIP_DESIRED 1
+#define SKIP_ACTUAL 2
+
 struct tracee_status {
 	int in_out;
-	long syscallcode;
+	int skipNext;
+	int lastCall;
+	long currentCall;
 	struct user_regs_struct *regs;
 };
 

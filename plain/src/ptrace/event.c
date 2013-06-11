@@ -55,6 +55,10 @@ int eventParamPrint(gpointer key, gpointer value, gpointer data) {
 	return (0);		// traversal is stopped in case something different from 0 is returned
 }
 
+char *eventGetParam(event_ptr event, char *key) {
+	return (g_tree_lookup(event->params, key));
+}
+
 void eventPrint(event_ptr event) {
 	if (event) {
 		printf("syscall\n");

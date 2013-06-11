@@ -8,6 +8,8 @@
 #ifndef SYSCALLS_H_
 #define SYSCALLS_H_
 
+#include <syscall.h>
+
 #define SOCKET_OFFSET 347
 
 #define SYS_socket 348
@@ -28,8 +30,9 @@
 #define SYS_sendmsg 363
 #define SYS_recvmsg 364
 
-#include <syscall.h>
+#define INTERCEPT_EXECVE 1
 
 extern char *syscallTable[];
+extern int syscallsIntercept[];
 
 #endif /* SYSCALLS_H_ */

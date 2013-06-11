@@ -5,9 +5,9 @@
 #define R_SUCCESS  0
 #define R_ERROR    1
 
-#define SYSIN 0
-#define SYSOUT 1
-#define SYSSKIP 2
+#define SYS_STATUS_IN 0
+#define SYS_STATUS_OUT 1
+#define SYS_STATUS_SKIP 2
 
 #define YES 1
 #define NO 0
