@@ -62,3 +62,16 @@ void traceeDestroy(struct tracee *tracee) {
 		free(tracee);
 	}
 }
+
+
+struct tracee *traceeChangeCommand(struct tracee *tracee, char *newcmd) {
+	if (tracee->command) {
+		free(tracee->command);
+	}
+
+	if ((tracee->command = strdup(newcmd))) {
+		return (tracee);
+	}
+
+	return NULL;
+}

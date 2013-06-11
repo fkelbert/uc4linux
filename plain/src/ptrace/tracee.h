@@ -31,4 +31,10 @@ struct tracee {
 struct tracee *traceeCreate(pid_t pid);
 void traceeDestroy(struct tracee *tracee);
 
+/**
+ * Changes the command associated to the specified tracee.
+ * Returns a pointer to the tracee, or NULL if changing failed.
+ */
+struct tracee *traceeChangeCommand(struct tracee *tracee, char *newcmd);
+
 #endif /* TRACEE_H_ */
