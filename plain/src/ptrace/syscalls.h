@@ -31,6 +31,7 @@
 #define SYS_recvmsg 364
 
 #define INTERCEPT_EXECVE 1
+#define INTERCEPT_SOCKETCALL 1
 
 extern char *syscallTable[];
 extern int syscallsIntercept[];

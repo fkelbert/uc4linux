@@ -16,7 +16,6 @@
 struct tracee_status {
 	int in_out;
 	int skipNext;
-	int lastCall;
 	long currentCall;
 	struct user_regs_struct *regs;
 };

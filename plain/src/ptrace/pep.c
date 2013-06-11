@@ -159,8 +159,9 @@ void run() {
 
 			eventDestroy(event);
 		}
-
-		tracee->status->lastCall = tracee->status->currentCall;
+		else {
+			printf("untracked call %s\n", syscallTable[tracee->status->currentCall]);
+		}
 
 		// continue the intercepted process
 		ptrace(PTRACE_SYSCALL, pid, NULL, NULL);

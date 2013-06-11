@@ -29,7 +29,6 @@ struct tracee *traceeCreate(pid_t pid) {
 			tracee->pid = pid;
 			tracee->status->in_out = SYS_STATUS_IN;
 			tracee->status->skipNext = 0;
-			tracee->status->lastCall = -1;
 			getCmdline(pid, tracee->command, 512);
 		}
 		else {

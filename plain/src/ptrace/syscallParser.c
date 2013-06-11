@@ -161,14 +161,16 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 				case SYS_preadv:
 					// file descriptor in the first argument
 					long_to_str(regs->ebx, long_to_str_buf, BUFLEN_INT);
-					eventAddParam(event, EVENT_PARAM_FILEDESCR, long_to_str_buf);
+					eventAddParam(event, EVENT_PARAM_FILEDESCR,
+							long_to_str_buf);
 					break;
 				case SYS_recvfrom:
 				case SYS_recvmsg:
 					// file descriptor in the address pointed by its second argument
 					long_to_str(ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL),
 							long_to_str_buf, BUFLEN_LONG);
-					eventAddParam(event, EVENT_PARAM_FILEDESCR, long_to_str_buf);
+					eventAddParam(event, EVENT_PARAM_FILEDESCR,
+							long_to_str_buf);
 					break;
 			}
 
@@ -259,6 +261,12 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 			break;
 			break;
 
+		case SYS_close:
+			// The filedescriptor is the first argument
+			long_to_str(regs->ebx, long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, EVENT_PARAM_FILEDESCR, long_to_str_buf);
+			break;
+
 		case SYS_unlink:
 		case SYS_execve:
 			if (DESIRED(event)) {
@@ -268,6 +276,16 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 						getString(pid, regs->ebx, filename, 512));
 			}
 
+			break;
+
+		case SYS_kill:
+			// target process
+			long_to_str(regs.ebx, long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "target", long_to_str_buf);
+
+			// signal parameter
+			long_to_str(regs.ecx, long_to_str_buf, BUFLEN_LONG);
+			eventAddParamInt(event, "signal", long_to_str_buf);
 			break;
 	}
 
