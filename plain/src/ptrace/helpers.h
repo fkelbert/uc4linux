@@ -10,6 +10,10 @@
 #include <pwd.h>
 
 
+#define int_to_str(i,buf,len) snprintf(buf,len,"%d",i)
+
+extern char int_to_str[];
+
 struct passwd *getUserInfo(int pid);
 
 #endif /* HELPERS_H_ */

@@ -6,34 +6,47 @@ GHashTable *tracees;
  * Initialize management of tracees
  */
 void tmInit() {
-	tracees = g_hash_table_new_full(g_int_hash, g_int_equal, tmDestroyKey, tmDestroyValue);
+	tracees = g_hash_table_new_full(g_int_hash, g_int_equal, tmDestroyKey,
+			tmDestroyValue);
 }
 
-
-void tmNewTracee(int pid) {
+/*
+ * Starts management of a new tracee for the specified process id.
+ * Returns the created tracee, NULL on failure.
+ */
+struct tracee *tmNewTracee(int pid) {
 	struct tracee *tracee;
+	int *pidCopy;
 
 	if ((tracee = g_hash_table_lookup(tracees, &pid)) == NULL) {
-		// FIXME: this call may return null, handle accordingly
-		tracee = traceeCreate(pid);
+		if ((tracee = traceeCreate(pid)) != NULL) {
 
-		// FIXME malloc may fail. handle that case
-		int *pidCopy = (int*) malloc(sizeof(int));
-		*pidCopy = pid;
+			if ((pidCopy = (int*) calloc(1, sizeof(int))) != NULL) {
+				*pidCopy = pid;
+			}
 
-		g_hash_table_insert(tracees, pidCopy, tracee);
+			g_hash_table_insert(tracees, pidCopy, tracee);
+		}
 	}
+
+	return (tracee);
 }
 
-void tmDeleteTracee(int pid) {
-	g_hash_table_remove(tracees, &pid);
+/**
+ * Deletes the tracee with the specified process id.
+ * Returns whether deletion was successful.
+ */
+int tmDeleteTracee(int pid) {
+	return (g_hash_table_remove(tracees, &pid));
 }
-
 
 struct tracee *tmGetTracee(int pid) {
-  return (g_hash_table_lookup(tracees, &pid));
+	return (g_hash_table_lookup(tracees, &pid));
 }
 
+/**
+ * Returns a value equivalent to TRUE, if there are no tracees
+ */
 int tmIsEmpty() {
 	return (g_hash_table_size(tracees) == 0);
 }

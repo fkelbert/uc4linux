@@ -1,5 +1,14 @@
 #include "pep.h"
 
+char int_to_str[BUFLEN_INT];
+
+
+void setTraceeStatus(struct tracee *tracee) {
+	tracee->status->syscallcode = ptrace(PTRACE_PEEKUSER, tracee->pid,
+			MULT4(ORIG_EAX), NULL);
+	ptrace(PTRACE_GETREGS, tracee->pid, NULL, tracee->status->regs);
+}
+
 /**
  * This is the main monitor loop.
  * Wait for intercepted system calls.
@@ -8,14 +17,15 @@ void run() {
 	int pid;
 	int status;
 	struct tracee *tracee;
-	long syscallnr;
-	struct user_regs_struct regs;
+	event_ptr event;
 
 	while (1) {
 		// wait for child's signal
 		pid = waitpid(-1, &status, __WALL);
 
 		if (!PTRACE_ONLY) {
+
+			// FIXME: skip uninteresting syscalls as soon as possible
 
 			if (pid == -1) {
 				perror(__func__);
@@ -48,47 +58,73 @@ void run() {
 				continue;
 			}
 
-			syscallnr = ptrace(PTRACE_PEEKUSER, pid, MULT4(ORIG_EAX), NULL);
-
 			if ((tracee = tmGetTracee(pid)) == NULL) {
-				tmNewTracee(pid);
+				tracee = tmNewTracee(pid);
+			}
+
+			// rely on tracee->status only from here
+			setTraceeStatus(tracee);
+
+			if (tracee->status->syscallcode < 0) {
+				ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
+				continue;
 			}
 
 			// on fork: attach to the new process
-			if (syscallnr == SYS_clone || syscallnr == SYS_fork
-					|| syscallnr == SYS_vfork) {
+			if (tracee->status->syscallcode == SYS_clone
+					|| tracee->status->syscallcode == SYS_fork
+					|| tracee->status->syscallcode == SYS_vfork) {
 
 				// the parent's return code is the child's pid
-				ptrace(PTRACE_GETREGS, pid, NULL, &regs);
-				if (regs.eax > 0) {
-					ptrace(PTRACE_ATTACH, regs.eax, NULL, NULL);
+				if (tracee->status->regs->eax > 0) {
+					ptrace(PTRACE_ATTACH, tracee->status->regs->eax, NULL,
+							NULL);
 				}
 			}
 
-			printf("sc %d\n", pid);
+			// EXECVE stops three times, and this is the second time
+			if (tracee->status->in_out == SYSSKIP) {
+				tracee->status->in_out = SYSOUT;
+				ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
+				continue;
+			}
 
-			switch (tracee->status) {
-			case SYSSKIP:
-				// EXECVE stops three times, and this is the second time
-				tracee->status = SYSOUT;
-				break;
+			// parse system call
+			// FIXME do only parse if we are interested at this point
+			// (i.e.: consider variable in/out)
+			event = eventCreate();
+
+			int_to_str(pid,int_to_str,BUFLEN_INT);
+			eventAddParam(event, "pid", tracee->command);
+			eventAddParam(event, "command", tracee->command);
+			eventAddParam(event, "user", tracee->user_info->pw_name);
+			eventAddParam(event, "syscall",
+					syscallTable[tracee->status->syscallcode]);
+			eventAddParam(event, "desired",
+					(tracee->status->in_out == SYSIN) ? "true" : "false");
+
+			parseSyscall(event, tracee->pid, &tracee->status->syscallcode,
+					tracee->status->regs);
+			eventPrint(event);
+
+			switch (tracee->status->in_out) {
 			case SYSIN:
 				// syscall call (into kernel)
 
 				// FIXME: handle the call
 
-				switch (syscallnr) {
+				switch (tracee->status->syscallcode) {
 				case SYS_exit:
 					// SYS_exit does not come back
-					tracee->status = SYSIN;
+					tracee->status->in_out = SYSIN;
 					break;
 				case SYS_execve:
 					// Execve stops three times, let us skip next time
-					tracee->status = SYSSKIP;
+					tracee->status->in_out = SYSSKIP;
 					break;
 				default:
 					// Next time we will see the return of the system call
-					tracee->status = SYSOUT;
+					tracee->status->in_out = SYSOUT;
 					break;
 				}
 
@@ -98,9 +134,11 @@ void run() {
 
 				// FIXME: handle the call
 
-				tracee->status = SYSIN;
+				tracee->status->in_out = SYSIN;
 				break;
 			}
+
+			eventDestroy(event);
 		}
 
 		// continue the intercepted process

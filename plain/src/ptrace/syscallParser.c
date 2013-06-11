@@ -7,11 +7,6 @@
 
 #include "syscallParser.h"
 
-#define BUFLEN_INT 24
-#define BUFLEN_LONG 48
-
-extern char *syscallTable[];
-
 /*
  * Converts a decimal integer value to a string containing its binary
  * representation.
@@ -74,27 +69,24 @@ void getString(pid_t child, long addr, char *dataStr, int len_buf) {
 	dataStr[len_buf] = '\0';
 }
 
-event_ptr parseSyscall(event_ptr event, struct tracee *tracee) {
-	char int_str[BUFLEN_INT];
+/**
+ * Parses the system call and may change the syscallcode
+ */
+event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
+		struct user_regs_struct *regs) {
 	char long_str[BUFLEN_LONG];
 
-	eventAddParam(event, "command", tracee->command);
-	eventAddParam(event, "user", tracee->user_info->pw_name);
 
-	snprintf(int_str, BUFLEN_INT, "%d", tracee->pid);
-	eventAddParam(event, "pid", int_str);
-
-	if (tracee->status->syscallcode == SYS_socketcall) {
-		tracee->status->syscallcode = SOCKET_OFFSET + tracee->status->regs->ebx;
+	// in case of SYS_socketcall:
+	// change syscallcode and overwrite syscall field
+	if (*syscallcode == SYS_socketcall) {
+		*syscallcode = SOCKET_OFFSET + regs-> ebx;
+		eventAddParam(event, "syscall", syscallTable[*syscallcode]);
 	}
-	eventAddParam(event, "syscall", syscallTable[tracee->status->syscallcode]);
 
-	eventAddParam(event, "desired",
-			(tracee->status->in_out == SYSIN) ? "true" : "false");
-
-	switch (tracee->status->syscallcode) {
+	switch (*syscallcode) {
 	case SYS_exit:
-		snprintf(long_str, BUFLEN_LONG, "%ld", tracee->status->regs->ebx);
+		snprintf(long_str, BUFLEN_LONG, "%ld", regs->ebx);
 		eventAddParam(event, "status", long_str);
 		break;
 
@@ -105,13 +97,11 @@ event_ptr parseSyscall(event_ptr event, struct tracee *tracee) {
 		// FIXME not sure that this is correct; in particular the value of TYPE
 
 		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, tracee->pid, tracee->status->regs->ecx,
-						NULL));
+				ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL));
 		eventAddParam(event, "domain", long_str);
 
 		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, tracee->pid,
-						tracee->status->regs->ecx + ADDRESS_SIZE, NULL));
+				ptrace(PTRACE_PEEKDATA, pid, regs->ecx + ADDRESS_SIZE, NULL));
 		eventAddParam(event, "type", long_str);
 		break;
 
@@ -120,8 +110,7 @@ event_ptr parseSyscall(event_ptr event, struct tracee *tracee) {
 
 		// The socket file descriptor is the second argument of accept
 		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, tracee->pid, tracee->status->regs->ecx,
-						NULL));
+				ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL));
 		eventAddParam(event, "sockfd", long_str);
 		break;
 	case SYS_pipe:
@@ -129,13 +118,11 @@ event_ptr parseSyscall(event_ptr event, struct tracee *tracee) {
 		// pipe call, first source then destination
 
 		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, tracee->pid, tracee->status->regs->ebx,
-						NULL));
+				ptrace(PTRACE_PEEKDATA, pid, regs->ebx, NULL));
 		eventAddParam(event, "fd source", long_str);
 
 		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, tracee->pid,
-						tracee->status->regs->ebx + ADDRESS_SIZE, NULL));
+				ptrace(PTRACE_PEEKDATA, pid, regs->ebx + ADDRESS_SIZE, NULL));
 		eventAddParam(event, "fd dest", long_str);
 
 		break;
@@ -144,12 +131,11 @@ event_ptr parseSyscall(event_ptr event, struct tracee *tracee) {
 	case SYS_creat: {
 		char filename[STR_LEN];
 		// The string located in the first argument
-		getString(tracee->pid, tracee->status->regs->ebx, filename, STR_LEN);
+		getString(pid, regs->ebx, filename, STR_LEN);
 		eventAddParam(event, "filename", filename);
 
 		// Get the flags of the system call, stored in the second argument
-		eventAddParam(event, "flags",
-				(char*) byte_to_binary(tracee->status->regs->ecx));
+		eventAddParam(event, "flags", (char*) byte_to_binary(regs->ecx));
 	}
 		break;
 	}

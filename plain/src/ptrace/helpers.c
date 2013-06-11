@@ -1,11 +1,12 @@
 #include "helpers.h"
 
+
 /*
  * Gets the information about the user of a determined process.
  *
  * @param pid Pid of the process whose user information is desired to know.
  *
- * @return Structure with the user information.
+ * @return Structure with the user information; possibly NULL in case of error.
  */
 struct passwd *getUserInfo(int pid){
 	int buflen = 512;
@@ -26,3 +27,4 @@ struct passwd *getUserInfo(int pid){
 
 	return ((struct passwd *) getpwuid (uid));
 }
+

@@ -15,4 +15,12 @@
 #define PTRACE_ONLY NO
 #define MONITORED_APPLICATION "/usr/bin/xterm"
 
+#define ADDRESS_SIZE 4
+
+#define STR_LEN 4096
+
+#define LONG_SIZE sizeof(long)
+#define BUFLEN_INT 24
+#define BUFLEN_LONG 48
+
 #endif /* CONSTANTS_H_ */

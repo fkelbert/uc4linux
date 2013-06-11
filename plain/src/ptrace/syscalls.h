@@ -8,6 +8,8 @@
 #ifndef SYSCALLS_H_
 #define SYSCALLS_H_
 
+#define SOCKET_OFFSET 347
+
 #define SYS_socket 348
 #define SYS_bind 349
 #define SYS_connect 350

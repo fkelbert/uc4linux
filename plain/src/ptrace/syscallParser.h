@@ -11,15 +11,16 @@
 #include <stddef.h>
 #include <sys/syscall.h>
 #include <sys/ptrace.h>
+#include <sys/user.h>
 
 #include "event.h"
-#include "tracee.h"
 #include "syscalls.h"
+#include "constants.h"
 
-#define SOCKET_OFFSET 347
 
 
-event_ptr parseSyscall(event_ptr event, struct tracee *tracee);
+event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
+		struct user_regs_struct *regs);
 
 
 

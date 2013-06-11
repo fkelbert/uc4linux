@@ -18,6 +18,10 @@
 #include "ptrace_interface_pdp.h"
 #include "constants.h"
 #include "traceeManager.h"
+#include "event.h"
+#include "syscallParser.h"
+
+
 
 #define MULT4(INT) (INT << 2)
 #define PTRACE_USED_OPTIONS PTRACE_O_TRACECLONE | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK
