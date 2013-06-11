@@ -7,6 +7,9 @@
 
 #include "syscallParser.h"
 
+char int_to_str_buf[BUFLEN_INT];
+char long_to_str_buf[BUFLEN_LONG];
+
 /*
  * Converts a decimal integer value to a string containing its binary
  * representation.
@@ -52,7 +55,7 @@ void getString(pid_t child, long addr, char *dataStr, int len_buf) {
 	/* We read characters of length long size, as it is how it
 	 * is done by ptrace */
 	while (i < j) {
-		data.val = ptrace(PTRACE_PEEKDATA, child, addr + i * ADDRESS_SIZE,
+		data.val = ptrace(PTRACE_PEEKDATA, child, addr + MULT_ADDR_SIZE(i),
 				NULL);
 		memcpy(laddr, data.chars, LONG_SIZE);
 		++i;
@@ -61,7 +64,7 @@ void getString(pid_t child, long addr, char *dataStr, int len_buf) {
 	j = len_buf % LONG_SIZE;
 	/* If we have not finished we do last loop */
 	if (j != 0) {
-		data.val = ptrace(PTRACE_PEEKDATA, child, addr + i * ADDRESS_SIZE,
+		data.val = ptrace(PTRACE_PEEKDATA, child, addr + MULT_ADDR_SIZE(i),
 				NULL);
 		memcpy(laddr, data.chars, j);
 	}
@@ -74,70 +77,183 @@ void getString(pid_t child, long addr, char *dataStr, int len_buf) {
  */
 event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 		struct user_regs_struct *regs) {
-	char long_str[BUFLEN_LONG];
-
 
 	// in case of SYS_socketcall:
 	// change syscallcode and overwrite syscall field
 	if (*syscallcode == SYS_socketcall) {
-		*syscallcode = SOCKET_OFFSET + regs-> ebx;
+		*syscallcode = SOCKET_OFFSET + regs->ebx;
 		eventAddParam(event, "syscall", syscallTable[*syscallcode]);
 	}
 
 	switch (*syscallcode) {
-	case SYS_exit:
-		snprintf(long_str, BUFLEN_LONG, "%ld", regs->ebx);
-		eventAddParam(event, "status", long_str);
-		break;
+		case SYS_exit:
+			long_to_str(regs->ebx, long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "status", long_to_str_buf);
+			break;
 
-	case SYS_socket:
-		// Domain and type is an array pointed by the
-		// second argument of the socket call
+		case SYS_socket:
+			// Domain and type is an array pointed by the
+			// second argument of the socket call
 
-		// FIXME not sure that this is correct; in particular the value of TYPE
+			// FIXME not sure that this is correct; in particular the value of TYPE
 
-		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL));
-		eventAddParam(event, "domain", long_str);
+			long_to_str(ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL),
+					long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "domain", long_to_str_buf);
 
-		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, pid, regs->ecx + ADDRESS_SIZE, NULL));
-		eventAddParam(event, "type", long_str);
-		break;
+			long_to_str(
+					ptrace(PTRACE_PEEKDATA, pid, regs->ecx + ADDRESS_SIZE, NULL),
+					long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "type", long_to_str_buf);
+			break;
 
-	case SYS_accept:
-		// FIXME not sure that this is correct
+		case SYS_accept:
+			// FIXME not sure that this is correct
 
-		// The socket file descriptor is the second argument of accept
-		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL));
-		eventAddParam(event, "sockfd", long_str);
-		break;
-	case SYS_pipe:
-		// The file descriptors of pipe are an array pointed by the first argument of the
-		// pipe call, first source then destination
+			// The socket file descriptor is the second argument of accept
+			long_to_str(ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL),
+					long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "sockfd", long_to_str_buf);
+			break;
+		case SYS_pipe:
+			// The file descriptors of pipe are an array pointed by the first argument of the
+			// pipe call, first source then destination
 
-		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, pid, regs->ebx, NULL));
-		eventAddParam(event, "fd source", long_str);
+			long_to_str(ptrace(PTRACE_PEEKDATA, pid, regs->ebx, NULL),
+					long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "fd src", long_to_str_buf);
 
-		snprintf(long_str, BUFLEN_LONG, "%ld",
-				ptrace(PTRACE_PEEKDATA, pid, regs->ebx + ADDRESS_SIZE, NULL));
-		eventAddParam(event, "fd dest", long_str);
+			long_to_str(
+					ptrace(PTRACE_PEEKDATA, pid, regs->ebx + ADDRESS_SIZE, NULL),
+					long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "fd dst", long_to_str_buf);
 
-		break;
+			break;
 
-	case SYS_open:
-	case SYS_creat: {
-		char filename[STR_LEN];
-		// The string located in the first argument
-		getString(pid, regs->ebx, filename, STR_LEN);
-		eventAddParam(event, "filename", filename);
+		case SYS_open:
+		case SYS_creat: {
+			char filename[STR_LEN];
+			// The string located in the first argument
+			getString(pid, regs->ebx, filename, STR_LEN);
+			eventAddParam(event, "filename", filename);
 
-		// Get the flags of the system call, stored in the second argument
-		eventAddParam(event, "flags", (char*) byte_to_binary(regs->ecx));
-	}
-		break;
+			// Get the flags of the system call, stored in the second argument
+			eventAddParam(event, "flags", (char*) byte_to_binary(regs->ecx));
+		}
+			break;
+
+			// FIXME: for read: make getting size and buffer conditional for read().
+			// Reading the buffer content is particularly stupid if it is the attempted call.
+		case SYS_recvfrom:
+		case SYS_recvmsg:
+		case SYS_readv:
+		case SYS_pread64:
+		case SYS_read: {
+			long destbufaddr = -1;
+			long readsize = -1;
+
+			switch (*syscallcode) {
+				case SYS_read:
+				case SYS_readv:
+				case SYS_preadv:
+					// file descriptor in the first argument
+					long_to_str(regs->ebx, long_to_str_buf, BUFLEN_INT);
+					eventAddParam(event, "filedescriptor", long_to_str_buf);
+					break;
+				case SYS_recvfrom:
+				case SYS_recvmsg:
+					// file descriptor in the address pointed by its second argument
+					long_to_str(ptrace(PTRACE_PEEKDATA, pid, regs->ecx, NULL),
+							long_to_str_buf, BUFLEN_LONG);
+					eventAddParam(event, "filedescriptor", long_to_str_buf);
+					break;
+			}
+
+			// buffer destination address
+			switch (*syscallcode) {
+				case SYS_read:
+				case SYS_readv:
+				case SYS_pread64:
+					// destination buffer address in the second argument
+					destbufaddr = regs->ecx;
+					break;
+				case SYS_recvfrom:
+				case SYS_recvmsg:
+					// destination buffer address in the second position of an
+					// array pointed by the second argument of the call
+					destbufaddr = ptrace(PTRACE_PEEKDATA, pid,
+							regs->ecx + ADDRESS_SIZE, NULL);
+					break;
+			}
+
+			if (destbufaddr != -1) {
+				long_to_hex(destbufaddr, long_to_str_buf, BUFLEN_LONG);
+				eventAddParam(event, "buf addr", long_to_str_buf);
+			}
+
+			// size parameter
+			switch (*syscallcode) {
+				case SYS_read:
+				case SYS_pread64:
+					// third argument of the system call
+					readsize = regs->edx;
+					break;
+				case SYS_readv: {
+					// sum all the lengths of the strings in the vector pointed by the
+					//second argument; the number of strings is given by the third argument
+					int count = 0;
+					for (int i = 0; i < regs->edx; i++) {
+						count += ptrace(PTRACE_PEEKDATA, pid,
+								regs->ecx + MULT_ADDR_SIZE(((i << 1) + 1)),
+								NULL);
+					}
+					readsize = count;
+					break;
+				}
+				case SYS_recvfrom:
+					// third position of the vector pointed by the second argument of the call
+					readsize = ptrace(PTRACE_PEEKDATA, pid,
+							regs->ecx + MULT_ADDR_SIZE(2), NULL);
+					break;
+				case SYS_recvmsg: {
+					// In recvmsg, it is like in readv but the address of the vector
+					// is given by the third position of the vector pointed by the
+					// second argument of recvmsg, and the arguments are pointed by
+					// the second argument of the socketcall system call
+
+					// Get the address of the msghdr structure
+					long struct_addr = ptrace(PTRACE_PEEKDATA, pid,
+							regs->ecx + ADDRESS_SIZE, NULL);
+					// Get the address of the iovector
+					long iovect_addr = ptrace(PTRACE_PEEKDATA, pid,
+							struct_addr + MULT_ADDR_SIZE(2), NULL);
+					// Get the number of strings to count
+					long nr = ptrace(PTRACE_PEEKDATA, pid,
+							struct_addr + MULT_ADDR_SIZE(3), NULL);
+					// Proceed like in readv
+					int count = 0;
+					for (int i = 0; i < nr; i++) {
+						count += ptrace(PTRACE_PEEKDATA, pid,
+								iovect_addr + MULT_ADDR_SIZE(((i << 1) + 1)),
+								NULL);
+					}
+					readsize = count;
+					break;
+				}
+			}
+
+			long_to_str(readsize, long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, "size", long_to_str_buf);
+
+			char mybuf[readsize];
+			if (destbufaddr != -1) {
+				getString(pid, destbufaddr, mybuf, readsize);
+			}
+			eventAddParam(event, "content", mybuf);
+		}
+			break;
+			break;
+
 	}
 
 	return (event);

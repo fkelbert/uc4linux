@@ -1,6 +1,6 @@
 #include "pep.h"
 
-char int_to_str[BUFLEN_INT];
+char int_to_str_buf[BUFLEN_INT];
 
 
 void setTraceeStatus(struct tracee *tracee) {
@@ -94,8 +94,8 @@ void run() {
 			// (i.e.: consider variable in/out)
 			event = eventCreate();
 
-			int_to_str(pid,int_to_str,BUFLEN_INT);
-			eventAddParam(event, "pid", tracee->command);
+			int_to_str(pid,int_to_str_buf,BUFLEN_INT);
+			eventAddParam(event, "pid", int_to_str_buf);
 			eventAddParam(event, "command", tracee->command);
 			eventAddParam(event, "user", tracee->user_info->pw_name);
 			eventAddParam(event, "syscall",

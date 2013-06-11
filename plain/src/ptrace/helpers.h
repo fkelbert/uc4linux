@@ -11,8 +11,8 @@
 
 
 #define int_to_str(i,buf,len) snprintf(buf,len,"%d",i)
-
-extern char int_to_str[];
+#define long_to_str(i,buf,len) snprintf(buf,len,"%ld",i)
+#define long_to_hex(i,buf,len) snprintf(buf,len,"%lx",i)
 
 struct passwd *getUserInfo(int pid);
 

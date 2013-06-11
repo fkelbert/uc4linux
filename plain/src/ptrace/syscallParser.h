@@ -17,6 +17,10 @@
 #include "syscalls.h"
 #include "constants.h"
 
+#define int_to_str(i,buf,len) snprintf(buf,len,"%d",i)
+#define long_to_str(i,buf,len) snprintf(buf,len,"%ld",i)
+#define long_to_hex(i,buf,len) snprintf(buf,len,"%lx",i)
+
 
 
 event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
