@@ -298,14 +298,17 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 		case SYS_dup2:
 		case SYS_dup3:
 			// FIXME only useful on return
-			eventAddParam(event, EVENT_PARAM_FILEDESCR, regs->ebx);
+			long_to_str(regs->ebx, long_to_str_buf, BUFLEN_LONG);
+			eventAddParam(event, EVENT_PARAM_FILEDESCR, long_to_str_buf);
 			break;
 
 		case SYS_fcntl:
 		case SYS_fcntl64:
+			// FIXME only useful on return (as above for dup())
 			// behaves as dup() if F_DUPFD or F_DUPFD_CLOEXEC is set
 			if (regs->ecx == F_DUPFD || regs->ecx == F_DUPFD_CLOEXEC) {
-				eventAddParam(event, EVENT_PARAM_FILEDESCR, regs->ebx);
+				long_to_str(regs->ebx, long_to_str_buf, BUFLEN_LONG);
+				eventAddParam(event, EVENT_PARAM_FILEDESCR, long_to_str_buf);
 			}
 			break;
 	}
