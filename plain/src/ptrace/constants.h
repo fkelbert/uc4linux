@@ -2,9 +2,6 @@
 #ifndef CONSTANTS_H_
 #define CONSTANTS_H_
 
-#define R_SUCCESS  0
-#define R_ERROR    1
-
 #define SYS_STATUS_IN 0
 #define SYS_STATUS_OUT 1
 #define SYS_STATUS_SKIP 2
@@ -20,7 +17,6 @@
 #define MULT2(INT) (INT << 1)
 
 #define ADDRESS_SIZE 4
-#define MULT_ADDR_SIZE(INT) (MULT4(INT))
 
 #define STR_LEN 4096
 

@@ -86,13 +86,13 @@ void run() {
 
 		// Skip the next desired event
 		// (important for execve which is intercepted three times)
-		if (tracee->status->skipNext == SKIP_DESIRED && tracee->status->in_out == SYS_STATUS_IN) {
+		if (tracee->status->skipNext == SKIP_DESIRED
+				&& tracee->status->in_out == SYS_STATUS_IN) {
 			tracee->status->in_out = SYS_STATUS_OUT;
 			tracee->status->skipNext = SKIP_NO;
 			ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
 			continue;
 		}
-
 
 		// parse system call
 		// FIXME do only parse if we are interested at this point
@@ -121,7 +121,7 @@ void run() {
 
 			parseSyscall(event, tracee->pid, &tracee->status->currentCall,
 					tracee->status->regs);
-			eventPrint(event);
+//			eventPrint(event);
 
 			switch (tracee->status->in_out) {
 				case SYS_STATUS_IN:
@@ -140,7 +140,7 @@ void run() {
 							// desired time (the child executing exec)
 							tracee->status->in_out = SYS_STATUS_OUT;
 							tracee->status->skipNext = SKIP_DESIRED;
-						break;
+							break;
 
 						default:
 							// Next time we will see the return of the system call
@@ -160,7 +160,8 @@ void run() {
 			eventDestroy(event);
 		}
 		else {
-			printf("untracked call %s\n", syscallTable[tracee->status->currentCall]);
+			printf("untracked call %s\n",
+					syscallTable[tracee->status->currentCall]);
 		}
 
 		// continue the intercepted process
@@ -176,7 +177,7 @@ int main(int argc, char **argv) {
 
 	if (child == -1) {
 		printf("Fork failed. Unable to start initial monitored child.");
-		return (1);
+		exit(1);
 	}
 
 	if (child == 0) {
