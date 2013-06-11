@@ -4,7 +4,6 @@
 
 #define SYS_STATUS_IN 0
 #define SYS_STATUS_OUT 1
-#define SYS_STATUS_SKIP 2
 
 #define YES 1
 #define NO 0
