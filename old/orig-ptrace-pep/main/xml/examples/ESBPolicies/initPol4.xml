@@ -1,0 +1,107 @@
+<?xml version='1.0' standalone='yes' ?>
+<policySet xmlns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+  xmlns:tns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+  xmlns:a="http://www.iese.fhg.de/pef/1.0/action" xmlns:e="http://www.iese.fhg.de/pef/1.0/event"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <interfaceDescriptions>
+    <pep name="jpdpPEP" type="jni">
+      <parameter name="className"
+        value="de/fraunhofer/iese/pef/pdp/PolicyDecisionPoint" />
+      <parameter name="methodName" value="handlePEPsubscribe" />
+      <parameter name="methodSignature" value="(Ljava/lang/String;I)I" />
+    </pep>
+    <pxp name="jpdpPXP" type="jni">
+      <parameter name="className"
+        value="de/fraunhofer/iese/pef/pdp/PolicyDecisionPoint" />
+      <parameter name="methodName" value="handlePXPexecute" />
+      <parameter name="methodSignature"
+        value="(Ljava/lang/String;Ljava/util/ArrayList;)I" />
+    </pxp>
+  </interfaceDescriptions>
+
+  <actionDescriptions>
+    <actionDescription name="uc.event.normalizedmessage">
+      <parameterDescription name="id" />
+      <parameterDescription name="mep" />
+      <parameterDescription name="status" />
+      <parameterDescription name="role" />
+      <parameterDescription name="target" />
+      <parameterDescription name="operation" />
+      <parameterDescription name="in" />
+      <parameterDescription name="out" />
+      <parameterDescription name="fault" />
+    </actionDescription>
+  </actionDescriptions>
+  <preventiveMechanism name="produceOnlyOnceSF1o4">
+    <description>...</description>
+    <timestep amount="1" unit="SECONDS" />
+    <trigger action="uc.event.normalizedmessage" isTry="true">
+      <paramMatch name="status" value="Active" />
+      <paramMatch name="role" value="Consumer" />
+    </trigger>
+    <condition>
+      <and>
+        <and>
+          <or>
+            <or>
+              <and>
+                <xPathEval>contains(//event/parameter[@name='operation']/@value,'{http://emergent.iese.fraunhofer.de/sf}requestProduction')
+                </xPathEval>
+                <xPathEval>contains(//event/parameter[@name='target']/@value,'PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf/}SFService}]')
+                </xPathEval>
+              </and>
+              <and>
+                <xPathEval>contains(//event/parameter[@name='operation']/@value,'{http://emergent.iese.fraunhofer.de/sf2}requestProduction')
+                </xPathEval>
+                <xPathEval>contains(//event/parameter[@name='target']/@value,'PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf2/}SF2Service}]')
+                </xPathEval>
+              </and>
+            </or>
+            <and>
+              <xPathEval>contains(//event/parameter[@name='operation']/@value,'{http://emergent.iese.fraunhofer.de/sf3}requestProduction')
+              </xPathEval>
+              <xPathEval>contains(//event/parameter[@name='target']/@value,'PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf3/}SF3Service}]')
+              </xPathEval>
+            </and>
+          </or>
+          <xPathEval>contains(//event/parameter[@name='in']/@value,'&lt;orderId&gt;4&lt;/orderId&gt;')
+          </xPathEval>
+        </and>
+        <not>
+          <repMax limit="1">
+            <and>
+              <or>
+                <or>
+                  <and>
+                    <xPathEval>contains(//event/parameter[@name='operation']/@value,'{http://emergent.iese.fraunhofer.de/sf}requestProduction')
+                    </xPathEval>
+                    <xPathEval>contains(//event/parameter[@name='target']/@value,'PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf/}SFService}]')
+                    </xPathEval>
+                  </and>
+                  <and>
+                    <xPathEval>contains(//event/parameter[@name='operation']/@value,'{http://emergent.iese.fraunhofer.de/sf2}requestProduction')
+                    </xPathEval>
+                    <xPathEval>contains(//event/parameter[@name='target']/@value,'PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf2/}SF2Service}]')
+                    </xPathEval>
+                  </and>
+                </or>
+                <and>
+                  <xPathEval>contains(//event/parameter[@name='operation']/@value,'{http://emergent.iese.fraunhofer.de/sf3}requestProduction')
+                  </xPathEval>
+                  <xPathEval>contains(//event/parameter[@name='target']/@value,'PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf3/}SF3Service}]')
+                  </xPathEval>
+                </and>
+              </or>
+              <xPathEval>contains(//event/parameter[@name='in']/@value,'&lt;orderId&gt;4&lt;/orderId&gt;')
+              </xPathEval>
+            </and>
+          </repMax>
+        </not>
+      </and>
+    </condition>
+    <authorizationAction name="auth1">
+      <inhibit />
+    </authorizationAction>
+  </preventiveMechanism>
+</policySet>

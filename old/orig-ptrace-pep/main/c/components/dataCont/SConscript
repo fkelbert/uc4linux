@@ -1,0 +1,32 @@
+# components/dataCont/SConscript
+import os,sys
+Import('env','curBaseDir')
+
+lDatacont = []
+if env['android']==True:
+  env.Alias('datacont', lDatacont)
+  Return()
+
+if env['PEFCONFIG']['dataCont'] == True:
+	listOfEventsStatic=env.StaticLibrary('list_of_events.c', CCFLAGS=env['CCFLAGS']+' -fPIC', LIBS=['mxml'])
+	env.Append(PEF_listOfEvents = listOfEventsStatic)
+	lDatacont.append(listOfEventsStatic)	
+		
+	if sys.platform=="openbsd4":
+	  dataContStatic=env.StaticLibrary('dataCont.c', CCFLAGS=env['CCFLAGS']+' -fPIC ')
+	  Depends(dataContStatic, ['PEFevent'])
+	  env.Append(PEF_dataCont = dataContStatic)
+	  lDatacont.append(dataContStatic)
+	 
+	  qdftConnectorShared=env.SharedLibrary('qdftConnector.cc')
+	  env.Append(PEF_qdftConnector = qdftConnectorShared)
+	  lDatacont.append(qfdtConnectorShared)
+		
+	  dataFlowMonitorStatic=env.StaticLibrary('data_flow_monitor.c', CCFLAGS=env['CCFLAGS']+' -fPIC ')
+	  # KIT: also dependency for qdftCnonectorShared!!
+	  Depends(dataFlowMonitorStatic, [dataContStatic])
+	  env.Append(PEF_dataFlowMonitor = dataFlowMonitorStatic)
+	  lDatacont.append(dataFlowMonitorStatic)
+	
+env.Alias('datacont', lDatacont)
+

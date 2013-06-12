@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Created with Liquid XML Studio 1.0.8.0 (http://www.liquid-technologies.com) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://www.master-fp7.eu/indicators" attributeFormDefault="unqualified" 
+elementFormDefault="qualified" targetNamespace="http://www.master-fp7.eu/indicators">
+  <xs:element name="key_indicator">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tns:description" />
+        <xs:element ref="tns:measured_process" />
+        <xs:element ref="tns:process_instance_table" />
+        <xs:element ref="tns:process_instance_uncertainty" />
+        <xs:element ref="tns:interval" />
+        <xs:element ref="tns:thresholds" />
+        <xs:element ref="tns:function" />
+        <xs:element ref="tns:uncertainty" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="startfrom" type="xs:dateTime" use="required" />
+      <xs:attribute name="type" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="KAI|KSI" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="version" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="description" type="xs:base64Binary" />
+  <xs:element name="measured_process">
+    <xs:complexType>
+      <xs:attribute name="id" type="xs:string" use="required" />
+      <xs:attribute name="type" use="required" />
+      <xs:attribute name="version" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="process_instance_table" type="xs:string" />
+  <xs:element name="process_instance_uncertainty" type="xs:string" />
+  <xs:element name="interval" type="xs:integer" />
+  <xs:element name="thresholds">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="tns:range" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="range">
+    <xs:complexType>
+      <xs:attribute name="lowerbound" type="xs:decimal" use="required" />
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="upperbound" type="xs:decimal" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="function">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tns:variable" />
+        <xs:element ref="tns:expression" />
+        <xs:element ref="tns:confidence" />
+      </xs:sequence>
+      <xs:attribute name="considerinterval" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="yes|no" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="enddatevar" type="xs:string" use="required" />
+      <xs:attribute name="resulttype" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="standarddev|possibleworlds" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="startdatevar" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="confidence" type="xs:string" />
+  <xs:element name="uncertainty">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="tns:variable" />
+        <xs:element ref="tns:expression" />
+      </xs:sequence>
+      <xs:attribute name="considerinterval" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="yes|no" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="enddatevar" type="xs:string" use="required" />
+      <xs:attribute name="startdatevar" type="xs:string" use="required" />
+      <xs:attribute name="type" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="standarddev|possibleworlds" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="variable">
+    <xs:complexType mixed="true">
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="type" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="SQL" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="expression">
+    <xs:complexType mixed="true">
+      <xs:attribute name="type" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="SQL" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

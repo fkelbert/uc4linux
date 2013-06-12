@@ -1,0 +1,237 @@
+# config/sconscript
+import os, sys, platform
+from time import localtime, strftime
+import logConf
+Import('tmpConfig')
+
+#######################################################################
+# Standard configuration
+tmpConfig['PEFCONFIG']={}
+tmpConfig['PEFCONFIG']['pdpjni']      = True
+tmpConfig['PEFCONFIG']['pefDoxygen']  = False
+
+tmpConfig['PEFCONFIG']['systracePEP'] = True
+tmpConfig['PEFCONFIG']['shellWrapper']= False
+tmpConfig['PEFCONFIG']['dataCont']    = True
+
+tmpConfig['PEFCONFIG']['tssUtils']    = False
+tmpConfig['PEFCONFIG']['cryptoUtils'] = False
+tmpConfig['PEFCONFIG']['socketUtils'] = False
+tmpConfig['PEFCONFIG']['soupUtils']   = False
+tmpConfig['PEFCONFIG']['examples']    = False
+tmpConfig['PEFCONFIG']['tests']       = True
+
+print "Processing platform specific configuration parameters for '" + sys.platform + "'"
+if sys.platform == "linux2": # linux>2<??
+  env = SConscript("scons.linux", exports=['tmpConfig'])
+elif sys.platform == "openbsd4":
+  env = SConscript("scons.openbsd", exports=['tmpConfig'])
+elif sys.platform == "win32":
+  env = SConscript("scons.win32", exports=['tmpConfig'])
+else:
+  print "No configuration for this platform present..."
+  Exit(1)
+
+# Default values for PDP configuration
+env.Append(PDPCONFIG={})
+env['PDPCONFIG']['pdpXMLvalidation']         = 1
+env['PDPCONFIG']['DATA_FLOW_ENABLED']        = 0
+env['PDPCONFIG']['MONITORING_ACTIVE']        = 0
+env['PDPCONFIG']['PDP_XMLRPC']               = 0
+env['PDPCONFIG']['PDP_TCPSOCKET']            = 0
+env['PDPCONFIG']['PDP_RMI']                  = 0
+env['PDPCONFIG']['PDP_PIPSOCKET']            = -1
+env['PDPCONFIG']['PDP_PEPSUBSCRIPTION']      = 1
+env['PDPCONFIG']['ABORT_SUBSCRIPTION_ERROR'] = 0
+env['PDPCONFIG']['RMIJAR']                   = "\"\""
+
+# Default logger configuration
+env.Append(PEFLOGCONFIG={})
+env['PEFLOGCONFIG']['ABSOLUTE_PATH'] = ""
+env['PEFLOGCONFIG']['RUNTIME_LOGLEVEL_EVAL'] = 0
+env['PEFLOGCONFIG']['RUNTIME_LOGLEVEL']      = logConf.TRACE
+env['PEFLOGCONFIG']['GLOBAL_LOG_LEVEL']      = logConf.TRACE
+env['PEFLOGCONFIG']['GLOBAL_LOG_OUTPUT']     = 'stdout'
+
+env.Append(android = False)
+env.Append(LIBS=[])
+
+#######################################################################
+# Compiler configuration
+env.Append(CXXFLAGS  = ' -Wno-write-strings ' )
+env.Append(CCFLAGS = ' -DLIBXML_STATIC ')
+
+basePath   =env['PEFBASE']
+buildPath  =env['PEFBUILD']
+env.Append(CPPPATH = ['.',
+                      env['PEFincludes'], 
+                      os.path.join(basePath, "include"),                
+                      os.path.join(buildPath, "include"),
+                      basePath+"/applications/systracePEP/systracePEP", #why?
+                     ])
+                      
+env.Append(LIBPATH=[os.path.join(buildPath, "components", "pdp")])
+env.Append(LIBPATH=[os.path.join(buildPath, "components", "dataCont")])
+env.Append(LIBPATH=[os.path.join(buildPath, "components", "syscallHandler")])
+
+#######################################################################
+#######################################################################
+#fetch user config (which modules should be compiled, etc...)
+userConfigFile=ARGUMENTS.get('conf', 'default')
+confOutput=os.path.join(env['PEFBUILD'],"include","pdpConfig.h")
+
+if os.path.exists(confOutput)==False:
+  print "NO CONFIG FILE present"
+else:
+  if ARGUMENTS.get('conf')!=None:
+    print "Config file present, but config option given; regenerate configuration!"
+  else:
+    # reading in exisiting configuration
+    pathSep='/'
+    if sys.platform=="win32":
+      pathSep='\\'
+    line1=None
+    for line in open(confOutput,'r'):
+      line1=line
+      break
+    line1=line1.strip(' \t\r\n/')
+    line1=line1[line1.find(pathSep)+1:line1.rfind('.conf')]
+    userConfigFile=line1
+    print "Existing user configuration: " + userConfigFile
+
+if userConfigFile=='android':
+  env.Append(PEFANDROID=1)
+else:
+  env.Append(PEFANDROID=0)
+  
+if userConfigFile!='':
+  if not os.path.exists(os.path.join(basePath, "config", userConfigFile + ".conf")):
+    print "Given user configuration file '"+userConfigFile+".conf' could not be accessed!"
+    exit(1)
+  print "Using user configuration: '"+userConfigFile+".conf'"
+  env=SConscript(userConfigFile+".conf", exports=['env'])
+
+# Preparing pdpConfig.h based on PDPCONFIG:
+def pdpConfigBuilderFunction(target, source, env):
+  targetFilename=str(target[0])
+  out=open(targetFilename, "w")
+  out.write("// " + str(source[0]) + "\n")
+  startStr="/*\n * pdpConfig.h\n *\n *  WARNING: This file is generated automatically from the configuration settings (scons)!\n *  DO NOT EDIT!\n *  Generated: "+ strftime("%a, %d %b %Y %H:%M:%S", localtime()) +"\n *  Author: cornelius moucha\n */\n\n#ifndef CONFIG_H_\n#define CONFIG_H_\n\n"
+  out.write(startStr)
+
+  for key in env['PDPCONFIG']:
+    out.write("#define " + key + " " + (str(env['PDPCONFIG'][key])).replace('\\','\\\\') + "\n")
+
+  out.write("\n\n\n")
+  out.write("#endif")
+  out.close()  
+  return None
+
+
+pdpConfigAction = Action(pdpConfigBuilderFunction, cmdstr="Preparing PDP configuration [$TARGET]")
+pdpConfigBuilder = Builder(action = pdpConfigAction)
+env.Append(BUILDERS = {'pdpConfig' : pdpConfigBuilder})
+
+## Preparing XML schema definition for XML validation
+schemaLocationPath=os.path.join(env['PEFBASE'],"..","xml")
+schemaFile="enfLanguage.xsd"
+outputPEFschemaHeader=os.path.join(env['PEFBUILD'],"include","pefschema.h")
+
+importFiles=[]
+def processXSD(out, filename, depth):
+  tns=""
+  searchForClosingBracket=False
+  
+  if depth>0:
+    if not filename in importFiles:
+      importFiles.append(filename)
+      filenameEscaped=filename.replace("\\","\\\\")
+      out.write("  <!-- "+filename.replace("\\","\\\\")+" -->\\\n\\\n")    
+    else:
+      return
+  
+  cnt=0
+  for line in open(os.path.join(schemaLocationPath,filename),'r'):
+    cnt+=1
+    if "<?xml" in line:
+      continue
+
+    if depth>0:
+      if "<schema" in line:
+        searchForClosingBracket=True
+        continue
+      if "</schema>" in line:
+        continue
+              
+    if depth>0 and searchForClosingBracket==True:
+      if not ">" in line:
+        continue
+      else:
+        searchForClosingBracket=False
+        continue
+      
+    if "<import namespace" in line:
+      location=line[line.find("schemaLocation=")+16:line.rfind("\"")]
+      processXSD(out, location, 1)
+      continue
+      
+    
+    if "xmlns:tns" in line:
+      pos=line.rfind("/")+1
+      if pos == -1: 
+        print "Error extracting Target Namespace! aborting..."
+        exit(1)
+      tns=line[pos:line.rfind("\"")]
+
+    if "xmlns:" in line and not "xmlns:tns" in line:
+      pos=line.rfind("/")+1
+      pos2=line.rfind("\"")
+      line=line[:pos] + tns +line[pos2:]
+
+    curLine=line.replace("\"","\\\"").rstrip(" \r\n")+"\\\n"
+    out.write(curLine)
+
+  out.write("  <!-- "+filename.replace("\\","\\\\")+" -->\\\n\\\n")    
+
+def pefSchemaBuilderFunction(target, source, env):
+  targetFilename=str(target[0])
+  
+  out=open(targetFilename, "w")
+  startStr="/*\n * pefschema.h\n *\n *  WARNING: This file is generated automatically from the appropriate XML Schema Definitions (XSD)!\n *  DO NOT EDIT!\n *  Generated: "+ strftime("%a, %d %b %Y %H:%M:%S", localtime()) +"\n *  Author: cornelius moucha\n */\n\n#ifndef PEFSCHEMA_H_\n#define PEFSCHEMA_H_\n\nstatic char* const pefschema=\"\\\n"
+  out.write(startStr)
+
+  processXSD(out, str(source[0]), 0)
+  out.write("\";\n\n\n")
+  out.write("#endif")
+  out.close()  
+  return None
+
+pefSchemaAction = Action(pefSchemaBuilderFunction, cmdstr="Preparing PEF XML schema definition for '$SOURCE'")
+pefSchemaBuilder = Builder(action = pefSchemaAction)
+env.Append(BUILDERS = {'pefSchema' : pefSchemaBuilder})
+
+pefXMLschema=env.pefSchema(outputPEFschemaHeader,os.path.join(schemaLocationPath,schemaFile))
+Depends(pefXMLschema, [os.path.join(schemaLocationPath,"action.xsd"),os.path.join(schemaLocationPath,"event.xsd"),
+                       os.path.join(schemaLocationPath,"context.xsd"),   os.path.join(schemaLocationPath,"time.xsd")])
+env.Append(pefXMLschema = pefXMLschema)
+Alias('pefSchema', pefXMLschema)
+if env['PEFANDROID']==1:
+  Default(pefXMLschema)
+
+confFile=userConfigFile+".conf"
+pdpConfig=env.pdpConfig(confOutput,confFile)
+Depends(pdpConfig, confFile)
+env.Append(userConfFile = pdpConfig)
+Alias('pdpConfig', pdpConfig)
+Default(pdpConfig)
+# prevent pdpConfig.h from standard cleaning; only clean when explicitely demanded
+if GetOption('clean') and "pdpConfig" in BUILD_TARGETS:
+  pass
+else:
+  NoClean(pdpConfig)
+Alias('pdpConfig', pdpConfig)
+  
+Return('env')
+
+
+

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+						targetNamespace="http://www.sap.com/psl1_0"
+						xmlns="http://www.sap.com/psl1_0"
+						elementFormDefault="qualified"
+						version="1.0">
+
+	<xsd:element name="Policy" type="PolicyType"/>
+
+	<xsd:complexType name="PolicyType">
+		<xsd:sequence>
+			<xsd:element name="Implies" type="ImpliesType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+		<xsd:attribute name="policyId" type="xsd:string" use="required"/>
+		<xsd:attribute name="policyVersion" type="xsd:integer" use="required"/>
+		<xsd:attribute name="pslVersion" type="xsd:integer" use="required"/>
+		<xsd:attribute name="creationDate" type="xsd:dateTime" use="required"/>
+		<xsd:attribute name="updateDate" type="xsd:dateTime" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ImpliesType">
+		<xsd:sequence>
+			<xsd:element name="Mappings" type="MappingsType" minOccurs="0" maxOccurs="1"/>
+			<xsd:element name="Body" type="ImpliesBodyType" minOccurs="1" maxOccurs="1"/>
+			<xsd:element name="Head" type="ImpliesHeadType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="MappingsType">
+		<xsd:sequence>
+			<xsd:element name="Mapping" type="MappingType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="MappingType">
+		<xsd:attribute name="bodyEvent" type="xsd:string" use="required"/>
+		<xsd:attribute name="bodyAttribute" type="xsd:string" use="required"/>
+		<xsd:attribute name="headEvent" type="xsd:string" use="required"/>
+		<xsd:attribute name="headAttribute" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ImpliesBodyType">
+		<xsd:choice>
+			<xsd:element name="Before" type="TemporalOperatorType"/>
+			<xsd:element name="After" type="TemporalOperatorType"/>
+			<xsd:element name="Within" type="WithinType"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="ImpliesHeadType">
+		<xsd:sequence>
+			<xsd:element name="Event" type="ImpliesHeadEventType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="ImpliesHeadEventType">
+		<xsd:sequence>
+			<xsd:element name="Attribute" type="AttributeType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="id" type="xsd:string" use="required"/>
+		<xsd:attribute name="type" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="AttributeType">
+		<xsd:sequence>
+			<xsd:element name="Value" type="xsd:anyType" minOccurs="0" maxOccurs="1"/>
+		</xsd:sequence>
+		<xsd:attribute name="name" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="TemporalOperatorType">
+		<xsd:sequence>
+			<xsd:element name="Joins" type="JoinsType" minOccurs="0" maxOccurs="1"/>
+			<xsd:element name="Body" type="BodyType" minOccurs="1" maxOccurs="1"/>
+			<xsd:element name="Head" type="TempHeadType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="WithinType">
+		<xsd:sequence>
+			<xsd:element name="Joins" type="JoinsType" minOccurs="0" maxOccurs="1"/>
+			<xsd:element name="Body" type="BodyType" minOccurs="1" maxOccurs="1"/>
+			<xsd:element name="LeftBound" type="BoundType" minOccurs="1" maxOccurs="1"/>
+			<xsd:element name="RightBound" type="BoundType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="JoinsType">
+		<xsd:sequence>
+			<xsd:element name="Join" type="JoinType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="JoinType">
+		<xsd:sequence>
+		</xsd:sequence>
+		<xsd:attribute name="operator" type="xsd:string" use="required"/>
+		<xsd:attribute name="bodyEvent" type="xsd:string" use="required"/>
+		<xsd:attribute name="bodyAttribute" type="xsd:string" use="required"/>
+		<xsd:attribute name="headEvent" type="xsd:string" use="required"/>
+		<xsd:attribute name="headAttribute" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="BoundType">
+		<xsd:sequence>
+			<xsd:element name="Event" type="EventType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="BodyType">
+		<xsd:choice>
+			<xsd:element name="And" type="SimpleOperatorType"/>
+			<xsd:element name="NotExists" type="QuantType"/>
+			<xsd:element name="Or" type="SimpleOperatorType"/>
+			<xsd:element name="Event" type="EventType"/>
+			<xsd:element name="Exists" type="QuantType"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="SimpleOperatorType">
+		<xsd:sequence>
+			<xsd:element name="Joins" type="JoinsType" minOccurs="0" maxOccurs="1"/>
+			<xsd:element name="Body" type="BodyType" minOccurs="1" maxOccurs="1"/>
+			<xsd:element name="Head" type="BodyType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+
+	<xsd:complexType name="QuantType">
+		<xsd:sequence>
+			<xsd:element name="Body" type="QuantBodyType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="QuantBodyType">
+		<xsd:choice>
+			<xsd:element name="And" type="QuantAndOrType"/>
+			<xsd:element name="Or" type="QuantAndOrType"/>
+			<xsd:element name="Event" type="EventType"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="QuantAndOrType">
+		<xsd:sequence>
+			<xsd:element name="Body" type="QuantBodyType" minOccurs="1" maxOccurs="1"/>
+			<xsd:element name="Head" type="QuantBodyType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="TempHeadType">
+		<xsd:sequence>
+			<xsd:element name="Event" type="EventType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="EventType">
+		<xsd:sequence>
+			<xsd:element name="Conditions" type="ConditionsType" minOccurs="0" maxOccurs="1"/>
+		</xsd:sequence>
+		<xsd:attribute name="id" type="xsd:string" use="required"/>
+		<xsd:attribute name="type" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+	<xsd:complexType name="ConditionsType">
+		<xsd:sequence>
+			<xsd:element name="Condition" type="ConditionType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+	<xsd:complexType name="ConditionType">
+		<xsd:sequence>
+			<xsd:element name="Attribute" type="AttributeType" minOccurs="1" maxOccurs="1"/>
+			<xsd:element name="Value" type="xsd:anyType" minOccurs="1" maxOccurs="1"/>
+		</xsd:sequence>
+		<xsd:attribute name="operator" type="xsd:string" use="required"/>
+	</xsd:complexType>
+
+</xsd:schema>
+

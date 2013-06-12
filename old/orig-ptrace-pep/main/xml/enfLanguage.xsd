@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+  xmlns              = "http://www.w3.org/2001/XMLSchema"   
+  targetNamespace    = "http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+  xmlns:tns          = "http://www.iese.fhg.de/pef/1.0/enforcementLanguage"  
+  xmlns:time         = "http://www.iese.fhg.de/pef/1.0/time"
+  xmlns:action       = "http://www.iese.fhg.de/pef/1.0/action"
+  xmlns:event        = "http://www.iese.fhg.de/pef/1.0/event"
+  xmlns:ctx     		 = "http://www.iese.fhg.de/pef/1.0/context"
+  elementFormDefault = "qualified">
+
+  <import namespace="http://www.iese.fhg.de/pef/1.0/time"    schemaLocation="time.xsd" />
+  <import namespace="http://www.iese.fhg.de/pef/1.0/action"  schemaLocation="action.xsd" />
+  <import namespace="http://www.iese.fhg.de/pef/1.0/event"   schemaLocation="event.xsd" />
+  <import namespace="http://www.iese.fhg.de/pef/1.0/context" schemaLocation="context.xsd" />
+
+  <complexType name="conditionType">
+    <group ref="tns:OperatorsGroup"/>
+  </complexType>
+
+  <complexType name="EmptyOperatorType" />
+
+  <complexType name="UnaryOperatorType">
+    <group ref="tns:OperatorsGroup" minOccurs="1" maxOccurs="1" />
+  </complexType>
+
+  <complexType name="BinaryOperatorType">
+    <group ref="tns:OperatorsGroup" minOccurs="2" maxOccurs="2" />
+  </complexType>
+
+  <complexType name="TimeBoundedUnaryOperatorType">
+    <group ref="tns:OperatorsGroup" minOccurs="1" maxOccurs="1" />
+    <attributeGroup ref="time:TimeAmountAttributeGroup"/>
+  </complexType>
+
+  <group name="OperatorsGroup">
+    <annotation>
+      <documentation>Propositional, temporal logic and cardinality operators</documentation>
+    </annotation>
+    <choice>
+
+      <!-- logical constants -->
+      <element name="true"  type="tns:EmptyOperatorType" />
+      <element name="false" type="tns:EmptyOperatorType" />
+
+       <!-- eventMatch = event matching  -->
+      <element name="eventMatch" type="event:EventMatchingOperatorType"/>
+
+      <!-- propositional operators -->
+      <element name="not"     type="tns:UnaryOperatorType" />
+      <element name="and"     type="tns:BinaryOperatorType" />
+      <element name="or"      type="tns:BinaryOperatorType" />
+      <element name="implies" type="tns:BinaryOperatorType" />
+
+      <!-- xpath operator -->
+      <element name="xPathEval" type="string" />
+
+      <!-- temporal operators -->
+
+      <element name="since" type="tns:BinaryOperatorType">
+        <annotation>
+          <documentation>
+            since(A, B) => B since A
+            Since the last occurrence of A, B has to hold all the time. Alternatively globally B.
+            This is equivalent to the LTL weak since operator.
+        </documentation>
+        </annotation>
+      </element>
+
+      <element name="always" type="tns:UnaryOperatorType">
+        <annotation>
+          <documentation>
+            In the past the formula should have hold in all timesteps.
+            Equivalent to the LTL globally (G) operator.
+            </documentation>
+        </annotation>
+      </element>
+
+      <element name="before" type="tns:TimeBoundedUnaryOperatorType">
+        <annotation>
+          <documentation>
+            Formula has to have held immediately before the specified time interval in the past.
+            The time interval depends on the monitor's view of time, it should be expressed as
+            timesteps or absolute time values. This is similar to the LTL previous operator.
+            </documentation>
+        </annotation>
+      </element>
+
+      <element name="during" type="tns:TimeBoundedUnaryOperatorType">
+        <annotation>
+          <documentation>
+            A formula should have held constantly during the time interval in the past.
+            During (3 hours, A)
+            Means A has to be always true in the previous 3 hours (depending on the mechanism's notion of timesteps).
+          </documentation>
+        </annotation>
+      </element>
+
+      <element name="within" type="tns:TimeBoundedUnaryOperatorType">
+        <annotation>
+          <documentation>
+            A formula should have held at least once during the time interval in the past. Similar to during
+            without the requirement for the formula to hold every time step.
+        </documentation>
+        </annotation>
+      </element>
+
+      <!-- cardinality operators -->
+
+      <element name="repLim">
+        <annotation>
+          <documentation>
+            Specifies a lower and upper bound of occurrences within a fixed time interval in which a formula should hold.
+            repLim(lower=0, upper=3, 1 hour, A)
+            In 3 hours min 0 max 3 times A has to hold.
+        </documentation>
+        </annotation>
+			  <complexType>
+			    <complexContent>
+			      <extension base="tns:TimeBoundedUnaryOperatorType">
+			        <attribute name="lowerLimit" type="nonNegativeInteger" use="required" />
+			        <attribute name="upperLimit" type="positiveInteger"    use="required" />
+			      </extension>
+			    </complexContent>
+			  </complexType>        
+      </element>
+
+      <element name="repSince">
+        <annotation>
+          <documentation>
+            repSince(3, A, B)
+            Limits the maximum number of times (here 3) the subformula (B) may hold since subformula (A) has hold. Alternatively limits the amount,  
+            subformula B may hold globally, similar to since and LTL weak since operator. 
+        </documentation>
+        </annotation>
+			  <complexType >
+			    <complexContent>
+			      <extension base="tns:BinaryOperatorType">
+			        <attribute name="limit" type="nonNegativeInteger" use="required" />
+			      </extension>
+			    </complexContent>
+			  </complexType>        
+      </element>
+
+      <element name="repMax">
+        <annotation>
+          <documentation>
+            The maximum number of times a formula should occur all the time.
+        </documentation>
+        </annotation>
+        <complexType>
+          <complexContent>
+            <extension base="tns:UnaryOperatorType">
+              <attribute name="limit" type="nonNegativeInteger" use="required" />
+            </extension>
+          </complexContent>
+        </complexType>
+      </element>
+
+    </choice>
+  </group>
+
+  <complexType name="DelayActionType">
+    <attributeGroup ref="time:TimeAmountAttributeGroup" />
+  </complexType>
+
+  <complexType name="ModifyActionType">
+		<sequence>
+		  <element name="parameter" type="action:ParameterInstance" minOccurs="0" maxOccurs="unbounded" />
+		</sequence>
+  </complexType>
+
+  <complexType name="AuthorizationInhibitType">
+    <sequence>
+      <element name="delay" type="tns:DelayActionType" minOccurs="0" maxOccurs="1" />
+    </sequence>
+  </complexType>
+
+  <complexType name="AuthorizationAllowType">
+    <annotation>
+      <documentation>
+        Mechanisms that only contain allow action without modify/delay and no actions do not make sense
+        Allows the trigger event to take place. In our concrete semantics this means that the action
+        behind the event should be allowed to take place.  
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name="delay"         type="tns:DelayActionType"      minOccurs="0" maxOccurs="1" />
+      <element name="modify"        type="tns:ModifyActionType"     minOccurs="0" maxOccurs="1" />
+      <element name="executeAction" type="action:ExecuteActionType" minOccurs="0" maxOccurs="unbounded" />
+    </sequence>
+  </complexType>
+
+  <complexType name="AuthorizationActionType">
+    <choice>
+      <element name="allow"   type="tns:AuthorizationAllowType" />
+      <element name="inhibit" type="tns:AuthorizationInhibitType" />
+    </choice>
+    <attribute name="name" type="string"     use="required" />
+    <!--  indicates starting point in authorizationAction hierarchy -->
+    <attribute name="start" type="string"    use="optional" default="false"/>
+    <!--  reference to fallback authorizationAction (name), if executeActions/modification could not be performed successfully -->
+    <attribute name="fallback" type="string" use="optional" default="inhibit"/>
+  </complexType>
+
+  <!-- Preventive mechanisms can only come to decisions on the grounds of their current knowledge, so 
+    they use past formulas. The mechanism consists of an Event, a Condition, and an Action part (ECA).
+    The Event is called trigger Event. When the condition evaluates to true the action part is executed. -->
+  <complexType name="MechanismBaseType">
+    <sequence>
+      <element name="description"        type="string"                          minOccurs="0" maxOccurs="1" />
+      <!-- Timestep size must not use timestep time unit! -->
+      <element name="timestep"           type="time:TimeAmountType"             minOccurs="1" maxOccurs="1" />
+      <element name="trigger"            type="event:EventMatchingOperatorType" minOccurs="0" maxOccurs="1" />
+      <element name="condition"          type="tns:conditionType"               minOccurs="0" maxOccurs="1" />
+    </sequence>
+    <attribute name="name" type="string" use="required" />
+    <!-- start and end time, optional; not yet supported.
+         start value '0' -> as soon as possible,
+         end value   '0' -> valid forever. -->
+    <attributeGroup ref="time:TimeIntervalAttributeGroup"/>
+  </complexType>
+
+  <complexType name="DetectiveMechanismType">
+    <complexContent>
+      <extension base="tns:MechanismBaseType">  
+        <sequence>
+          <element name="executeAction" type="action:ExecuteActionType" minOccurs="0" maxOccurs="unbounded" />
+        </sequence>
+      </extension>
+    </complexContent>
+  </complexType>
+
+  <complexType name="PreventiveMechanismType">
+    <annotation>
+      <documentation>
+        Trigger is always a try action for preventive mechanisms.
+      </documentation>
+    </annotation>
+    <complexContent>
+      <extension base="tns:MechanismBaseType">  
+        <sequence>
+          <element name="authorizationAction" type="tns:AuthorizationActionType"  minOccurs="1" maxOccurs="unbounded" />
+          <element name="executeAction"       type="action:ExecuteActionType"     minOccurs="0" maxOccurs="unbounded" />
+        </sequence>
+      </extension>
+    </complexContent>
+  </complexType>
+
+  <simpleType name="InterfaceInstanceType">
+    <annotation>
+      <documentation>Possible interface types</documentation>
+    </annotation> 
+    <restriction base="string">
+      <enumeration value="native" />
+      <enumeration value="jni" />
+      <enumeration value="socket" />
+      <enumeration value="xmlrpc" />
+    </restriction>
+  </simpleType>
+  
+  <complexType name="InterfaceType">
+    <annotation>
+      <documentation>Describes an interfaces for PEPs and PXPs including required parameters, e.g. IP, port for sockets.</documentation>
+    </annotation>
+    <sequence>
+      <element name="parameter" type="action:ParameterInstance" minOccurs="0" maxOccurs="unbounded" />
+    </sequence>
+    <attribute name="name" type="string" use="required" />
+    <attribute name="type" type="tns:InterfaceInstanceType" use="required" />
+  </complexType>
+
+  <complexType name="InterfaceDescriptionType">
+    <annotation>
+      <documentation>Interfaces for PEPs and PXPs, e.g. for action subscription or executors.</documentation>
+    </annotation>
+    <sequence>
+      <element name="pep" type="tns:InterfaceType" minOccurs="0" maxOccurs="unbounded" />
+      <element name="pxp" type="tns:InterfaceType" minOccurs="0" maxOccurs="unbounded" />
+    </sequence>
+  </complexType>
+
+  <complexType name="PolicySetType">
+    <sequence>
+      <element name="interfaceDescriptions" type="tns:InterfaceDescriptionType"      minOccurs="0" maxOccurs="1" />
+      <element name="actionDescriptions"    type="action:ActionDescriptionStoreType" minOccurs="0" maxOccurs="1" /> 
+      <element name="contextDescriptions"   type="ctx:ContextDescriptionType"        minOccurs="0" maxOccurs="1" /> 
+      
+      <choice minOccurs="0" maxOccurs="unbounded">
+        <element name="detectiveMechanism"    type="tns:DetectiveMechanismType" />
+        <element name="preventiveMechanism"   type="tns:PreventiveMechanismType" />
+      </choice>
+    </sequence>
+  </complexType>
+
+  <element name="policySet" type="tns:PolicySetType">
+    <annotation>
+      <documentation>
+        Actions and parameter names are keys. Action names and parameters are referenced by the mechanism trigger, 
+        the eventMatch operator and the execution action.
+      </documentation>
+    </annotation>
+  </element>
+
+</schema>

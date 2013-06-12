@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+
+<monitorConfiguration
+	xmlns="http://www.master-fp7.eu/Master-EnfLang-FHG"
+	xmlns:event="http://www.master-fp7.eu/event"
+	xmlns:propositionalLogic="http://www.master-fp7.eu/propositionalLogic"
+	xmlns:pastOSL="http://www.master-fp7.eu/pastOSL"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.master-fp7.eu event.xsd
+						http://www.master-fp7.eu propositionalLogic.xsd
+						http://www.master-fp7.eu pastOSL.xsd
+						http://www.master-fp7.eu Master-EnfLang-FHG.xsd">
+
+
+<controlMechanism>
+  <id>BlockTestCONT</id>
+  <description>
+    Do not allow content of file 'contacts.cont.db' to be open by app. nano
+  </description>
+  <triggerEvent xmlns="http://www.master-fp7.eu/event">
+    <id>open</id>
+    <parameter name="user" value="user"/>
+    <parameter name="filename" value="/home/user/contacts.cont"/>
+  </triggerEvent>
+  <condition xmlns="http://www.master-fp7.eu/pastOSL">
+    <XPathEval>
+      /triggerEvent/parameter[@name='command']/@value='nano'
+    </XPathEval>
+ </condition>
+  <actions>
+    <inhibit/>
+  </actions>  
+</controlMechanism>
+						
+<controlMechanism>
+  <id>BlockTestDATA</id>
+  <description>
+    Do not allow content of file 'contacts.data.db' to be open by app. nano
+  </description>
+  <triggerEvent xmlns="http://www.master-fp7.eu/event">
+    <id>open</id>
+    <parameter name="user" value="user"/>
+    <parameter name="filename" value="/home/user/contacts.data" type="dataUsage"/>
+  </triggerEvent>
+  <condition xmlns="http://www.master-fp7.eu/pastOSL">
+    <XPathEval>
+      /triggerEvent/parameter[@name='command']/@value='nano'
+    </XPathEval>
+ </condition>
+  <actions>
+    <inhibit/>
+  </actions>  
+</controlMechanism>
+
+</monitorConfiguration>
+ 
+ 

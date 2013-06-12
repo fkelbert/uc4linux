@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policySet 
+  xmlns="http://www.iese.fhg.de/esf/1.0/enforcementLanguage"
+  xmlns:tns="http://www.iese.fhg.de/esf/1.0/enforcementLanguage"
+  xmlns:a="http://www.iese.fhg.de/esf/1.0/action" 
+  xmlns:e="http://www.iese.fhg.de/esf/1.0/event"
+  xmlns:mc="http://www.master-fp7.eu/mcalculus.xsd"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="
+    http://www.iese.fhg.de/esf/1.0/enforcementLanguage enforcementLanguage-FhG.xsd
+    http://www.iese.fhg.de/esf/1.0/action action-FhG.xsd
+    http://www.iese.fhg.de/esf/1.0/event event-FhG.xsd
+    http://www.master-fp7.eu/mcalculus.xsd mcalculus.xsd">
+
+  <actionDescriptions>
+  
+    <!-- all system calls inherit a common set of parameters -->
+    <a:actionDescription name="syscall">
+      <a:parameterDescription name="processId"/>
+      <a:parameterDescription name="command"/>
+      <a:parameterDescription name="username"/>
+    </a:actionDescription>
+    
+    <a:actionDescription name="open" subclassOf="syscall">
+      <a:parameterDescription name="pathname"/>
+    </a:actionDescription>
+
+    <a:actionDescription name="login">
+      <a:parameterDescription name="result"/>
+    </a:actionDescription>
+
+    <a:actionDescription name="logout"/>
+
+    <a:actionDescription name="log">
+      <a:parameterDescription name="msg"/>
+    </a:actionDescription>
+
+  </actionDescriptions>
+  
+  <!--<preventiveMechanism name="Preventive1">
+    <description>Test of preventive mechanism</description>
+    <timestepSize amount="1" unit="second"/>
+    <trigger action="open">
+      <e:paramMatch name="path" value="/etc/passwd"/>
+    </trigger>
+    <condition>
+      <true/>
+    </condition>
+    <allow>
+      <delay amount="1" unit="second"/>
+      <modify>
+        <parameter name="path" value="dev/null"/>
+      </modify>
+    </allow>
+    <execute>
+      <action name="log">
+        <a:parameter name="msg" value="Access to password file redirected to /dev/null."/>
+      </action>
+    </execute>
+  </preventiveMechanism>-->
+ <preventiveMechanism name="Preventive1">
+    <description>Test of preventive mechanism1</description>
+    <timestep amount="1" unit="SECONDS"/>
+    <trigger action="open" index="ALL" isTry="true">
+      <e:paramMatch name="pathname" value="/etc/shadow"/>
+    </trigger>
+    <!-- A complete condition that does not make
+         any sense, but uses all operators. -->
+  <condition>
+    <xPathEval>//event/parameter[@name='pathname']/@value = '/etc/shadow'</xPathEval>
+  </condition>
+    <authorizationAction>
+      <allow>
+        <delay amount="1" unit="SECONDS"/>
+        <modify>
+          <parameter name="path" value="dev/null"/>
+        </modify>
+      </allow>
+    </authorizationAction>
+    <action name="log">
+      <a:parameter name="msg" value="Access to password file redirected to /dev/null."/>
+    </action>
+  </preventiveMechanism>
+
+</policySet>

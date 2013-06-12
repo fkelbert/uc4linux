@@ -1,0 +1,9 @@
+import os
+Import('env','curBaseDir')
+
+#attestationServiceObject=env.rdObject('as.c')
+#attestationService=env.SharedLibrary([attestationServiceObject], LIBS=env['LIBS'] + ['crypto','tspi','pthread'] +  
+#                                      env['ESF_logger'] + env['xmlUtils'] + env['stringUtils'] + env['memUtils'] + env['cryptoUtils'] + env['tssUtils'])
+#Depends(attestationService, ['logger','utilities'])
+#env.Alias('as', [attestationService])
+

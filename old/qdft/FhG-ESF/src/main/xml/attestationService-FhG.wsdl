@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<definitions
+  name            = "AttestationService"
+  targetNamespace = "http://www.iese.fhg.de/esf/1.0/as/ws"
+  xmlns:tns       = "http://www.iese.fhg.de/esf/1.0/as/ws"
+  xmlns:tnss      = "http://www.iese.fhg.de/esf/1.0/as/ws/schema"
+  xmlns           = "http://schemas.xmlsoap.org/wsdl/"
+  xmlns:wsdl      = "http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap      = "http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:xsd       = "http://www.w3.org/2001/XMLSchema">
+  
+  <types>
+    <schema xmlns="http://www.w3.org/2001/XMLSchema">
+      <import schemaLocation="attestationService-FhG.xsd"
+              namespace="http://www.iese.fraunhofer.de/esf/1.0/as/ws/schema"/>
+    </schema>              
+  </types>
+  
+  <message name="AttestFilesRequest">
+    <part name="files" element="tnss:files" />
+  </message>
+  
+  <message name="AttestFilesResponse">
+    <part name="attestationResult" element="tnss:attestationResult" />
+  </message>
+  
+  <portType name="AttestationService">
+    <operation name="attestFiles">
+      <input message="tns:AttestFilesRequest" />
+      <output message="tns:AttestFilesResponse" />
+    </operation>
+  </portType>
+  
+  <binding name="AttestationServiceSOAP" type="tns:AttestationService">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
+    <operation name="attestFiles">
+      <soap:operation soapAction="attestFiles" />
+      <input>
+        <soap:body use="literal" />
+      </input>
+      <output>
+        <soap:body use="literal" />
+      </output>
+    </operation>
+  </binding>
+  
+  <service name="AttestationService">
+    <port binding="tns:AttestationServiceSOAP" name="AttestationServiceSOAP">
+      <soap:address location="http://localhost:9008/axis2/services/AttestationService" />
+    </port>
+  </service>
+  
+</definitions>

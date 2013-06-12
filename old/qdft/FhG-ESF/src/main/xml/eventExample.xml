@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<event action="open" index="START" 
+timestamp="2002-05-30T09:30:10" isTry="true"
+signaller="127.0.0.1" subject="neisse" target="os"> 
+  <parameter name="pathname" value="/etc/shadow"/>
+</event>

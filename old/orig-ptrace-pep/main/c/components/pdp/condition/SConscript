@@ -1,0 +1,17 @@
+# components/pdp/condition/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+conditionObject=env.rdObject('condition.c')
+operatorsObject=env.rdObject('oslOperators.c')
+operatorEvalObject=env.rdObject('oslEval.c')
+opStateObject=env.rdObject('opState.c')
+
+Alias('condition', [conditionObject, operatorsObject, opStateObject, operatorEvalObject])
+Default([conditionObject, operatorsObject, opStateObject, operatorEvalObject])
+
+
+
+
+
+

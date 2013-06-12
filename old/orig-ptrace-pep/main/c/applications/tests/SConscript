@@ -1,0 +1,66 @@
+# applications/test/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+lTests = []
+if env['android']==True:
+  Alias('tests', lTests)
+  Return()
+  
+if env['PEFCONFIG']['tests'] == False:
+  Alias('tests', lTests)
+  Return()
+  
+pdpCCFlags=env['CCFLAGS']
+if env['PEFCONFIG']['pdpjni'] == True:
+  pdpCCFlags=pdpCCFlags + " -DPDP_JNI "  
+    
+actionTestObject=env.rdObject('testAction.c', ccflags=pdpCCFlags)
+actionTest=env.Program(actionTestObject, LIBS=env['LIBS'] + ['pdp','jvm'])
+lTests.append(actionTest)
+Alias('actionTest', actionTest)
+
+if env['PEFCONFIG']['pdpjni']==1:
+  jniTestObject=env.rdObject('testjni.c')
+  jniTest=env.Program([jniTestObject], LIBS=env['LIBS'] + ['pdp','jvm'])
+  lTests.append(jniTest)
+  Alias('jniTest', jniTest)
+
+eventTestObject=env.rdObject('testEvent.c')
+eventTest=env.Program(eventTestObject, LIBS=env['LIBS'] + ['pdp','jvm'])
+lTests.append(eventTest)
+Alias('eventTest', eventTest)
+
+timestampTestObject=env.rdObject('testTimestamp.c')
+timestampTest=env.Program(timestampTestObject, LIBS=env['LIBS'] + ['pdp','jvm'])
+lTests.append(timestampTest)
+Alias('timestampTest', timestampTest)
+
+pdpCCFlags=env['CCFLAGS']
+if env['PEFCONFIG']['pdpjni'] == True:
+  pdpCCFlags=pdpCCFlags + " -DPDP_JNI "
+
+testOperatorsObject=env.rdObject('testOperators.c')
+testOperators=env.Program(testOperatorsObject, CCFLAGS=pdpCCFlags, LIBS=['pdp','jvm']+env['LIBS'])
+Depends(testOperators, [testOperatorsObject, 'logger', 'utilities', 'pdp']) 
+lTests.append(testOperators)
+
+testpdpObject=env.rdObject('testpdp.c')
+testpdp=env.Program(testpdpObject, CCFLAGS=pdpCCFlags, LIBS=['pdp','jvm', 'syscallHandler','list_of_events']+env['LIBS']+['mxml'])
+# regex added because in win32 static pdp library is linked here (why this static one is chosen automatically NOT known!
+Depends(testpdp, [ 'logger', 'utilities', 'pdp', 'datacont','syscallHandler', testpdpObject]) 
+lTests.append(testpdp)
+
+cpptestObject=env.rdObject('testcpp.cc')
+cpptest=env.Program(cpptestObject, CCFLAGS=pdpCCFlags, LIBS=['pdp','jvm']+env['LIBS'])
+Depends(cpptest, ['pdp'])
+Alias('testcpp', cpptest)
+lTests.append(cpptest)
+
+Default(lTests)
+Alias('tests', lTests)
+
+
+
+
+

@@ -1,0 +1,196 @@
+<?xml version='1.0' standalone='yes' ?>
+<policySet xmlns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+  xmlns:tns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+  xmlns:a="http://www.iese.fhg.de/pef/1.0/action" xmlns:e="http://www.iese.fhg.de/pef/1.0/event"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <interfaceDescriptions>
+    <pep name="jpdpPEP" type="jni">
+      <parameter name="className"
+        value="de/fraunhofer/iese/pef/pdp/PolicyDecisionPoint" />
+      <parameter name="methodName" value="handlePEPsubscribe" />
+      <parameter name="methodSignature" value="(Ljava/lang/String;I)I" />
+    </pep>
+    <pxp name="jpdpPXP" type="jni">
+      <parameter name="className"
+        value="de/fraunhofer/iese/pef/pdp/PolicyDecisionPoint" />
+      <parameter name="methodName" value="handlePXPexecute" />
+      <parameter name="methodSignature"
+        value="(Ljava/lang/String;Ljava/util/ArrayList;)I" />
+    </pxp>
+  </interfaceDescriptions>
+  <actionDescriptions>
+    <actionDescription name="uc.event.normalizedmessage">
+      <parameterDescription name="id" />
+      <parameterDescription name="mep" />
+      <parameterDescription name="status" />
+      <parameterDescription name="role" />
+      <parameterDescription name="target" />
+      <parameterDescription name="operation" />
+      <parameterDescription name="in" />
+      <parameterDescription name="out" />
+      <parameterDescription name="fault" />
+    </actionDescription>
+  </actionDescriptions>
+  <preventiveMechanism name="anonymizeCustomerDataForSF1o1">
+    <description>...</description>
+    <timestep amount="1" unit="SECONDS" />
+    <trigger action="uc.event.normalizedmessage" isTry="true">
+      <paramMatch name="status" value="Active" />
+      <paramMatch name="role" value="Consumer" />
+      <paramMatch name="operation"
+        value="{http://emergent.iese.fraunhofer.de/sf}requestProduction" />
+      <paramMatch name="target"
+        value="PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf/}SFService}]" />
+    </trigger>
+    <condition>
+      <xPathEval>contains(//event/parameter[@name='in']/@value,'&lt;orderId&gt;1&lt;/orderId&gt;')
+      </xPathEval>
+    </condition>
+    <authorizationAction name="auth1">
+      <allow>
+        <modify>
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/name$anonymizeString$0" />
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/prename$anonymizeString$0" />
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/email$anonymizeString$0" />
+        </modify>
+      </allow>
+    </authorizationAction>
+  </preventiveMechanism>
+  <preventiveMechanism name="anonymizeCustomerDataForSF2o1">
+    <description>...</description>
+    <timestep amount="1" unit="SECONDS" />
+    <trigger action="uc.event.normalizedmessage" isTry="true">
+      <paramMatch name="status" value="Active" />
+      <paramMatch name="role" value="Consumer" />
+      <paramMatch name="operation"
+        value="{http://emergent.iese.fraunhofer.de/sf2}requestProduction" />
+      <paramMatch name="target"
+        value="PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf2/}SF2Service}]" />
+    </trigger>
+    <condition>
+      <xPathEval>contains(//event/parameter[@name='in']/@value,'&lt;orderId&gt;1&lt;/orderId&gt;')
+      </xPathEval>
+    </condition>
+    <authorizationAction name="auth2">
+      <allow>
+        <modify>
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/name$anonymizeString$0" />
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/prename$anonymizeString$0" />
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/email$anonymizeString$0" />
+        </modify>
+      </allow>
+    </authorizationAction>
+  </preventiveMechanism>
+  <preventiveMechanism name="anonymizeCustomerDataForSF3o1">
+    <description>...</description>
+    <timestep amount="1" unit="SECONDS" />
+    <trigger action="uc.event.normalizedmessage" isTry="true">
+      <paramMatch name="status" value="Active" />
+      <paramMatch name="role" value="Consumer" />
+      <paramMatch name="operation"
+        value="{http://emergent.iese.fraunhofer.de/sf3}requestProduction" />
+      <paramMatch name="target"
+        value="PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf3/}SF3Service}]" />
+    </trigger>
+    <condition>
+      <xPathEval>contains(//event/parameter[@name='in']/@value,'&lt;orderId&gt;1&lt;/orderId&gt;')
+      </xPathEval>
+    </condition>
+    <authorizationAction name="auth3">
+      <allow>
+        <modify>
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/name$anonymizeString$0" />
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/prename$anonymizeString$0" />
+          <parameter name="in"
+            value="xpath$//tns:requestProduction/customer/email$anonymizeString$0" />
+        </modify>
+      </allow>
+    </authorizationAction>
+  </preventiveMechanism>
+  <preventiveMechanism name="deleteAfterProductionInSF1o1">
+    <description>...</description>
+    <timestep amount="1" unit="SECONDS" />
+    <trigger action="uc.event.normalizedmessage" isTry="true">
+      <paramMatch name="status" value="Active" />
+      <paramMatch name="role" value="Provider" />
+      <paramMatch name="operation"
+        value="{http://emergent.iese.fraunhofer.de/sf}produce" />
+      <paramMatch name="target"
+        value="PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf/}SFService}]" />
+    </trigger>
+    <condition>
+      <xPathEval>contains(//event/parameter[@name='in']/@value,'&lt;orderId&gt;1&lt;/orderId&gt;')
+      </xPathEval>
+    </condition>
+    <authorizationAction name="auth4">
+      <allow />
+    </authorizationAction>
+    <executeAction name="servicecall">
+      <parameter name="url" value="http://192.168.1.101:8193/SFService/" />
+      <parameter name="tns" value="http://emergent.iese.fraunhofer.de/sf" />
+      <parameter name="class" value="java.lang.Boolean" />
+      <parameter name="method" value="deleteProduction" />
+      <parameter name="orderId" value="1" />
+    </executeAction>
+  </preventiveMechanism>
+  <preventiveMechanism name="deleteAfterProductionInSF2o1">
+    <description>...</description>
+    <timestep amount="1" unit="SECONDS" />
+    <trigger action="uc.event.normalizedmessage" isTry="true">
+      <paramMatch name="status" value="Active" />
+      <paramMatch name="role" value="Provider" />
+      <paramMatch name="operation"
+        value="{http://emergent.iese.fraunhofer.de/sf2}produce" />
+      <paramMatch name="target"
+        value="PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf2/}SF2Service}]" />
+    </trigger>
+    <condition>
+      <xPathEval>contains(//event/parameter[@name='in']/@value,'&lt;orderId&gt;1&lt;/orderId&gt;')
+      </xPathEval>
+    </condition>
+    <authorizationAction name="auth5">
+      <allow />
+    </authorizationAction>
+    <executeAction name="servicecall">
+      <parameter name="url" value="http://192.168.1.101:8193/SF2Service/" />
+      <parameter name="tns" value="http://emergent.iese.fraunhofer.de/sf2" />
+      <parameter name="class" value="java.lang.Boolean" />
+      <parameter name="method" value="deleteProduction" />
+      <parameter name="orderId" value="1" />
+    </executeAction>
+  </preventiveMechanism>
+  <preventiveMechanism name="deleteAfterProductionInSF3o1">
+    <description>...</description>
+    <timestep amount="1" unit="SECONDS" />
+    <trigger action="uc.event.normalizedmessage" isTry="true">
+      <paramMatch name="status" value="Active" />
+      <paramMatch name="role" value="Provider" />
+      <paramMatch name="operation"
+        value="{http://emergent.iese.fraunhofer.de/sf3}produce" />
+      <paramMatch name="target"
+        value="PropertyMatchingReference[{SERVICE_NAME={http://emergent.iese.fraunhofer.de/sf3/}SF3Service}]" />
+    </trigger>
+    <condition>
+      <xPathEval>contains(//event/parameter[@name='in']/@value,'&lt;orderId&gt;1&lt;/orderId&gt;')
+      </xPathEval>
+    </condition>
+    <authorizationAction name="auth6">
+      <allow />
+    </authorizationAction>
+    <executeAction name="servicecall">
+      <parameter name="url" value="http://192.168.1.101:8193/SF3Service/" />
+      <parameter name="tns" value="http://emergent.iese.fraunhofer.de/sf3" />
+      <parameter name="class" value="java.lang.Boolean" />
+      <parameter name="method" value="deleteProduction" />
+      <parameter name="orderId" value="1" />
+    </executeAction>
+  </preventiveMechanism>
+</policySet>

@@ -1,0 +1,23 @@
+# applications/systracePEP/systracePEP/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+if sys.platform == "openbsd5":
+	logfiles = env.checkLogger(curBaseDir)
+	systracePEP=env.Program('systracePEP.c', LIBS=env['LIBS']+['logger','kvm',
+															   'str_utils', 'list_of_events',
+															   'syscallHandler', #'processSyscall',
+															   'data_flow_monitor', 'qdftConnector','dataCont',
+															   'systrace_utils','openbsd_utils','socket_utils',
+															   'pdp',
+															   'soup-2.4','soup_utils'])
+	Depends(systracePEP, ['logger','utilities','datacont','syscallHandler'])
+	Clean(systracePEP,logfiles['systracePEP.c'])
+	Alias('systracePEP', [systracePEP])
+else:
+	print "Skipping not supported systracePEP"
+	Alias('systracePEP', [])
+
+
+
+

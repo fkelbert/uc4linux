@@ -1,0 +1,14 @@
+# applications/systracePEP/shellWrapper/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+if env['PEFCONFIG']['shellWrapper'] == True:
+	shellWrapper=env.Program('shellWrapper.c', LIBS=env['LIBS']+['logger','socketUtils','memUtils'])
+	Depends(shellWrapper, ['logger','utilities'])
+	Clean(shellWrapper,logfiles['shellWrapper.c'])
+
+	Alias('shellWrapper', [shellWrapper])
+else:
+	print "Skipping shellWrapper"
+	Alias('shellWrapper', [])
+

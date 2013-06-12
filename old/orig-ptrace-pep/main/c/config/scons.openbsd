@@ -1,0 +1,36 @@
+# config/openbsd scons configuration
+Import('tmpConfig')
+
+env=Environment(PEFCONFIG=tmpConfig['PEFCONFIG'], 
+                PEFBASE=tmpConfig['PEFBASE'], 
+                PEFBUILD=tmpConfig['PEFBUILD'], 
+                PEFincludes=tmpConfig['PEFincludes'])
+
+env.Append(CPPPATH=['/usr/local/include/libxml2',
+                    '/usr/local/include',
+                    '/usr/local/include/glib-2.0',
+                    '/usr/local/include/libsoup-2.4',
+                    '/usr/local/lib/glib-2.0/include', 
+                    '/usr/local/jdk-1.7.0/include', 
+                    '/usr/local/jdk-1.7.0/include/openbsd',
+                    '/home/rd/workspace/qfdt/qdftgraph-0.1/include',
+                    '/usr/boost/boost_1_47_0'
+                    # KIT: 
+                    #'/home/workspace/quantitativeDFT/QDFTgraph/include','/home/workspace/include'
+                   ])
+
+env.Append(LIBPATH='/usr/local/lib')
+  
+# KIT check
+#env.Replace(LIBS=['glib-2.0','intl','c'])
+
+#######################################################################
+# module configuration
+env['PEFCONFIG']['pdpjni']      =False
+env['PEFCONFIG']['socketUtils'] =True
+
+env['PEFCONFIG']['systracePEP'] =True
+env['PEFCONFIG']['shellWrapper']=True
+env['PEFCONFIG']['dataCont']    =True
+
+Return('env')

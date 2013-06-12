@@ -1,0 +1,1 @@
+export LD_LIBRARY_PATH="/home/workspace/quantitativeDFT/FhG-ESF/src/main/c/build/openbsd/components/pdp/":"/home/workspace/quantitativeDFT/FhG-ESF/src/main/c/build/openbsd/components/dataCont/"

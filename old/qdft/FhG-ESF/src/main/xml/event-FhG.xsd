@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+  xmlns              = "http://www.w3.org/2001/XMLSchema"  
+  targetNamespace    = "http://www.iese.fhg.de/esf/1.0/event"
+  xmlns:tns          = "http://www.iese.fhg.de/esf/1.0/event"  
+  xmlns:time         = "http://www.iese.fhg.de/esf/1.0/time"
+  xmlns:action       = "http://www.iese.fhg.de/esf/1.0/action"  
+  elementFormDefault = "qualified">
+
+  <import namespace="http://www.iese.fhg.de/esf/1.0/time" schemaLocation="time-FhG.xsd" />
+  <import namespace="http://www.iese.fhg.de/esf/1.0/action" schemaLocation="action-FhG.xsd" />
+
+  <simpleType name="EventIndexType">
+    <restriction base="string">
+      <enumeration value="START" />
+      <enumeration value="ONGOING" />
+      <enumeration value="FINISH" />
+    </restriction>
+  </simpleType>
+
+  <complexType name="EventParameterType">
+    <attribute name="name" type="string" use="required" />
+    <attribute name="value" type="string" use="required" />
+  </complexType>
+
+  <complexType name="EventType">
+    <annotation>
+      <documentation>
+        Events have a name as well parameters.
+        Classes of events are: usage, signaling, and other.
+        Events are indexed to represent actions executed during more then one timestep (start, ongoing).
+        A try event represents an attempted usage event by a user.
+		</documentation>
+    </annotation>
+    <sequence>
+      <element name="parameter" type="tns:EventParameterType" minOccurs="0" maxOccurs="unbounded" />
+    </sequence>
+    <!-- key ref to action/name -->
+    <attribute name="action" type="string" />
+    <attribute name="timestamp" type="time:TimestampType" />
+    <attribute name="index" type="tns:EventIndexType" default="START" />
+    <attribute name="isTry" type="boolean" default="false" />
+    <!-- Event signaler (PEP) -->
+    <attribute name="signallerComponent" type="string" />
+    <attribute name="subject" type="string" />
+    <attribute name="target" type="string" />
+  </complexType>
+
+  <complexType name="EventParameterMatchingOperatorType">
+    <attribute name="name" type="string" use="required" />
+    <attribute name="value" type="string" use="required" />
+    <!-- XPath expression is always executed in the context of the entity (mechanism, PEP, PDP,...)
+         where the operator is defined. -->
+    <attribute name="isXPath" type="boolean" default="false"/>
+  </complexType>
+
+  <simpleType name="EventIndexMatchingType">
+    <restriction base="string">
+      <!--  Refers to the start of an event (start) : old eFst-->
+      <enumeration value="FIRST" />
+      <!--  Refers to any instance of an event (start, ongoing, finished) : old eAll -->
+      <enumeration value="ALL" />
+    </restriction>
+  </simpleType>
+
+  <complexType name="EventMatchingOperatorType">
+    <sequence>
+      <element name="paramMatch" type="tns:EventParameterMatchingOperatorType" minOccurs="0" maxOccurs="unbounded" />
+    </sequence>
+    <attribute name="action" type="string"/>
+    <attribute name="class" type="action:ActionClassType"/>
+    <attribute name="index" type="tns:EventIndexMatchingType" default="ALL"/>
+    <attribute name="isTry" type="boolean" default="false"/>
+  </complexType>
+
+  <complexType name="EventTraceType">
+    <sequence>
+      <element name="event" type="tns:EventType" minOccurs="0" maxOccurs="unbounded" />
+    </sequence>
+  </complexType>
+
+  <complexType name="EventSubscriptionType">
+  <!--
+    Not yet implemented, the PDP assumes that 
+    all required events are signaled.
+    blocking / non-blocking 
+   -->
+  </complexType>
+
+  <element name="event" type="tns:EventType"/>
+
+  <element name="eventTrace" type="tns:EventTraceType" />
+
+  <!--
+    Syntactical restrictions: 
+      1 - all usage events must have a parameter "object"; 
+      2 - all events in a policy must be compliant with the respective declaration
+          (name, parameter names, parameter values);
+        - fewer parameters are allowed because of implicit universal quantification
+          over unspecified parameters
+        - example: - ev1 = play((obj,A)).
+        - ev2 = play((obj,A), (dev, B))
+          Definition: ev2 is refinement of ev1,
+          and if ev1 is not allowed ev2 should also not be.
+          Event e2 refines event e1 iff e2 has the same name as e1
+          and all parameters of e1 have the same value in e2.
+      3 - week since (until) operator excludes liveness 
+      4 - prohibiting odd number of negations in the since,
+          always, and repsince + implicit negation in implications
+          (p implies q = not-p or q) 
+      5 - 
+-->
+</schema>

@@ -1,0 +1,33 @@
+import os
+Import('env','curBaseDir')
+
+logfiles = env.checkLogger(curBaseDir)
+
+action_test=env.Program('action_test.c', LIBS=['pthread','logger','action']+env['LIBS'])
+Depends(action_test, ['logger', 'utilities'])
+Clean(action_test,logfiles['action_test.c'])
+
+# list of shared/static libraries that should be linked
+timestamp_test=env.Program('timestamp_test.c', LIBS=['pthread','logger','timestamp','mem_utils']+env['LIBS'])
+# list of prerequisites that should be compiled before
+Depends(timestamp_test, ['logger','utilities','timestamp'])
+Clean(timestamp_test,logfiles['timestamp_test.c'])
+
+pdpXMLRPC_test=env.Program('pdpXMLrpcTest.c', LIBS=['logger','action',
+                                                    'soup-2.4','soup_utils','mem_utils',
+                                                    'pthread'
+                                                   ]+
+                                                   env['LIBS'])
+Depends(pdpXMLRPC_test, ['logger', 'utilities'])
+Clean(pdpXMLRPC_test,logfiles['pdpXMLrpcTest.c'])
+
+pdpTCPSocket_test=env.Program('pdpTCPsocketTest.c', LIBS=['logger','action',
+                                                    'socket_utils','mem_utils',
+                                                    'pthread'
+                                                   ]+
+                                                   env['LIBS'])
+Depends(pdpTCPSocket_test, ['logger', 'utilities'])
+Clean(pdpTCPSocket_test,logfiles['pdpTCPsocketTest.c'])
+
+Alias('tests', [action_test,timestamp_test, pdpXMLRPC_test])
+

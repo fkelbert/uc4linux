@@ -1,0 +1,73 @@
+# components/pdp/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+authActionObject = env.rdObject('authorizationAction.c')
+execActionObject = env.rdObject('executeAction.c')
+mechanismObject = env.rdObject('mechanism.c')
+Alias('mechanism', [mechanismObject, authActionObject, execActionObject])
+
+pdpCCFlags=env['CCFLAGS'] + " -DLIBXML_STATIC "
+if env['PEFCONFIG']['pdpjni'] == True:
+  pdpCCFlags=pdpCCFlags + " -DPDP_JNI "
+
+pdpDependencyLibs =env.getAliasObjects('logger') + env.getAliasObjects('action') + env.getAliasObjects('pefXMLutils') + env.getAliasObjects('pefStringUtils')
+pdpDependencyLibs+=env.getAliasObjects('pefThreadUtils') + env.getAliasObjects('pefMemUtils')
+pdpDependencyLibs+=env.getAliasObjects('timestamp') + env.getAliasObjects('event')
+pdpDependencyLibs+=env.getAliasObjects('condition') + env.getAliasObjects('mechanism') + env.getAliasObjects('pdpInterfaces') 
+
+if env['PEFCONFIG']['socketUtils'] == True:
+  pdpDependencyLibs+=env.getAliasObjects('pefSocketUtils')
+  
+if env['PEFCONFIG']['soupUtils'] == True:
+  pdpDependencyLibs+=env['pefSoupUtils'] + ['soup-2.4']
+  
+pdpInternalObject=env.rdObject('pdpInternal.c', ccflags=pdpCCFlags)
+pdpDependencyLibs+=pdpInternalObject
+
+if env['PDPCONFIG']['PDP_RMI'] > 0 or env['PEFCONFIG']['pdpjni'] == True:
+  pdpDependencyLibs+=env.getAliasObjects('pefJavaUtils')
+  
+  if env['PDPCONFIG']['PDP_RMI'] > 0:
+    # Creating RMI server
+    SConscript(os.path.join(env['PEFBASE'], "..", "java", "jpdp", "SConscript"), exports=['env'])
+    Default(env.getAliasObjects('rmiClasses'))
+
+pdpLog=env.pefLogger('pdp.c')
+if sys.platform == "win32":
+  pdpObject=env.Object('pdp.c', CCFLAGS=pdpCCFlags)
+  env.Replace(WINDOWS_INSERT_DEF = True)
+  pdpSHLINK=env['SHLINKFLAGS'] + " -DPDP_JNI -DGLIB_STATIC_COMPILATION -DGOBJECT_STATIC_COMPILATION -D_JNI_IMPLEMENTATION_ -DLIBXML_STATIC -Wl,--kill-at -Wl,--export-all-symbols "
+  pdp=env.SharedLibrary([pdpObject, pdpDependencyLibs],
+                        #SHLINKFLAGS=" -DPDP_JNI -DGLIB_STATIC_COMPILATION -DGOBJECT_STATIC_COMPILATION -D_JNI_IMPLEMENTATION_ -DLIBXML_STATIC -Wl,--kill-at -Wl,--export-all-symbols -shared ", 
+                        SHLINKFLAGS=pdpSHLINK,
+                        LIBS=[env['LibXML2Static'], env['LibZStatic']] + 
+                             #ws2_32 winsock2-library -> necessary for libxml2 (otherwise undefined references in included nanohttp)
+                             # pthread still required for libxml2...
+                             ['glib-2.0','pthread','ole32','ws2_32','wsock32'] + 
+                             [env['LibRegexStatic'], env['LibIntlStatic'], env['LibIConvStatic']] + 
+                             ['jvm']
+                       )
+  Depends(pdp, pdpDependencyLibs)
+                   
+elif env['android']!=True:
+  pdpLibs=env['LIBS'] + ['glib-2.0','pthread','xml2']
+  if env['PDPCONFIG']['PDP_RMI'] > 0:
+    pdpLibs+=['jvm']
+  pdp=env.SharedLibrary('pdp.c', CCFLAGS=pdpCCFlags, 
+	                               #LIBS=['jsig'] + pdpDependencyLibs + pdpLibs)
+                                 LIBS=pdpDependencyLibs + pdpLibs)
+else:
+  pdp=pdpDependencyLibs
+  Depends(pdp, pdpLog)
+  Default(pdp)
+  
+Depends(pdp, pdpLog)
+Default(pdp)
+Alias('pdp', pdp)
+
+
+
+
+
+

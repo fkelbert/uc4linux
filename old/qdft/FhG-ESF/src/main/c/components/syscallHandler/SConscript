@@ -1,0 +1,19 @@
+# components/syscallHandler/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+if sys.platform == "openbsd5":
+	logfiles = env.checkLogger(curBaseDir)
+
+	syscallHandlerStatic=env.StaticLibrary('syscallHandler.c', CCFLAGS=env['CCFLAGS']+' -fPIC ')
+	Clean(syscallHandlerStatic, logfiles['syscallHandler.c'])
+	env.Append(ESF_syscallHandler = syscallHandlerStatic)
+
+	#processSyscallStatic=env.StaticLibrary('processSyscall.c', CCFLAGS=env['CCFLAGS']+' -fPIC ')
+	#Clean(processSyscallStatic, logfiles['processSyscall.c'])
+	#env.Append(ESF_processSyscall = processSyscallStatic)
+	Alias('syscallHandler', [syscallHandlerStatic])
+else:
+	print "Skipping not supported syscallHandler"
+	Alias('syscallHandler', [])
+

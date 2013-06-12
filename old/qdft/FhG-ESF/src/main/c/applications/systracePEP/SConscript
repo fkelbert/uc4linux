@@ -1,0 +1,12 @@
+# applications/systracePEP/SConscript
+import os
+Import('env','curBaseDir')
+
+#call SConscript in subdirs 
+cbdir=curBaseDir
+for f in os.listdir(cbdir):
+  if os.path.isdir(os.path.join(cbdir, f)):
+    if f == ".svn":
+      continue
+    curBaseDir = os.path.join(cbdir, f)
+    SConscript(dirs=curBaseDir, exports=['env','curBaseDir'], variant_dir = env['ESFBUILD']+'/applications/systracePEP/'+f, duplicate = False)

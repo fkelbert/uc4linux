@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  name            = "PolicyDecisionPoint"
+  targetNamespace = "http://www.iese.fhg.de/esf/1.0/pdp/ws"
+  xmlns:tns       = "http://www.iese.fhg.de/esf/1.0/pdp/ws"
+  xmlns:tnss      = "http://www.iese.fhg.de/esf/1.0/pdp/ws/schema"
+  xmlns           = "http://schemas.xmlsoap.org/wsdl/"
+  xmlns:wsdl      = "http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap      = "http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:policy    = "http://MASTER/policySchemas">
+  
+  <types>
+    <schema xmlns="http://www.w3.org/2001/XMLSchema">
+      <import schemaLocation="policyDecisionPoint-FhG.xsd"
+              namespace="http://www.iese.fhg.de/esf/1.0/pdp/ws/schema"/>
+    </schema>              
+  </types>
+
+  <message name="notifyEventInputMsg">
+    <part name="notifyEventRequestPart" element="tnss:notifyEventRequest" />
+  </message>
+
+  <message name="notifyEventOutputMsg">
+    <part name="notifyEventResponsePart" element="tnss:notifyEventResponse" />
+  </message>
+
+  <message name="deployPolicyInputMsg">
+    <part name="deployPolicyRequestPart" element="tnss:deployPolicyRequest" />
+  </message>
+
+  <message name="deployPolicyOutputMsg">
+    <part name="deployPolicyResponsePart" element="tnss:deployPolicyResponse" />
+  </message>
+
+  <portType name="PolicyDecisionPointInterface">
+    <operation name="deployPolicy">
+      <input message="tns:deployPolicyInputMsg" />
+      <output message="tns:deployPolicyOutputMsg" />
+    </operation>
+    <operation name="notifyEvent">
+      <input message="tns:notifyEventInputMsg" />
+      <output message="tns:notifyEventOutputMsg" />
+    </operation>
+  </portType>
+
+  <binding name="PolicyDecisionPointSOAP" type="tns:PolicyDecisionPointInterface">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
+    <operation name="deployPolicy">
+      <soap:operation soapAction="deployPolicy" />
+      <input>
+        <soap:body use="literal" />
+      </input>
+      <output>
+        <soap:body use="literal" />
+      </output>
+    </operation>
+    <operation name="notifyEvent">
+      <soap:operation soapAction="notifyEvent" />
+      <input>
+        <soap:body use="literal" />
+      </input>
+      <output>
+        <soap:body use="literal" />
+      </output>
+    </operation>
+  </binding>
+  
+  <service name="PolicyDecisionPoint">
+    <port binding="tns:PolicyDecisionPointSOAP" name="PolicyDecisionPoint">
+      <soap:address location="http://127.0.0.1:9080/FhG_WebServices/services/PolicyDecisionPoint" />
+    </port>
+  </service>
+  
+</definitions>

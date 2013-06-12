@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+  targetNamespace    = "http://www.iese.fhg.de/esf/1.0/enfLangTranslator/ws/schema"
+  xmlns:tns          = "http://www.iese.fhg.de/esf/1.0/enfLangTranslator/ws/schema"
+  xmlns:policy       = "http://MASTER/policySchemas"
+  xmlns              = "http://www.w3.org/2001/XMLSchema"  
+  elementFormDefault = "qualified">
+  
+  <import namespace="http://MASTER/policySchemas" schemaLocation="master-policy.xsd" />
+
+  <element name="translateMCalculusToEnfLangRequest">
+    <complexType>
+      <sequence>
+        <element name="mCalculus" type="string" />
+      </sequence>
+    </complexType>
+  </element>
+  
+  <element name="translateMCalculusToEnfLangResponse">
+    <complexType>
+      <sequence>
+        <element name="enforcementAssertion" type="policy:enforcementAssertionType" />
+      </sequence>
+    </complexType>
+  </element>
+
+</schema>

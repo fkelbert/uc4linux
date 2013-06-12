@@ -1,0 +1,84 @@
+%option noyywrap
+%option nounput
+
+
+
+
+/* Declarations */
+
+%{
+#include <stdlib.h>
+#include <string.h> 
+#include "past_monitor.h"
+#include "past_parser.tab.h"	
+
+static YY_BUFFER_STATE buf;
+%}
+
+
+
+
+/* Definitions Section */
+
+digit 	[0-9]
+letter 	[a-zA-z]
+
+
+
+
+/* Rules Section */
+
+%%
+"("                       { return( '(' )       ;}
+")"                       { return( ')' )       ;}
+"{"                       { return( '{' )       ;}
+"}"                       { return( '}' )       ;}
+","                       { return( ',' )       ;}
+"true"	                  { return( T )         ;}
+"false"                   { return( F )         ;}
+"Efst"                    { return( EFST )      ;}
+"Eall"                    { return( EALL )      ;}
+"XPathEval"               { return( XPATH)      ;}
+"not"                     { return( NOT )       ;}
+"and"                     { return( AND )       ;}
+"or"                      { return( OR )        ;}
+"implies"                 { return( IMPLIES )   ;}
+"since"                   { return( SINCE )     ;}
+"always"                  { return( ALWAYS )    ;}
+"before"                  { return( BEFORE )    ;}
+"within"                  { return( WITHIN )    ;}
+"during"                  { return( DURING )    ;}
+"repmax"                  { return( REPMAX )    ;}
+"repsince"                { return( REPSINCE )  ;}
+"replim"                  { return( REPLIM )    ;}
+"permitonlyevname"        { return( POEVNAME )  ;}
+"permitonlyparam"         { return( POPARAM )   ;}
+"denyc"                   { return( DENYC )     ;}
+"denyd"                   { return( DENYD )     ;}
+"limit"                   { return( LIMIT )     ;}
+"day"|"days"              { return( DAY )       ;}
+"hour"|"hours"            { return( HOUR )      ;}
+"minute"|"minutes"        { return( MINUTE )    ;}
+"second"|"seconds"        { return( SECOND )    ;} 
+"timestep"|"timesteps"    { return( TIMESTEP )  ;}
+{digit}+                  { yylval.num = atoi(yytext);
+                            return( NUMBER )    ;}
+({letter}|{digit}|"-"|"_"|"/"|"."|"@"|"["|"]"|"'"|"="|"!")* { yylval.text = strdup(yytext);
+                            return (IDENT);}
+" "|\n|\t                { } 
+.                         { return ( ERROR ) ;}
+
+
+
+
+
+%%
+/* Code Section */
+
+void init_scanner(char *src) {
+  buf = yy_scan_string(src);
+}
+
+void close_scanner() {
+  yy_delete_buffer(buf);
+}

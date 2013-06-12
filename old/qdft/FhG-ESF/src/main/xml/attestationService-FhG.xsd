@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+  xmlns              = "http://www.w3.org/2001/XMLSchema"  
+  targetNamespace    = "http://www.iese.fhg.de/esf/1.0/as/ws/schema"
+  xmlns:tns          = "http://www.iese.fhg.de/esf/1.0/as/ws/schema"
+  elementFormDefault = "qualified">
+
+  <simpleType name="HashType">
+    <restriction base="string">
+      <length value="40" />
+    </restriction>
+  </simpleType>
+  
+  <simpleType name="SignatureType">
+    <restriction base="string">
+      <length value="4096" />
+    </restriction>
+  </simpleType>
+  
+  <complexType name="FileList">
+    <sequence>
+      <element name="file" minOccurs="1" maxOccurs="unbounded">
+        <complexType>
+          <attribute name="path" type="string" use="required" />
+        </complexType>
+      </element>
+    </sequence>
+  </complexType>
+  
+  <complexType name="AttestationResult">
+    <sequence>
+      <element name="privacyCertificate" type="string" minOccurs="1" maxOccurs="1" />
+      <element name="file" minOccurs="0" maxOccurs="unbounded">
+        <complexType>
+          <sequence>
+            <element name="hash" type="tns:HashType" minOccurs="1" maxOccurs="1" />
+            <element name="signature" type="tns:SignatureType" minOccurs="1" maxOccurs="1" />
+          </sequence>
+          <attribute name="name" type="string" use="required" />
+        </complexType>
+      </element>
+      <element name="pcrQuote" type="string" minOccurs="1" maxOccurs="1" />
+    </sequence>
+  </complexType>
+  
+  <element name="files" type="tns:FileList" />
+  
+  <element name="attestationResult" type="tns:AttestationResult" />
+
+</schema>

@@ -1,0 +1,162 @@
+<?xml version='1.0' standalone='yes' ?>
+<policySet xmlns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+	   xmlns:tns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+           xmlns:a="http://www.iese.fhg.de/pef/1.0/action"
+           xmlns:e="http://www.iese.fhg.de/pef/1.0/event"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		   
+	<actionDescriptions>
+		<actionDescription name="event.homeapp.controller.frontend/jGbZyXzmDHbiAyjG">
+			<parameterDescription name="payload" />
+		</actionDescription>
+	</actionDescriptions>
+	
+	<preventiveMechanism name="aaltestAndroid0-jGbZyXzmDHbiAyjG">
+		<description>Taint incoming HSR</description>
+		<timestep amount="30" unit="SECONDS" />
+		<trigger action="dataflow:receive" isTry="true">
+		   <paramMatch name="target" value="10.128.14.252:61613" type="int" negate="true" />
+		</trigger>
+		<condition><true />
+		</condition>
+		<authorizationAction name="default">
+			<allow>
+				<modify>
+					<parameter name="data" value="taint$512" />
+				</modify>
+			</allow>
+		</authorizationAction>
+	</preventiveMechanism>
+	
+	<preventiveMechanism name="aaltestAndroid1-	jGbZyXzmDHbiAyjG">
+		<description>Limit update interval of HSR list to 30s</description>
+		<timestep amount="1" unit="SECONDS" />
+		<trigger action="dataflow:receive" isTry="true">
+			<paramMatch name="target" value="10.128.14.252:61613" negate="1" />
+			<paramMatch name="data" value=".*hsrHeaderResponse.*" type="regex"/>
+		</trigger>
+		<condition>
+			<within amount="30" unit="TIMESTEPS">
+				<eventMatch action="dataflow:receive" isTry="true">
+					<paramMatch name="target" value="10.128.14.252:61613" />
+					<paramMatch name="data" value=".*hsrHeaderResponse.*" type="regex"/>
+				</eventMatch>
+			</within>
+		</condition>
+		<authorizationAction name="default">
+			<inhibit />
+		</authorizationAction>
+		<executeAction name="notify">
+			<parameter name="ticker" value="UC Alert!" />
+			<parameter name="title" value="Restricted access" />
+			<parameter name="msg"	value="Updating the HSR list is only allowed every 30 seconds..."/>
+		</executeAction>
+	</preventiveMechanism>
+	
+	<!--<preventiveMechanism name="aaltestAndroid2a-jGbZyXzmDHbiAyjG">
+		<description>Allow viewing of annotated HSR only at time X</description>
+		<timestep amount="30" unit="SECONDS" />
+		<trigger action="dataflow:read" isTry="true">
+			<paramMatch name="time" value="08:00;16:00;true" type="context:time" /> 
+			<paramMatch name="taint" value="512" /> 
+		</trigger>
+		<condition>
+			<true/>
+		</condition>
+		<authorizationAction>
+			<allow>
+				<modify>
+					<parameter name="data" value="blur$1$######" />
+				</modify>
+			</allow>
+		</authorizationAction>
+		<executeAction name="notify">
+			<parameter name="ticker" value="UC Alert!" />
+			<parameter name="title" value="Restricted access" />
+			<parameter name="msg"	value="The access to this file is time and location restricted." />
+		</executeAction>
+	</preventiveMechanism>-->
+	
+	<preventiveMechanism name="aaltestAndroid2b-jGbZyXzmDHbiAyjG">
+		<description>Allow viewing of annotated HSR only at location X</description>
+		<timestep amount="30" unit="SECONDS" />
+		<trigger action="dataflow:read" isTry="true">
+			<paramMatch name="location" value="49.431678;7.752518;500;true;true" type="context" />
+			<paramMatch name="taint" value="512" /> 
+		</trigger>
+		<condition>
+			<true/>
+		</condition>
+		<authorizationAction name="default">
+				<allow>
+				<modify>
+					<parameter name="data" value="blur$1$######" />
+				</modify>
+			</allow>
+		</authorizationAction>
+		<executeAction name="notify">
+			<parameter name="ticker" value="UC Alert!" />
+			<parameter name="title" value="Restricted access" />
+			<parameter name="msg"	value="The access to this file is time and location restricted." />
+		</executeAction>
+	</preventiveMechanism>
+	
+	
+	<preventiveMechanism name="aaltestAndroid3-jGbZyXzmDHbiAyjG">
+		<description>Inhibit access to annotated HSR by other apps</description>
+		<timestep amount="30" unit="SECONDS" />
+		<trigger action="dataflow:read" isTry="true">
+			<paramMatch name="taint" value="512" />
+		</trigger>
+		<condition>
+			<not>
+				<xPathEval>//event/parameter[@name='uid']/@value = '10061'</xPathEval>
+			</not>
+		</condition>
+		<authorizationAction name="default">
+			<inhibit />
+		</authorizationAction>
+		<executeAction name="notify">
+			<parameter name="ticker" value="UC Alert!" />
+			<parameter name="title" value="Restricted access" />
+			<parameter name="msg"	value="The access to this file is restricted to the caregiver application." />
+		</executeAction>
+	</preventiveMechanism>
+
+	<preventiveMechanism name="aaltestAndroid4-jGbZyXzmDHbiAyjG">
+		<description>Inhibit access to not-critical HSR out of location X</description>
+		<timestep amount="30" unit="SECONDS" />
+		<trigger action="dataflow:receive" isTry="true">
+			<paramMatch name="location" value="49.431678;7.752518;500;true;true" type="context" /> 
+			<paramMatch name="data" value=".*hsrResponse.*glicher Gesundheitsstatus.*" type="regex"/>
+		</trigger>
+		<condition><true /></condition>
+		<authorizationAction name="default">
+			<inhibit />
+		</authorizationAction>
+		<executeAction name="notify">
+			<parameter name="ticker" value="UC Alert!" />
+			<parameter name="title" value="Restricted access" />
+			<parameter name="msg"	value="The access to non-critical HSR is inhibited out of working location." />
+		</executeAction>
+	</preventiveMechanism>
+
+	<preventiveMechanism name="aaltestAndroid5-jGbZyXzmDHbiAyjG">
+		<description>Forwarding is only allowed to associated person for critical HSR</description>
+		<timestep amount="30" unit="SECONDS" />
+		<trigger action="intent:startActivity" isTry="true">
+			<paramMatch name="intentAction" value="android.intent.action.SEND" />
+			<paramMatch name="android.intent.extra.TEXT" value=".*glicher Gesundheitsstatus.*" type="regex"/>
+		</trigger>
+		<condition><true /></condition>
+		<authorizationAction name="default">
+			<inhibit />
+		</authorizationAction>
+		<executeAction name="notify">
+			<parameter name="ticker" value="UC Alert!" />
+			<parameter name="title" value="Restricted access" />
+			<parameter name="msg"	value="Only critical HSR's are allowed for forwarding." />
+		</executeAction>
+	</preventiveMechanism>
+	
+</policySet>

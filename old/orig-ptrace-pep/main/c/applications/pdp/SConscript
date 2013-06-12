@@ -1,0 +1,39 @@
+# applications/pdp/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+lpdp = []
+if env['android']==True:
+  Alias('pdpApp', lpdp)
+  Return()
+  
+if env['PEFCONFIG']['examples'] == False:
+  Alias('examples', lpdp)
+  Return()
+
+  
+pdpCCFlags=env['CCFLAGS']
+if env['PEFCONFIG']['pdpjni'] == True:
+  pdpCCFlags=pdpCCFlags + " -DPDP_JNI "
+  
+if env['PDPCONFIG']['PDP_RMI'] > 0:
+  env.Append(LIBS=['jvm'])
+
+#testpdpObject=env.rdObject('appPDP.c')
+#testpdp=env.Program(testpdpObject, CCFLAGS=pdpCCFlags, LIBS=['pdp','testConnector','jvm']+env['LIBS'])
+## regex added because in win32 static pdp library is linked here (why this static one is chosen automatically NOT known!
+#Depends(testpdp, [ 'logger', 'utilities', 'pdp','datacont', testpdpObject]) 
+#lpdp.append(testpdp)
+
+cpptestObject=env.rdObject('appPDPcpp.cc')
+cpptest=env.Program(cpptestObject, CCFLAGS=pdpCCFlags, LIBS=['pdp','testConnector','jvm']+env['LIBS'])
+Depends(cpptest, ['pdp'])
+lpdp.append(cpptest)
+
+Default(lpdp)
+Alias('pdpApp', lpdp)
+
+
+
+
+

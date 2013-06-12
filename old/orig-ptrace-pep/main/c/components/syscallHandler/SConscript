@@ -1,0 +1,16 @@
+# components/syscallHandler/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+if sys.platform == "openbsd4" or sys.platform == "linux2":
+	#logfiles = env.checkLogger(curBaseDir)
+  
+	syscallHandlerStatic=env.StaticLibrary('syscallHandler.c',  CCFLAGS=env['CCFLAGS']+' -fPIC ')
+	#Clean(syscallHandlerStatic, logfiles['syscallHandler.c'])
+	
+	env.Append(ESF_syscallHandler = syscallHandlerStatic)
+	
+	Alias('syscallHandler', [syscallHandlerStatic])
+else:
+	Alias('syscallHandler', [])
+

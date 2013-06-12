@@ -1,0 +1,7 @@
+<service name="pep">
+ <parameter name="ServiceClass" locked="xsd:false">pep</parameter>
+ <description>
+ Quick start guide hello service sample.
+ </description>
+ <operation name="pepSoap"/>
+</service>

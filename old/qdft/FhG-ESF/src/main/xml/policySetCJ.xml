@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policySet xmlns="http://www.iese.fhg.de/esf/1.0/enforcementLanguage"
+	xmlns:tns="http://www.iese.fhg.de/esf/1.0/enforcementLanguage" 
+	xmlns:a="http://www.iese.fhg.de/esf/1.0/action"
+	xmlns:e="http://www.iese.fhg.de/esf/1.0/event" 
+	xmlns:mc="http://www.master-fp7.eu/mcalculus.xsd"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.iese.fhg.de/esf/1.0/enforcementLanguage enforcementLanguage-FhG.xsd
+		http://www.iese.fhg.de/esf/1.0/action action-FhG.xsd
+		http://www.iese.fhg.de/esf/1.0/event event-FhG.xsd
+		http://www.master-fp7.eu/mcalculus.xsd mcalculus.xsd">
+
+	<actionDescriptions>
+		<a:actionDescription name="login" />
+		<a:actionDescription name="logout">
+			<a:parameterDescription name="Subject" />
+		</a:actionDescription>
+	</actionDescriptions>
+
+	<preventiveMechanism name="LoginRule">
+		<description>LoginRule</description>
+		<timestep amount="1" unit="SECONDS" />
+		<trigger action="login" index="ALL" isTry="true">
+		</trigger>
+		<condition><true /></condition>
+		<authorizationAction>
+			<allow />
+		</authorizationAction>
+	</preventiveMechanism>
+
+	<preventiveMechanism name="LogoutRule">
+		<description>LogoutRule</description>
+		<timestep amount="1" unit="SECONDS" />
+		<trigger action="logout" index="ALL" isTry="true">
+			<e:paramMatch name="Subject" value="Implement1" />
+		</trigger>
+		<condition><true /></condition>
+		<authorizationAction>
+			<inhibit />
+		</authorizationAction>
+	</preventiveMechanism>	
+</policySet>

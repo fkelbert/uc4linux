@@ -1,0 +1,43 @@
+# libraries/communication/SConscript
+import os, sys
+Import('env','curBaseDir')
+
+lCommunication = []
+
+if env['PEFCONFIG']['socketUtils'] == True:
+  # platform specific socket-implementation
+  if sys.platform == "win32":
+    socketPlatformObject=env.rdObject('socketWin32.c', ccflags=env['CCFLAGS']+'-fno-builtin  ')
+  else:
+    socketPlatformObject1=env.rdObject('socketLinux.c', ccflags=env['CCFLAGS']+'-fno-builtin  ')
+    socketTCPPlatformObject=env.rdObject('socketLinuxTCP.c', ccflags=env['CCFLAGS']+'-fno-builtin  ')
+    socketPlatformObject=[socketPlatformObject1, socketTCPPlatformObject]
+
+  # generic socket-interface
+  socketObject=env.rdObject('socketUtils.c', ccflags=env['CCFLAGS']+'-fno-builtin  ')
+  Depends(socketObject, [socketPlatformObject])
+
+  lCommunication.append([socketObject, socketPlatformObject])
+  env.Append(pefSocketUtils = [socketObject, socketPlatformObject])
+  Alias('pefSocketUtils', [socketObject, socketPlatformObject])
+else:
+  env.Append(pefSocketUtils = [])
+
+if env['PEFCONFIG']['soupUtils'] == True:
+	soupObject=env.rdObject('soupUtils.c', ccflags=env['CCFLAGS']+'-fno-builtin  ')
+	env.Append(pefSoupUtils = soupObject)
+	lCommunication.append(soupObject)
+else:
+	print "Skipping soup utilities (XML-RPC)"
+
+#axiomObject=env.rdObject('axiomUtils.c', ccflags=env['CCFLAGS']+'-fno-builtin ')
+
+#soapObject=env.rdObject('soapUtils.c', ccflags=env['CCFLAGS']+'-fno-builtin ')
+#Depends(soapObject, axiomObject)
+#Alias('pefSoapUtils' = [soapObject, axiomObject])
+
+Alias('communication', lCommunication)
+
+
+
+

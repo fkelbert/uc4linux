@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<reactiveProcess 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:noNamespaceSchemaLocation="mcalculus1.xsd"
+  xmlns="http://www.master-fp7.eu/mcalculus.xsd">
+                
+   <messages>
+		<message id="Notification"> <!-- type specifies if it s a notification or a message -->
+			<payload>
+				<element 	id="userId" type="string"/>
+				<element 	id="SoDViolation" type="bool"/>
+			</payload>
+			
+		</message>
+		
+		<message id="setAlarm">
+			<payload>
+				<element 	id="duration" type="int"/>
+				<element 	id="unit"  type="string"/>
+			</payload>
+		</message>
+
+     <message id="Alarm">
+       <payload></payload>
+     </message>
+		
+		<message id="getEMailAddress">
+			<payload>
+				<element 	id="userId" type="string"/>
+			</payload>
+		</message>
+		
+		<message id="EMailAddress">
+			<payload>
+				<element 	id="emailAddress" type="string"/>
+			</payload>
+		</message>
+		
+		<message id="sendEmail">
+			<payload>
+				<element 	id="address" type="string"/>
+				<element 	id="text" type="string"/>
+			</payload>
+		</message>
+		
+		<message id="getJustification">
+			<payload>
+				<element 	id="address" type="string"/>
+				<element 	id="text" type="string"/>
+			</payload>
+		</message>
+		
+		<message id="Justification">
+			<payload>
+				<element 	id="msg" type="string"/>
+			</payload>
+		</message>
+		
+	</messages>
+	
+	<processes>	
+	
+	<!-- description of the timer  -->
+		<process name= "Timer">
+			<variables>
+				<variable name="duration" type="int"/>
+				<variable name="unit" type="string"/>
+			</variables>
+			<body>
+				<sequence>
+					<receive messageRef="setAlarm"> 
+						<content msgElement="duration" variable="duration"/> 
+						<content msgElement="unit" variable="unit"/> 
+					</receive>
+					<send messageRef="Alarm"> 						
+					</send>
+					
+				</sequence>
+			</body>
+		</process>
+	
+	<!-- monitoring component description -->
+		<process name="Notifier">
+			<variables>
+				<variable name="userId" type="string"/>
+				<variable name="violatedSoD" type="bool"/>
+			</variables>
+			<body>
+				<sequence>
+					<send messageRef="Notification"> 
+						<content msgElement="userId" variable="userId"/> 
+						<content msgElement="SoDViolation" variable="violatedSoD"/>
+					</send>
+				</sequence>
+			</body>
+		</process>
+
+		
+	<!-- database service description -->
+		<process name="DB">
+			<variables>
+				<variable name="userId" type="string"/>
+				<variable name="email" type="string"/>
+			</variables>
+			<body>
+				<sequence>
+					<receive messageRef="getEMailAddress"> 
+						<content msgElement="userId" variable="userId"/> 
+					</receive>
+					<send messageRef="EMailAddress"> 		
+						<content msgElement="emailAddress" variable="email"/> 
+					</send>
+				</sequence>
+			</body>
+		</process>
+		
+		
+		<!-- Justification Service, will go through e-mail service-->
+		<process name="Justificator">
+			
+			<variables>
+				<variable name="request" type="string"/>
+				<variable name="response" type="string"/>
+				<variable name="address" type="string"/>
+			</variables>
+			<body>
+				<sequence>
+					<receive messageRef="getJustification"> 
+						<content msgElement="address" variable="address"/> 
+						<content msgElement="text" variable="request"/> 
+					</receive>
+					<send messageRef="Justification"> 		
+						<content msgElement="msg" variable="response"/> 
+					</send>
+				</sequence>
+			</body>
+		</process>
+		
+				<!-- Justification Service, will go through e-mail service-->
+		<process name="EMail">
+			
+			<variables>
+				<variable name="text" type="string"/>
+				<variable name="address" type="string"/>
+			</variables>
+			<body>
+				<sequence>
+					<receive messageRef="sendEmail"> 
+						<content msgElement="address" variable="address"/> 
+						<content msgElement="text" variable="text"/> 
+					</receive>
+				</sequence>
+			</body>
+		</process>
+		
+	<!-- reactive process description -->
+		<process name="ReactiveProcess">
+			<variables>
+				<variable name="userId" type="string" >
+					<default></default>
+				</variable>
+				<variable name="text" type="string"/>
+				<variable name="violation" type="bool" />
+				<variable name="emailAddress" type="string"/>
+				<variable name="defaultAddress" type="string">
+					<default>manager@master.com</default>
+				</variable>
+				<variable name="duration" type="int" />
+				<variable name="unit" type="string" />
+				<variable name="justificationRequest" type="string">
+					<default>please provide justification for SoD violation</default>
+				</variable>
+				<variable name="unjustifiedViolation" type="string">
+					<default>SoD was violated without justification</default>
+				</variable>
+				<variable name="justifiedViolation" type="string"> 
+					<default>SoD was violated and justified</default>
+				</variable>
+				<variable name="PID" type="string" />
+			</variables>
+			<body>
+				<sequence>
+					<receive messageRef="Notification"> 
+						<content msgElement="userId" variable="userId"/> 
+						<content msgElement="SoDViolation" variable="violation"/> 
+					</receive>
+					<dataChoice>
+						<dataGuard>
+							<condition type="match">
+								<variable ref="violation"/>
+								<value>true</value>
+							</condition>
+							<sequence>
+								<!-- get E-mail of the doctor -->
+								<send messageRef="getEMailAddress"> 
+									<content msgElement="userId" variable="userId"/> 
+								</send>
+								<receive messageRef="EMailAddress"> 
+									<content msgElement="emailAddress" variable="emailAddress"/> 
+								</receive>
+								<!-- ask for justification -->
+								<send messageRef="getJustification"> 
+									<content msgElement="address" variable="emailAddress"/> 
+									<content msgElement="text" variable="justificationRequest"/> 
+								</send>
+								<!-- set timer for 2 days for response-->
+								<send messageRef="setAlarm"> 
+									<content msgElement="duration" variable="duration"/> 
+									<content msgElement="unit" variable="unit"/> 
+								</send>
+								<inputChoice>
+									<!-- justification arrives -->
+									<inputGuard>
+										<receive messageRef="Justification"> 
+											<content msgElement="msg" variable="text"/> 
+										</receive>
+										<sequence>
+											<send messageRef="sendEmail"> 
+												<content msgElement="address" variable="defaultAddress"/> 
+												<content msgElement="text" variable="text"/> 
+											</send>
+										</sequence>
+									</inputGuard>
+									
+									<!-- on alarm -->
+									<inputGuard>
+										<receive messageRef="Alarm"/> 
+										<sequence>
+											<send messageRef="sendEmail"> 
+												<content msgElement="address" variable="defaultAddress"/> 
+												<content msgElement="text" variable="unjustifiedViolation"/> 
+											</send>
+                      
+										</sequence>
+									</inputGuard>
+								</inputChoice>
+							</sequence>
+						</dataGuard>
+			
+				</dataChoice>
+				
+				</sequence>
+			</body>
+		</process>
+			
+	</processes>
+	
+</reactiveProcess>

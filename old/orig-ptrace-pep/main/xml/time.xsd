@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+  xmlns              = "http://www.w3.org/2001/XMLSchema" 
+  targetNamespace    = "http://www.iese.fhg.de/pef/1.0/time"
+  xmlns:tns          = "http://www.iese.fhg.de/pef/1.0/time" 
+  elementFormDefault = "qualified">
+
+  <simpleType name="TimestampType">
+    <annotation>
+      <documentation>
+        A timestamp is a point in the time continuum, for example November 4, 1990 at 18:02.5 UTC.
+      </documentation>
+    </annotation>
+    <restriction base="dateTime"/>
+  </simpleType>
+  
+  <attributeGroup name="TimeIntervalAttributeGroup">
+    <attribute name="startTime" type="tns:TimestampType" use="optional" />
+    <attribute name="endTime"   type="tns:TimestampType" use="optional" />
+  </attributeGroup>
+
+  <complexType name="TimeIntervalType">
+    <annotation>
+      <documentation>
+        Time interval is a contiguous part of time between two specific timestamps, for example, the hour between
+        9:00 and 10:00 on July 4, 1980.
+      </documentation>
+    </annotation>
+    <attributeGroup ref="tns:TimeIntervalAttributeGroup"/>
+  </complexType>
+  
+  <attributeGroup name="TimeAmountAttributeGroup">
+    <attribute name="amount" type="int"              use="required"/>
+    <attribute name="unit"   type="tns:TimeUnitType" use="optional" default="TIMESTEPS"/>
+  </attributeGroup>
+
+  <complexType name="TimeAmountType">
+    <annotation>
+      <documentation>
+        A time amount is a sum of elapsed time, which need not be of any specific intervals.
+      </documentation>
+    </annotation> 
+    <attributeGroup ref="tns:TimeAmountAttributeGroup"/>
+  </complexType>
+ 
+  <simpleType name="TimeUnitType">
+    <annotation>
+      <documentation>
+        Possible time units to quantify a time amount. One month is 30 days and a year is 12 months or 360 days.
+      </documentation>
+    </annotation> 
+    <restriction base="string">
+      <enumeration value="TIMESTEPS" />
+      <enumeration value="NANOSECONDS" />
+      <enumeration value="MICROSECONDS" />
+      <enumeration value="MILLISECONDS" />
+      <enumeration value="SECONDS" />
+      <enumeration value="MINUTES" />
+      <enumeration value="HOURS" />
+      <enumeration value="DAYS" />
+      <enumeration value="WEEKS" />
+      <enumeration value="MONTHS" />
+      <enumeration value="YEARS" />
+    </restriction>
+  </simpleType>
+  
+</schema>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+  targetNamespace    = "http://www.iese.fhg.de/esf/1.0/calc/ws/schema"
+  xmlns:tns          = "http://www.iese.fhg.de/esf/1.0/calc/ws/schema"
+  xmlns              = "http://www.w3.org/2001/XMLSchema"
+  elementFormDefault = "qualified">
+ 
+  <complexType name="IntBinaryFuncParamType">
+    <sequence>
+      <element name="param1" type="integer"/>
+      <element name="param2" type="integer"/>
+    </sequence>
+  </complexType>
+  
+  <complexType name="IntFuncResType">
+    <sequence>
+      <element name="result" type="integer"/>
+    </sequence>
+  </complexType>
+
+  <element name="addIntegersRequest" type="tns:IntBinaryFuncParamType"/>
+  
+  <element name="addIntegersResponse" type="tns:IntFuncResType"/>
+  
+</schema>

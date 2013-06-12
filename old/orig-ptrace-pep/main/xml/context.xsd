@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema targetNamespace="http://www.iese.fhg.de/pef/1.0/context"
+	elementFormDefault="qualified" xmlns="http://www.w3.org/2001/XMLSchema"
+	xmlns:ctx="http://www.iese.fhg.de/pef/1.0/context">
+
+	<element name="contextDescriptions" type="ctx:ContextDescriptionType" />
+
+	<complexType name="ContextDescriptionType">
+		<sequence>
+			<element ref="ctx:context" minOccurs="0" maxOccurs="unbounded" />
+		</sequence>
+	</complexType>
+
+	<element name="context" type="ctx:ContextType" />
+
+	<complexType name="ContextType">
+		<sequence>
+			<element name="compose" type="ctx:ComposeType" minOccurs="1" maxOccurs="unbounded" >
+			</element>
+		</sequence>
+		<attribute name="notify"  type="boolean" use="optional" />
+		<attribute name="id"      type="string"  use="required" />
+	</complexType>
+
+	<complexType name="ComposeType">
+		<sequence>
+			<element name="comparator" type="ctx:ComparatorType" minOccurs="1" maxOccurs="unbounded" />
+		</sequence>
+		<attribute name="op" use="required">
+			<simpleType>
+				<restriction base="string">
+					<enumeration value="and" />
+					<enumeration value="or" />
+				</restriction>
+			</simpleType>
+		</attribute>
+	</complexType>
+
+	<complexType name="ComparatorType">
+		<sequence>
+			<element name="evaluator" type="ctx:EvaluatorType" minOccurs="1" maxOccurs="1" />
+			<element name="constant"  type="ctx:ConstantType"  minOccurs="1" maxOccurs="1"	/>
+		</sequence>
+		<attribute name="op" use="required" >
+			<simpleType>
+				<restriction base="string">
+					<enumeration value="less" />
+					<enumeration value="less_eq" />
+					<enumeration value="greater" />
+					<enumeration value="greater_eq" />
+					<enumeration value="eq" />
+					<enumeration value="not_eq" />
+				</restriction>
+			</simpleType>
+		</attribute>
+	</complexType>
+
+	<complexType name="EvaluatorType">
+		<sequence>
+			<element name="param" type="ctx:ParamType" minOccurs="0" maxOccurs="unbounded" />
+		</sequence>
+		<attribute name="name"      type="string"  use="required" />
+		<attribute name="function"  type="string"  use="required" />
+		<attribute name="isNegated" type="boolean" use="optional"/>
+	</complexType>
+
+	<complexType name="ConstantType">
+		<sequence></sequence>
+		<attribute name="value" type="string" use="required" />
+		<attribute name="type"                use="required">
+			<simpleType>
+				<restriction base="string">
+					<enumeration value="boolean"></enumeration>
+					<enumeration value="string"></enumeration>
+					<enumeration value="long"></enumeration>
+					<enumeration value="double"></enumeration>
+					<enumeration value="float"></enumeration>
+					<enumeration value="integer"></enumeration>
+				</restriction>
+			</simpleType>
+		</attribute>
+	</complexType>
+
+	<complexType name="ParamType">
+			<attribute name="name"  type="string"  use="required"/>
+			<attribute name="value" type="string"  use="required"/>
+	</complexType>
+
+</schema>

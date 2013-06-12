@@ -1,0 +1,23 @@
+#import os
+#Import('env','curBaseDir')
+#
+#logfiles = env.checkLogger(curBaseDir)
+#
+#
+#pep=env.SharedLibrary('pep.c', LIBS=env['LIBS']+env['ESF_logger'] + env['ESF_timeUtils'] + env['ESF_event'] +
+#                                                env['ESF_formula'] + env['ESF_mechanism'] + # env['ESF_soapUtils'] + env['ESF_axiomUtils'] +
+#                                                env['ESF_xmlUtils'] + env['ESF_event'] + env['ESF_strUtils'])
+##'soap_utils','time_utils','event','formula','xml_utils','str_utils'])
+#Depends(pep, ['logger','event','utilities'])
+#Clean(pep, logfiles['pep.c'])
+#
+#pep_install = env.Install(env['ESFINSTALL'] + '/services/pep', pep)
+#Clean(pep, pep_install)
+#env.Alias('install', pep_install)
+#
+#pep_service=env.Command(env['ESFINSTALL']+'/services/pep/services.xml', "pep_service.xml",Copy("$TARGET", "$SOURCE"))
+#Clean(pep, pep_service)
+#env.Alias('install', pep_service)
+#
+#env.Alias('pep', pep)
+#

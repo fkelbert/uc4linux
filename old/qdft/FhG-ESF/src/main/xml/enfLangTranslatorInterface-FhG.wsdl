@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<definitions 
+  name            = "EnfLanguageTranslator"
+  targetNamespace = "http://www.iese.fhg.de/esf/1.0/enfLangTranslator/ws"
+  xmlns:tns       = "http://www.iese.fhg.de/esf/1.0/enfLangTranslator/ws"
+  xmlns:tnss      = "http://www.iese.fhg.de/esf/1.0/enfLangTranslator/ws/schema"
+  xmlns:policy    = "http://MASTER/policySchemas"
+  xmlns:wsdl      = "http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap      = "http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:xsd       = "http://www.w3.org/2001/XMLSchema"
+  xmlns           = "http://schemas.xmlsoap.org/wsdl/">
+
+  <types>
+    <xsd:schema>
+      <xsd:import namespace="http://www.iese.fhg.de/esf/1.0/enfLangTranslator/ws/schema"
+        schemaLocation="enfLangTranslator-FhG.xsd" />
+    </xsd:schema>
+  </types>
+
+  <message name="translateMCalculusToEnfLangInMsg">
+    <part name="translateMCalculusToEnfLangRequestPart" element="tnss:translateMCalculusToEnfLangRequest" />
+  </message>
+
+  <message name="translateMCalculusToEnfLangOutMsg">
+    <part name="translateMCalculusToEnfLangResponsePart" element="tnss:translateMCalculusToEnfLangResponse" />
+  </message>
+
+  <portType name="EnfLanguageTranslatorInterface">
+    <operation name="translateMCalculusToEnfLang">
+      <input message="tns:translateMCalculusToEnfLangInMsg" />
+      <output message="tns:translateMCalculusToEnfLangOutMsg" />
+    </operation>
+  </portType>
+
+  <binding name="EnfLangTranslatorSOAP" type="tns:EnfLanguageTranslatorInterface">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
+    <operation name="translateMCalculusToEnfLang">
+      <soap:operation soapAction="translateMCalculusToEnfLang" />
+      <input>
+        <soap:body use="literal" />
+      </input>
+      <output>
+        <soap:body use="literal" />
+      </output>
+    </operation>
+  </binding>
+
+  <service name="EnfLangTranslator">
+    <port binding="tns:EnfLangTranslatorSOAP" name="EnfLanguageTranslator">
+      <soap:address location="http://127.0.0.1:9080/FhG_WebServices/services/EnfLanguageTranslator" />
+    </port>
+  </service>
+  
+</definitions>
+

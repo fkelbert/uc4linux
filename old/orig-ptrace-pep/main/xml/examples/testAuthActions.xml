@@ -1,0 +1,50 @@
+<?xml version='1.0' standalone='yes' ?>
+<policySet xmlns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage" 
+           xmlns:tns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+           xmlns:a="http://www.iese.fhg.de/pef/1.0/action" 
+           xmlns:e="http://www.iese.fhg.de/pef/1.0/event" 
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <actionDescriptions>
+    <actionDescription name="action1" pep="testpdpPEP" />
+    <actionDescription name="action2" pep="testpdpPEP" />
+    <actionDescription name="action3" />
+  </actionDescriptions>
+
+  <preventiveMechanism name="test">
+    <description>...</description>
+    <timestep amount="3" unit="SECONDS" />
+    <trigger action="action2" isTry="true">
+      <paramMatch name="val2" value="value2" />
+    </trigger>
+    <condition><true /></condition>
+    <authorizationAction name="default" start="true" fallback="auth1">
+      <allow>
+        <delay amount="10" unit="SECONDS" />
+        <modify>
+          <parameter name="val2" value="bliblablub"/>
+        </modify>
+        <executeAction name="notify2" pxp="testpdpPXP">
+          <parameter name="msg" value="hallo" />
+          <parameter name="severity" value="high" />
+        </executeAction>
+        <executeAction name="notify2" pxp="testpdpPXP">
+          <parameter name="msg" value="abort" />
+          <parameter name="severity" value="low" />
+        </executeAction>        
+      </allow>
+    </authorizationAction>
+    <authorizationAction name="auth1">
+      <allow>
+        <delay amount="20" unit="SECONDS" />
+        <modify>
+          <parameter name="val2" value="bliblablub"/>
+        </modify>
+      </allow>
+    </authorizationAction>
+    <executeAction name="notify" pxp="testpdpPXP">
+      <parameter name="msg" value="hallo" />
+      <parameter name="severity" value="high" />
+    </executeAction>
+  </preventiveMechanism>
+</policySet>

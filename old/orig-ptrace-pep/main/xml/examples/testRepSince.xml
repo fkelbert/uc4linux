@@ -1,0 +1,32 @@
+<?xml version='1.0' standalone='yes' ?>
+<policySet xmlns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage" 
+           xmlns:tns="http://www.iese.fhg.de/pef/1.0/enforcementLanguage"
+           xmlns:a="http://www.iese.fhg.de/pef/1.0/action" 
+           xmlns:e="http://www.iese.fhg.de/pef/1.0/event" 
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <actionDescriptions>
+    <actionDescription name="event.homeapp.controller.backend" />
+  </actionDescriptions>
+
+  <preventiveMechanism name="testRepSince">
+    <description>...</description>
+    <timestep amount="3" unit="SECONDS" />
+    <trigger action="action1" isTry="true">
+      <paramMatch name="val1" value="value1" />
+    </trigger>
+    <condition>
+      <repSince limit="2">
+        <eventMatch action="action1" isTry="true">
+          <paramMatch name="val1" value="value1" />
+        </eventMatch>
+        <eventMatch action="action2" isTry="true">
+          <paramMatch name="val2" value="value2" />
+        </eventMatch>      
+      </repSince>
+    </condition>
+    <authorizationAction name="default">
+      <inhibit />
+    </authorizationAction>
+  </preventiveMechanism>
+</policySet>

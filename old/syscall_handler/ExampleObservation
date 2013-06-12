@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<observationMechanism xmlns="http://www.iese.fraunhofer.de/policy" name="ExampleObservation">
+  <description>
+    Example of observation monitor
+  </description>
+  <timestepSize interval="2" timeUnit="second"/>
+  <condition>
+    <false/>
+  </condition>
+  <actions>
+    <execute>
+      <action name="log" targetComponent="self">
+        <parameter name="message" value="Something went wrong..."/>
+      </action>
+    </execute>
+  </actions>
+</observationMechanism>

@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<controlMechanism xmlns="http://www.iese.fraunhofer.de/policy" name="ExampleControl">
+  <description>
+    Example of control mechanism
+  </description>
+  <timestepSize interval="2" timeUnit="second"/>
+  <trigger matchName="logout">
+  </trigger>
+  <condition>
+    <before interval="5">
+      <eAll matchName="login">
+        <matchParameter name="user" value="trigger/parameter['user']" isXPathExpression="true"/>
+      </eAll>
+    </before>
+  </condition>
+  <actions>
+    <allow/>
+    <execute>
+      <action name="log" targetComponent="self">
+        <parameter name="message" value="Error"/>
+      </action>
+      <action name="soapCall" targetComponent="self">
+        <parameter name="url" value="http://localhost/log"/>
+        <parameter name="message" value="Error"/>
+      </action>
+    </execute>
+  </actions>
+</controlMechanism>

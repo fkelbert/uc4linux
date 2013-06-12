@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<event isTry="true" action="login">
+</event>
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<event isTry="true" action="logout">
+	<parameter name="Subject" value="irgendetwas_WillReturnAllow"/>
+</event>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<event isTry="true" action="logout">
+	<parameter name="Subject" value="Implement1"/>
+</event>

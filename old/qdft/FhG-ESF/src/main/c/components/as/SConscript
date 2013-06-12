@@ -1,0 +1,12 @@
+import os
+Import('env','curBaseDir')
+
+#logfiles = env.checkLogger(curBaseDir)
+
+#attestationService=env.SharedLibrary('as.c', LIBS=env['LIBS'] + ['crypto','tspi','pthread'] +  env['ESF_logger'] + env['ESF_xmlUtils'] + env['ESF_strUtils'] + 
+#                                                  env['ESF_memUtils'] + env['ESF_cryptoUtils'] + env['ESF_tssUtils'])
+#Depends(attestationService, ['logger','utilities'])
+#Clean(attestationService, logfiles['as.c'])
+
+#env.Alias('as', [attestationService])
+

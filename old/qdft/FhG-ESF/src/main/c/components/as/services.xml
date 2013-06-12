@@ -1,0 +1,7 @@
+<service name="as">
+ <parameter name="ServiceClass" locked="xsd:false">as</parameter>
+ <description>
+ The Attestation Service
+ </description>
+ <operation name="attestFiles"/>
+</service>
