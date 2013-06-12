@@ -1,1 +1,0 @@
-cd .. && make clean all && cd syscall_handler && ./syscall_handler

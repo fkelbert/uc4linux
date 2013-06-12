@@ -86,7 +86,7 @@ event_ptr parseSyscall(event_ptr event, const int pid, long *syscallcode,
 	// change syscallcode and overwrite syscall field
 	if (*syscallcode == SYS_socketcall) {
 		*syscallcode = SOCKET_OFFSET + regs->ebx;
-		eventAddParam(event, EVENT_PARAM_SYSCALL, syscallTable[*syscallcode]);
+		eventAddParam(event, EVENT_PARAM_SYSCALL, syscallNames[*syscallcode]);
 	}
 
 	switch (*syscallcode) {

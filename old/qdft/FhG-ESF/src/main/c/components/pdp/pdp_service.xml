@@ -1,8 +1,0 @@
-<service name="pdp">
- <parameter name="ServiceClass" locked="xsd:false">pdp</parameter>
- <description>
- Quick start guide hello service sample.
- </description>
- <operation name="deployPolicy"/>
- <operation name="pdp2"/>
-</service>

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<event isTry="true" action="uc.event.INTENT">
-	<parameter name="uid" value="10049"/>
-	<parameter name="intentAction" value="android.intent.action.VIEW"/>
-	<parameter name="uri" value="file:///sdcard/log.txt"/>
-	<parameter name="type" value="*/*"/>
-	<parameter name="component" value="android/com.android.internal.app.ResolverActivity"/>
-	<parameter name="taint0" value="0x10000"/>
-</event>

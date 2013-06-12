@@ -1,1 +1,0 @@
-export LD_LIBRARY_PATH="$(pwd)/build/openbsd/components/pdp/":"$(pwd)/build/openbsd/components/dataCont/"

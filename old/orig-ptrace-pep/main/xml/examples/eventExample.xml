@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<event action="open" timestamp="2002-05-30T09:30:10" isTry="true"> 
-  <parameter name="pathname" value="/etc/shadow"/>
-</event>

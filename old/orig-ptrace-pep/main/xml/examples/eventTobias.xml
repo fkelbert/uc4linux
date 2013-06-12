@@ -1,1 +1,0 @@
-<event isTry="true" action="CreateFile"><parameter name="ProcessName" value="notepad"/><parameter name="InFileName" value="secret.txt" /><parameter name="uri" value="file:///sdcard/log.txt" /><parameter name="type" value="*/*" /><parameter name="component" value="android/com.android.internal.app.ResolverActivity" /><parameter name="taint0" value="0x10000" /></event>

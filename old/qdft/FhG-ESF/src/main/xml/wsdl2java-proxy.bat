@@ -1,1 +1,0 @@
-wsdl2java --http-proxy-host wwwproxy.iese.fhg.de --http-proxy-port 81 -uri $1
