@@ -16,6 +16,7 @@
 #include <sys/user.h>
 
 #include "event.h"
+#include "strUtils.h"
 #include "syscallNames.h"
 
 
@@ -23,11 +24,6 @@
 #define BUFLEN_LONG 	48
 
 #define LONG_SIZE sizeof(long)
-
-#define int_to_str(i,buf,len) 	snprintf(buf,len,"%d",i)
-#define long_to_str(i,buf,len) 	snprintf(buf,len,"%ld",i)
-#define long_to_hex(i,buf,len) 	snprintf(buf,len,"%lx",i)
-
 
 #define MAX_FILENAME_LEN 	4096
 #define ADDRESS_WIDTH 		sizeof(intptr_t)

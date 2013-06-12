@@ -17,6 +17,7 @@
 
 #include "event.h"
 #include "config.h"
+#include "strUtils.h"
 #include "pdpConnector.h"
 #include "traceeManager.h"
 #include "syscallParser.h"

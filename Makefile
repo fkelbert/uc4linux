@@ -21,5 +21,8 @@ clean:
 run:
 	make -C pepPtrace run
 	
-install:
+uninstall:
+	make -C pepPtrace uninstall
+
+install: 
 	make -C pepPtrace install
