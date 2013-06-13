@@ -158,7 +158,6 @@ char *syscallNames[] = {
 		[SYS_lsetxattr] = "SYS_lsetxattr",
 		[SYS_lstat64] = "SYS_lstat64",
 		[SYS_lstat] = "SYS_lstat",
-		[SYS_madvise1] = "SYS_madvise1",
 		[SYS_madvise] = "SYS_madvise",
 		[SYS_mbind] = "SYS_mbind",
 		[SYS_migrate_pages] = "SYS_migrate_pages",

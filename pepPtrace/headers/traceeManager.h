@@ -4,7 +4,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
-#include <glib/ghash.h>
+#include <glib.h>
 #include "tracee.h"
 
 

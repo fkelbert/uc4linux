@@ -158,7 +158,6 @@ int syscallIntercepts[]= {
 	[SYS_lsetxattr] = INTERCEPT_SYS_lsetxattr,
 	[SYS_lstat64] = INTERCEPT_SYS_lstat64,
 	[SYS_lstat] = INTERCEPT_SYS_lstat,
-	[SYS_madvise1] = INTERCEPT_SYS_madvise1,
 	[SYS_madvise] = INTERCEPT_SYS_madvise,
 	[SYS_mbind] = INTERCEPT_SYS_mbind,
 	[SYS_migrate_pages] = INTERCEPT_SYS_migrate_pages,
