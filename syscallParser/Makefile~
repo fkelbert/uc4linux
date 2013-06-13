@@ -19,10 +19,6 @@ libsyscallParser: syscallParser.o event.o param.o syscallIntercepts.o syscallNam
 						$(OBJDIR)/syscallNames.o
 	ln -sf ../$(OBJDIR)/libsyscallParser.a $(RELEASEDIR)/libsyscallParser-bleeding.a
 
-release: all
-	cp $(OBJDIR)/libsyscallParser.a $(RELEASEDIR)/libsyscallParser-v`cat $(VER_FILE)`.a
-	ln -sf libsyscallParser-v`cat $(VER_FILE)`.a $(RELEASEDIR)/libsyscallParser-latest.a
-	oldV=`cat $(VER_FILE)`; newV=`expr $$oldV + 1`; echo "$$newV" > $(VER_FILE)
 
 syscallParser.o: mkdirs
 	$(CC) -c $(SRC)/syscallParser.c -o $(OBJDIR)/syscallParser.o $(INCL) $(GLIB)

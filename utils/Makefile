@@ -1,11 +1,10 @@
-all:	real_procfsUtils real_strUtils
+SUBS = procfsUtils strUtils
 
-real_procfsUtils:
-	make -C procfsUtils all
-	
-real_strUtils:
-	make -C strUtils all	
+all:
+	for i in $(SUBS); do make -C $$i all; done
+
+release:
+	for i in $(SUBS); do make -C $$i release; done
 
 clean:
-	make -C procfsUtils clean
-	make -C strUtils clean
+	for i in $(SUBS); do make -C $$i clean; done
