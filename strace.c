@@ -28,6 +28,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef UC_ENABLED
+
+#define UC_ENABLED
+#define UC_PDP_ALLOW 1
+#define UC_PDP_INHIBIT 2
+#define UC_PDP_MODIFY 3
+#define UC_PDP_DELAY 4
+#define ucAskPDP(tcp) UC_PDP_ALLOW
+
+#include "syscall.h"
+
+#endif	/* UC_ENABLED */
+
 #include "defs.h"
 #include <stdarg.h>
 #include <sys/param.h>
@@ -519,6 +532,13 @@ strace_popen(const char *command)
 	return fp;
 }
 
+#ifdef UC_ENABLED
+
+void tprintf(const char *fmt, ...) {}
+void tprints(const char *str) {}
+
+#else
+
 void
 tprintf(const char *fmt, ...)
 {
@@ -549,6 +569,8 @@ tprints(const char *str)
 			perror_msg("%s", outfname);
 	}
 }
+
+#endif
 
 void
 line_ended(void)
@@ -1952,6 +1974,65 @@ interrupt(int sig)
 	interrupted = sig;
 }
 
+
+#ifdef UC_ENABLED  
+
+void ucUpdatePIP(struct tcb *tcp) {
+	int (*func)() = tcp->s_ent->sys_func;
+
+	/* weird. See comment below on sys_execve*/
+	if (exiting(tcp)) {
+		if (func == sys_write) {
+			printf("PIP update %s\n", tcp->s_ent->sys_name);
+		}
+	}
+	else {
+		if (func == sys_write) {
+			printf("after\n");
+		}
+	}
+}
+
+// Kelbert
+int ucBeforeSyscallEnter(struct tcb *tcp) {
+	int retval = ucAskPDP(tcp);
+	switch(retval) {
+		case UC_PDP_ALLOW:
+		case UC_PDP_MODIFY:	// modify assumes that the syscall has already been modified transparently		
+			ucUpdatePIP(tcp);
+			break;
+		case UC_PDP_INHIBIT:
+			// TODO: write code
+			break;
+		case UC_PDP_DELAY:
+			// TODO: write code
+			break;
+	}
+
+	return retval;
+}
+
+// Kelbert
+int ucAfterSyscallExit(struct tcb *tcp) {
+	int retval = ucAskPDP(tcp);
+
+	switch(retval) {
+		case UC_PDP_ALLOW:		
+			ucUpdatePIP(tcp);
+			break;
+		case UC_PDP_DELAY:
+		case UC_PDP_MODIFY:
+		case UC_PDP_INHIBIT:
+			// TODO: does it make sense to modify/delay/inhibit after the call has been executed???
+			break;
+	}
+
+	return retval;
+}
+
+#endif /* UC_ENABLED */
+
+
 static int
 trace(void)
 {
@@ -2323,6 +2404,24 @@ trace(void)
  restart_tracee_with_sig_0:
 		sig = 0;
  restart_tracee:
+
+#ifdef UC_ENABLED
+		// Kelbert
+		if (tcp && tcp->s_ent && tcp->s_ent->sys_name) {
+			/* It is kind of weird, that we need to use exiting()
+			 * in this way here. My guess is, that execve (which is stopped
+			 * three times in the beginning) makes this necessary. 
+			 * TODO: Handle this case more seriously; maybe use syscall_fixup_on_sysenter() in syscall.c
+			 */
+			if (exiting(tcp)) {		
+				ucBeforeSyscallEnter(tcp);
+			}
+			else  {
+				ucAfterSyscallExit(tcp);
+			}
+		}
+#endif /* UC_ENABLED */
+
 		if (ptrace_restart(PTRACE_SYSCALL, tcp, sig) < 0) {
 			cleanup();
 			return -1;
