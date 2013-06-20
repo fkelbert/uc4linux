@@ -41,7 +41,8 @@ strace_SOURCES =	\
 	term.c		\
 	time.c		\
 	util.c		\
-	vsprintf.c
+	vsprintf.c	\
+	usagecontrol.c	
 
 noinst_HEADERS = defs.h
 # Enable this to get link map generated

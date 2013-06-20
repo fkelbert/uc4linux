@@ -792,3 +792,5 @@ extern unsigned num_quals;
 /* Only ensures that sysent[scno] isn't out of range */
 #define SCNO_IN_RANGE(scno) \
 	((unsigned long)(scno) < nsyscalls)
+
+#include "usagecontrol.h"
