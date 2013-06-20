@@ -27,6 +27,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef DEFS_H_
+#define DEFS_H_
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -793,4 +796,4 @@ extern unsigned num_quals;
 #define SCNO_IN_RANGE(scno) \
 	((unsigned long)(scno) < nsyscalls)
 
-#include "usagecontrol.h"
+#endif /* DEFS_H_*/

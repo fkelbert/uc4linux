@@ -1,7 +1,4 @@
-#include "defs.h"
 #include "usagecontrol.h"
-#include "syscall.h"
-
 
 void ucUpdatePIP(struct tcb *tcp) {
 	int (*func)() = tcp->s_ent->sys_func;

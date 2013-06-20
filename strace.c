@@ -29,6 +29,7 @@
  */
 
 #include "defs.h"
+#include "usagecontrol.h"
 #include <stdarg.h>
 #include <sys/param.h>
 #include <fcntl.h>
