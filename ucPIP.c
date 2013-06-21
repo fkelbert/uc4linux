@@ -50,15 +50,27 @@ ucContainerID ucPIP_newContainerID() {
 /**
  * Adds a new mapping to f: Identifier -> ContainerID.
  * If containerID is NULL or 0, then a new container ID is generated.
- * @return the added or created container ID
+ * @return the added or created container ID. 0 is returned on error.
  */
 ucContainerID ucPIP_f_add(ucIdentifier identifier, ucContainerID containerID) {
+	ucIdentifier identifierCopy;
+	ucContainerID *containerIDCopy;
+
+	if (!identifier) {
+		return (0);
+	}
+
 	if (!containerID) {
 		containerID = ucPIP_newContainerID();
 	}
 
-	ucIdentifier identifierCopy = strdup(identifier);
-	ucContainerID *containerIDCopy = calloc(1, sizeof(ucContainerID));
+	if (!(identifierCopy = strdup(identifier))) {
+		ucPIP_errorExit("Unable to allocate enough memory");
+	}
+
+	if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
+		ucPIP_errorExit("Unable to allocate enough memory");
+	}
 	*containerIDCopy = containerID;
 
 	g_hash_table_insert(f, identifierCopy, containerIDCopy);
