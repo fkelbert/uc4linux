@@ -28,17 +28,23 @@ void ucDataFlowSemanticsClose(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsOpen(struct tcb *tcp) {
-	char filename[FILENAME_MAX];
+//	char filename[FILENAME_MAX];
+//
+//	// retrieve the filename
+//	umoven(tcp, tcp->u_arg[0], sizeof(filename), filename);
+//	filename[sizeof(filename) - 1] = '\0';
+//
+//	if (filename[0] == '\0') {
+//		return;
+//	}
 
-	// retrieve the filename
-	umoven(tcp, tcp->u_arg[0], sizeof(filename), filename);
-	filename[sizeof(filename) - 1] = '\0';
+	if (tcp->u_rval >= 0) {
+		char identifier[20];
+		snprintf(identifier, 20, "%dx%ld", tcp->pid, tcp->u_rval);
 
-	if (filename[0] == '\0') {
-		return;
+		ucPIP_f_add(identifier, NULL);
+		printf("%s --> %d\n", identifier, ucPIP_f_get(identifier));
 	}
-
-	ucPIP_f_add(filename, NULL);
 }
 
 void ucPIPupdate(struct tcb *tcp) {

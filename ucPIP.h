@@ -17,8 +17,8 @@
 #include <glib.h>
 #include <string.h>
 
-typedef guint ucDataID;
-typedef unsigned short ucContainerID;
+typedef guint ucDataID;			// 0 is invalid
+typedef guint ucContainerID;	// 0 is invalid
 typedef	gchar* ucIdentifier;
 
 void			ucPIP_init();

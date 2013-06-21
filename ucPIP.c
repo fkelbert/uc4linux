@@ -56,14 +56,26 @@ ucContainerID ucPIP_f_add(ucIdentifier identifier, ucContainerID containerID) {
 	if (!containerID) {
 		containerID = ucPIP_newContainerID();
 	}
-	printf("%ld\n",containerID);
 
 	ucIdentifier identifierCopy = strdup(identifier);
 	ucContainerID *containerIDCopy = calloc(1, sizeof(ucContainerID));
 	*containerIDCopy = containerID;
 
 	g_hash_table_insert(f, identifierCopy, containerIDCopy);
-	ucContainerID *c = g_hash_table_lookup(f, identifierCopy);
 
 	return (containerID);
+}
+
+
+/**
+ * Returns the container ID associated with the specified identifier, i.e. returns f(identifier).
+ * On error, 0 is returned.
+ */
+ucContainerID ucPIP_f_get(ucIdentifier identifier) {
+	gpointer retval;
+	if (identifier && (retval = g_hash_table_lookup(f, identifier))) {
+		return (*(ucContainerID*) retval);
+	}
+
+	return (0);
 }
