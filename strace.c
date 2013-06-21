@@ -2383,6 +2383,10 @@ main(int argc, char *argv[])
 {
 	init(argc, argv);
 
+#ifdef UC_ENABLED
+	ucInit();
+#endif
+
 	/* Run main tracing loop */
 	if (trace() < 0)
 		return 1;

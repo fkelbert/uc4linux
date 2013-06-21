@@ -11,6 +11,9 @@
 #include "defs.h"
 #include "syscall.h"
 
+
+#include <sys/fcntl.h>
+#include <limits.h>
 #include <unistd.h>
 #include <stdio.h>
 

@@ -4,6 +4,7 @@
 
 #include "defs.h"
 #include "syscall.h"
+#include "ucPIP.h"
 #include "ucDataFlowSemantics.h"
 
 #define UC_ENABLED
@@ -15,6 +16,8 @@
 
 #define ucPIPupdateBefore(tcp) (tcp->s_ent->sys_func == sys_execve || tcp->s_ent->sys_func == sys_exit || tcp->s_ent->sys_func == sys_write)
 #define ucPIPupdateAfter(tcp) (!(ucPIPupdateBefore(tcp)))
+
+void ucInit();
 
 int ucBeforeSyscallEnter(struct tcb *tcp);
 int ucAfterSyscallExit(struct tcb *tcp);

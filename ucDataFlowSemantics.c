@@ -28,7 +28,17 @@ void ucDataFlowSemanticsClose(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsOpen(struct tcb *tcp) {
-	printf("UUUppdating open\n");
+	char filename[FILENAME_MAX];
+
+	// retrieve the filename
+	umoven(tcp, tcp->u_arg[0], sizeof(filename), filename);
+	filename[sizeof(filename) - 1] = '\0';
+
+	if (filename[0] == '\0') {
+		return;
+	}
+
+	ucPIP_f_add(filename, NULL);
 }
 
 void ucPIPupdate(struct tcb *tcp) {

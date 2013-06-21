@@ -1,6 +1,8 @@
 #include "usagecontrol.h"
 
-
+void ucInit() {
+	ucPIP_init();
+}
 
 // Kelbert
 int ucBeforeSyscallEnter(struct tcb *tcp) {
