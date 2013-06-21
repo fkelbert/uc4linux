@@ -42,11 +42,15 @@ strace_SOURCES =	\
 	time.c		\
 	util.c		\
 	vsprintf.c	\
-	usagecontrol.c	
+	usagecontrol.c	\
+	ucPIP.c		\
+	ucDataFlowSemantics.c
 
 noinst_HEADERS = defs.h
 # Enable this to get link map generated
 #strace_CFLAGS = $(AM_CFLAGS) -Wl,-Map=strace.mapfile
+strace_CFLAGS = $(DEPS_CFLAGS)
+strace_LIBS = $(DEPS_LIBS)
 
 EXTRA_DIST =				\
 	$(man_MANS)			\

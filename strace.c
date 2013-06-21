@@ -2338,10 +2338,23 @@ trace(void)
  restart_tracee:
 
 #ifdef UC_ENABLED
-		/*
-		 * Florian Kelbert. 
-		 * Intercept the system call for usage control purposes here.
-		 */
+ /*
+  * Florian Kelbert
+  * TODO: Inject usage control here.
+  *
+  * Notes:
+  *  - Do not comment out the above call to trace_syscall(), as this call
+  *    prepares information that we will most likely need. Instead, comment
+  *    the corresponding content of the output functions of strace;
+  *    most importantly, these are tprintf() and tprints().
+  *  - Below call to ptrace_restart(...) continues the traced process.
+  *    We can make a syscall fail by, e.g. modifying its parameters to something invalid.
+  *    For an example, have a look at http://alip.github.io/code/ptrace-linux-deny.c
+  *  - For syscalls that we are not interested in, we may skip them both here and their
+  *    call to the above trace_syscall() for performance reason. For the above call I am not sure, though.
+  *    This has not been tested.
+  *
+ */
 		if (tcp && tcp->s_ent && tcp->s_ent->sys_name) {
 			/* It is kind of weird, that we need to use exiting()
 			 * in this way here. My guess is, that execve (which is stopped

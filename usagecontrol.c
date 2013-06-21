@@ -1,28 +1,17 @@
 #include "usagecontrol.h"
 
-void ucUpdatePIP(struct tcb *tcp) {
-	int (*func)() = tcp->s_ent->sys_func;
 
-	/* weird. See comment below on sys_execve*/
-	if (exiting(tcp)) {
-		if (func == sys_write) {
-			printf("PIP update %s\n", tcp->s_ent->sys_name);
-		}
-	}
-	else {
-		if (func == sys_write) {
-			printf("after\n");
-		}
-	}
-}
 
 // Kelbert
 int ucBeforeSyscallEnter(struct tcb *tcp) {
-	int retval = ucAskPDP(tcp);
+	int retval = ucPDPask(tcp);
+
 	switch(retval) {
 		case UC_PDP_ALLOW:
 		case UC_PDP_MODIFY:	// modify assumes that the syscall has already been modified transparently		
-			ucUpdatePIP(tcp);
+			if (ucPIPupdateBefore(tcp)) {
+				ucPIPupdate(tcp);
+			}
 			break;
 		case UC_PDP_INHIBIT:
 			// TODO: write code
@@ -32,16 +21,18 @@ int ucBeforeSyscallEnter(struct tcb *tcp) {
 			break;
 	}
 
-	return retval;
+	return (retval);
 }
 
 // Kelbert
 int ucAfterSyscallExit(struct tcb *tcp) {
-	int retval = ucAskPDP(tcp);
+	int retval = ucPDPask(tcp);
 
 	switch(retval) {
 		case UC_PDP_ALLOW:		
-			ucUpdatePIP(tcp);
+			if (ucPIPupdateAfter(tcp)) {
+				ucPIPupdate(tcp);
+			}
 			break;
 		case UC_PDP_DELAY:
 		case UC_PDP_MODIFY:
@@ -50,5 +41,5 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 			break;
 	}
 
-	return retval;
+	return (retval);
 }

@@ -4,15 +4,18 @@
 
 #include "defs.h"
 #include "syscall.h"
+#include "ucDataFlowSemantics.h"
 
 #define UC_ENABLED
 #define UC_PDP_ALLOW 1
 #define UC_PDP_INHIBIT 2
 #define UC_PDP_MODIFY 3
 #define UC_PDP_DELAY 4
-#define ucAskPDP(tcp) UC_PDP_ALLOW
+#define ucPDPask(tcp) UC_PDP_ALLOW
 
-void ucUpdatePIP(struct tcb *tcp);
+#define ucPIPupdateBefore(tcp) (tcp->s_ent->sys_func == sys_execve || tcp->s_ent->sys_func == sys_exit || tcp->s_ent->sys_func == sys_write)
+#define ucPIPupdateAfter(tcp) (!(ucPIPupdateBefore(tcp)))
+
 int ucBeforeSyscallEnter(struct tcb *tcp);
 int ucAfterSyscallExit(struct tcb *tcp);
 

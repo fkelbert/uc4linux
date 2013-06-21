@@ -796,4 +796,4 @@ extern unsigned num_quals;
 #define SCNO_IN_RANGE(scno) \
 	((unsigned long)(scno) < nsyscalls)
 
-#endif /* DEFS_H_*/
+#endif /* DEFS_H_ */

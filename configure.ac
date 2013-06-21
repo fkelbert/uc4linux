@@ -306,6 +306,8 @@ AC_CHECK_HEADERS([libaio.h], [
 	AC_CHECK_DECLS([IO_CMD_PWRITE, IO_CMD_PWRITEV],,, [#include <libaio.h>])
 ])
 
+PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0])
+
 AC_PATH_PROG([PERL], [perl])
 
 AC_CONFIG_FILES([Makefile tests/Makefile])
