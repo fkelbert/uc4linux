@@ -48,9 +48,12 @@ ucContainerID ucPIP_newContainerID() {
 
 
 /**
- * Adds a new mapping to f: Identifier -> ContainerID.
- * If containerID is NULL or 0, then a new container ID is generated.
- * @return the added or created container ID. 0 is returned on error.
+ * Add a new mapping to f: Identifier -> Container, i.e. f(Identifier) = containerID
+ * If the specified containerID is NULL, then a new container ID is transparently generated.
+ *
+ * @param identifier the identifier
+ * @param containerID the container
+ * @return the specified or created container ID. On error, 0 is returned.
  */
 ucContainerID ucPIP_f_add(ucIdentifier identifier, ucContainerID containerID) {
 	ucIdentifier identifierCopy;
@@ -80,8 +83,9 @@ ucContainerID ucPIP_f_add(ucIdentifier identifier, ucContainerID containerID) {
 
 
 /**
- * Returns the container ID associated with the specified identifier, i.e. returns f(identifier).
- * On error, 0 is returned.
+ * Retrieve the container ID associated with the specified identifier, i.e. return f(identifier).
+ * @param identifier the identifier
+ * @result the container ID associated with f(identifier). On error, 0 is returned.
  */
 ucContainerID ucPIP_f_get(ucIdentifier identifier) {
 	gpointer retval;
