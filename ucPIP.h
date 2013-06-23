@@ -24,7 +24,7 @@ typedef	gchar* ucIdentifier;
 void			ucPIP_init();
 
 void 			ucPIP_s_add(ucContainerID, ucDataID*, int count);
-ucDataID*		ucPIP_s_get(ucContainerID, int *count);
+ucDataID*			ucPIP_s_get(ucContainerID containerID, int *count);
 void			ucPIP_s_remove(ucContainerID);
 
 void 			ucPIP_l_add(ucContainerID, ucContainerID*, int count);
@@ -51,6 +51,8 @@ void destroyValuePrimitive(gpointer data);
 			fprintf(stderr, "Happened in: %s:%d\n", __FILE__, __LINE__); \
 			fprintf(stderr, "Exiting.\n"); \
 			exit (1);
+
+#define ucPIP_errorExitMemory() ucPIP_errorExit("Unable to allocate enough memory")
 
 #endif /* UCPIP_H_ */
 

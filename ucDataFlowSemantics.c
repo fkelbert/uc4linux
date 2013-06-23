@@ -7,16 +7,42 @@
 
 #include "ucDataFlowSemantics.h"
 
+#define IDENTIFIER_MAX_LEN 512
+
+char identifier[IDENTIFIER_MAX_LEN];
+char identifier2[IDENTIFIER_MAX_LEN];
+
+char *getIdentifierFD(int pid, int fd, char *ident, int len) {
+	snprintf(ident, len, "FD %dx%d", pid, fd);
+	return (ident);
+}
+
+char *getIdentifierPID(int pid, char *ident, int len) {
+	snprintf(ident, len, "PID %d", pid);
+	return (ident);
+}
+
+
 void ucDataFlowSemanticsWrite(struct tcb *tcp) {
-	printf("UUUppdating write\n");
+	printf("%d writes to %s\n",tcp->pid,identifier);
+
+	ucPIP_copyData(getIdentifierPID(tcp->pid, identifier, sizeof(identifier)),
+			getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2)));
+	ucPIP_printF();
+	ucPIP_printS();
 }
 
 void ucDataFlowSemanticsRead(struct tcb *tcp) {
-	printf("UUUppdating read\n");
+	printf("%d reads from %s\n",tcp->pid, identifier);
+	ucPIP_copyData(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
+			getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2)));
+	ucPIP_printF();
+	ucPIP_printS();
 }
 
 void ucDataFlowSemanticsExit(struct tcb *tcp) {
-	printf("UUUppdating exit\n");
+	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+	printf("exiting %s\n", identifier);
 }
 
 void ucDataFlowSemanticsExecve(struct tcb *tcp) {
@@ -24,27 +50,28 @@ void ucDataFlowSemanticsExecve(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsClose(struct tcb *tcp) {
-	printf("UUUppdating close\n");
+	ucPIP_removeIdentifier(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)));
 }
 
 void ucDataFlowSemanticsOpen(struct tcb *tcp) {
-//	char filename[FILENAME_MAX];
-//
-//	// retrieve the filename
-//	umoven(tcp, tcp->u_arg[0], sizeof(filename), filename);
-//	filename[sizeof(filename) - 1] = '\0';
-//
-//	if (filename[0] == '\0') {
-//		return;
-//	}
+	char filename[FILENAME_MAX];
 
-	if (tcp->u_rval >= 0) {
-		char identifier[20];
-		snprintf(identifier, 20, "%dx%ld", tcp->pid, tcp->u_rval);
-
-		ucPIP_f_add(identifier, NULL);
-		printf("%s --> %d\n", identifier, ucPIP_f_get(identifier));
+	if (tcp->u_rval < 0) {
+		return;
 	}
+
+	// retrieve the filename
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(filename), filename)) {
+		filename[sizeof(filename) - 1] = '\0';
+	}
+
+	if (filename[0] == '\0') {
+		return;
+	}
+
+	ucPIP_addIdentifier(filename, getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier)));
+
+	ucPIP_printF();
 }
 
 void ucPIPupdate(struct tcb *tcp) {
