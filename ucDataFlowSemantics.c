@@ -221,6 +221,7 @@ void ucDataFlowSemanticsClose(struct tcb *tcp) {
 	if (tcp->u_arg[0] > 0) {
 		ucPIP_removeIdentifier(identifier);
 	}
+
 	ucPIP_printF();
 }
 
@@ -255,57 +256,73 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsPipe(struct tcb *tcp) {
-	char relFilename[FILENAME_MAX];
-	char absFilename[FILENAME_MAX];
+	int fds[2];
 
-	// invalid return value
-	if (tcp->u_rval < 0) {
+	if (tcp->u_rval == -1) {
 		return;
 	}
 
-	// retrieve the filename
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(relFilename), relFilename)) {
-		relFilename[sizeof(relFilename) - 1] = '\0';
-	}
-
-	if (relFilename[0] == '\0') {
+	if (umoven(tcp, tcp->u_arg[0], sizeof fds, (char *) fds) < 0) {
 		return;
 	}
 
-	fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename));
-	getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier));
+	printf("pipe()\n");
 
-	printf("open(): %d: %s --> %s\n",tcp->pid,absFilename,identifier);
-
-	ucPIP_addIdentifier(absFilename, identifier);
+	ucPIP_addIdentifier(
+			getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier)),
+			getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2)));
 
 	ucPIP_printF();
 }
+
+void ucDataFlowSemanticsDup(struct tcb *tcp) {
+	if (tcp->u_rval > 0) {
+
+		ucPIP_addIdentifier(
+				getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
+				getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2)));
+
+		printf("dup(): %s --> %s\n", identifier, identifier2);
+
+		ucPIP_printF();
+	}
+}
+
+
 
 void ucPIPupdate(struct tcb *tcp) {
 	// pointer to the function to execute in order to update the PIP
 	void(*ucDataFlowSemanticsFunc)(struct tcb *tcp) = NULL;
 
-	if (tcp->s_ent->sys_func == sys_write) {
+	// Note: Do not(!) compare function pointer. This will not work out,
+	// e.g. for dup() which is mapped to the internal sys_open()!
+	if (strcmp(tcp->s_ent->sys_name, "write") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsWrite;
 	}
-	else if (tcp->s_ent->sys_func == sys_read) {
+	else if (strcmp(tcp->s_ent->sys_name, "read") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsRead;
 	}
-	else if (tcp->s_ent->sys_func == sys_exit) {
+	else if (strcmp(tcp->s_ent->sys_name, "exit") == 0 ||
+			strcmp(tcp->s_ent->sys_name, "exit_group") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsExit;
 	}
-	else if (tcp->s_ent->sys_func == sys_execve) {
+	else if (strcmp(tcp->s_ent->sys_name, "execve") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsExecve;
 	}
-	else if (tcp->s_ent->sys_func == sys_close) {
+	else if (strcmp(tcp->s_ent->sys_name, "close") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsClose;
 	}
-	else if (tcp->s_ent->sys_func == sys_open) {
+	else if (strcmp(tcp->s_ent->sys_name, "open") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsOpen;
 	}
-	else if (tcp->s_ent->sys_func == sys_pipe) {
+	else if (strcmp(tcp->s_ent->sys_name, "pipe")  == 0
+		||	 strcmp(tcp->s_ent->sys_name, "pipe2") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsPipe;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "dup") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "dup2") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "dup3") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsDup;
 	}
 
 
