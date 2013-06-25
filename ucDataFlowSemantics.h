@@ -13,9 +13,11 @@
 
 
 #include <sys/fcntl.h>
+#include <sys/types.h>
 #include <limits.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <dirent.h>
 
 void ucPIPupdate(struct tcb *tcp);
 

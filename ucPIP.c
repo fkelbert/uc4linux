@@ -14,9 +14,6 @@ GHashTable *s;
 GHashTable *l;
 GHashTable *f;
 
-GHashTable *s_rev;
-GHashTable *l_rev;
-GHashTable *f_rev;
 
 
 
@@ -213,6 +210,9 @@ void ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newIdentifier)
 }
 
 
+
+
+
 /**
  * Removes the specified identifier mapping in function f().
  */
@@ -317,9 +317,6 @@ void ucPIP_init() {
 	s = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
 	l = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, destroyKey, destroyValuePrimitive);
-
-	l_rev = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
-	f_rev = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
 
 	ucPIP_addIdentifier("", "/tmp/foo");
 	ucPIP_removeIdentifier("");

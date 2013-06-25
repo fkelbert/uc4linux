@@ -20,6 +20,63 @@ char identifier2[IDENTIFIER_MAX_LEN];
 
 #define isAbsolute(string) *string == '/'
 
+
+/**
+ * Returns a list of open filedescriptors for the process identified with the specified process ID.
+ * Memory for the result will be allocated by this function and needs to be freed by the caller.
+ * @param pid the process id
+ * @param count a pointer that will return the number of entries in the returned int*
+ * @return an int-Array containing all open file descriptors of that process. The size of this array is returned in count.
+ */
+int *getListOfOpenFileDescriptors(long pid, int *count) {
+	char procfsPath[PATH_MAX];
+	DIR *dir;
+	struct dirent *ent;
+	int *fds;
+	int size = 8;		// do not init to 0!
+	*count = 0;
+	int ret;
+
+	ret = snprintf(procfsPath, sizeof(procfsPath), "/proc/%ld/fd", pid);
+
+	if (ret >= sizeof(procfsPath)) {
+		ucSemantics_errorExit("Buffer overflowed.");
+	}
+	else if (ret < 0) {
+		ucSemantics_errorExit("Error while writing to buffer.");
+	}
+
+	if (!(fds = malloc(size * sizeof(int)))) {
+		ucSemantics_errorExit("Unable to allocate memory.");
+	}
+
+	if ((dir = opendir(procfsPath))) {
+
+		while ((ent = readdir (dir))) {
+
+			if (*count + 1 == size) {
+				size *= 2;
+				if (!(fds = realloc(fds, size * sizeof(int)))) {
+					ucSemantics_errorExit("Unable to allocate memory.");
+				}
+			}
+
+			// this condition returns != 1, if the entry is not an integer,
+			// in particular for directories . and ..
+			if (sscanf(ent->d_name, "%d", (fds + *count)) == 1) {
+				(*count)++;
+			}
+		}
+
+	}
+	else {
+		ucSemantics_errorExit("Failed to open procfs directory");
+	}
+
+	return (fds);
+}
+
+
 /// FIXME: this will most likely fail for chrooted processes
 char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen) {
 	ssize_t read;
@@ -126,12 +183,26 @@ void ucDataFlowSemanticsRead(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsExit(struct tcb *tcp) {
+	int count;
+	int *openfds;
+
 	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
 
 	printf("exit(): %s\n", identifier);
 
 	ucPIP_removeDataSet(identifier);
 	ucPIP_removeIdentifier(identifier);
+
+	// delete all of the processes' open file descriptors
+	if ((openfds = getListOfOpenFileDescriptors(tcp->pid, &count))) {
+		while (count-- > 0) {
+			getIdentifierFD(tcp->pid, openfds[count], identifier, sizeof(identifier));
+			ucPIP_removeIdentifier(identifier);
+		}
+		free(openfds);
+	}
+
+	// TODO: delte aliases
 
 	ucPIP_printF();
 }
@@ -183,6 +254,34 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	ucPIP_printF();
 }
 
+void ucDataFlowSemanticsPipe(struct tcb *tcp) {
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
+
+	// invalid return value
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+	// retrieve the filename
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(relFilename), relFilename)) {
+		relFilename[sizeof(relFilename) - 1] = '\0';
+	}
+
+	if (relFilename[0] == '\0') {
+		return;
+	}
+
+	fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename));
+	getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier));
+
+	printf("open(): %d: %s --> %s\n",tcp->pid,absFilename,identifier);
+
+	ucPIP_addIdentifier(absFilename, identifier);
+
+	ucPIP_printF();
+}
+
 void ucPIPupdate(struct tcb *tcp) {
 	// pointer to the function to execute in order to update the PIP
 	void(*ucDataFlowSemanticsFunc)(struct tcb *tcp) = NULL;
@@ -204,6 +303,9 @@ void ucPIPupdate(struct tcb *tcp) {
 	}
 	else if (tcp->s_ent->sys_func == sys_open) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsOpen;
+	}
+	else if (tcp->s_ent->sys_func == sys_pipe) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsPipe;
 	}
 
 
