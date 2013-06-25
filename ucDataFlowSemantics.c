@@ -12,6 +12,51 @@
 char identifier[IDENTIFIER_MAX_LEN];
 char identifier2[IDENTIFIER_MAX_LEN];
 
+#define isAbsolute(string) *string == '/'
+
+/// FIXME: this will most likely fail for chrooted processes
+char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen) {
+	ssize_t read;
+	char *absNew;
+	char procfsPath[PATH_MAX];
+	char cwd[PATH_MAX];
+	char concatPath[2 * PATH_MAX];
+
+	// we are done!
+	if (isAbsolute(relFilename)) {
+		strncpy(absFilename, relFilename, absFilenameLen - 1);
+		absFilename[absFilenameLen - 1] = '\0';
+		return (absFilename);
+	}
+
+	if (absFilenameLen < 1) {
+		return NULL ;
+	}
+
+	// get the processes' current working directory
+	snprintf(procfsPath, sizeof(procfsPath), "/proc/%ld/cwd", pid);
+	if ((read = readlink(procfsPath, cwd, sizeof(cwd) - 1)) == -1) {
+		return NULL ;
+	}
+	cwd[read] = '\0';
+
+	// concatenate cwd and relative filename and convert it to an absolute filename
+	snprintf(concatPath, sizeof(concatPath), "%s/%s", cwd, relFilename);
+
+	// was resolving successful and is the provided buffer large enough?
+	if ((absNew = realpath(concatPath, NULL )) == NULL || strlen(absNew) >= absFilenameLen) {
+		return NULL ;
+	}
+
+	// as we have tested the size before, an additional null byte is written by strncpy()
+	strncpy(absFilename, absNew, absFilenameLen);
+
+	free(absNew);
+
+	return (absFilename);
+}
+
+
 char *getIdentifierFD(int pid, int fd, char *ident, int len) {
 	snprintf(ident, len, "FD %dx%d", pid, fd);
 	return (ident);
@@ -55,7 +100,8 @@ void ucDataFlowSemanticsClose(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsOpen(struct tcb *tcp) {
-	char filename[FILENAME_MAX];
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
 
 	// invalid return value
 	if (tcp->u_rval < 0) {
@@ -63,15 +109,17 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	}
 
 	// retrieve the filename
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(filename), filename)) {
-		filename[sizeof(filename) - 1] = '\0';
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(relFilename), relFilename)) {
+		relFilename[sizeof(relFilename) - 1] = '\0';
 	}
 
-	if (filename[0] == '\0') {
+	if (relFilename[0] == '\0') {
 		return;
 	}
 
-	ucPIP_addIdentifier(filename, getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier)));
+	ucPIP_addIdentifier(
+			fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)),
+			getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier)));
 
 	ucPIP_printF();
 }
