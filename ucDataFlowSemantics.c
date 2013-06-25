@@ -51,11 +51,13 @@ void ucDataFlowSemanticsExecve(struct tcb *tcp) {
 
 void ucDataFlowSemanticsClose(struct tcb *tcp) {
 	ucPIP_removeIdentifier(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)));
+	ucPIP_printF();
 }
 
 void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
 
+	// invalid return value
 	if (tcp->u_rval < 0) {
 		return;
 	}

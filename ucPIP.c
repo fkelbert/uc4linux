@@ -84,11 +84,12 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
  * @param create whether to create a new (empty) data set, in case none is associated. 1 = create, 0 = do not create
  * @return the data set associated with containerID, NULL on error
  */
-ucDataSet ucPIP_getDataSet(ucContainerID containerID, int create) {
+ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 	ucDataSet dataSet;
+	ucContainerID containerID;
 	ucContainerID *containerIDCopy;
 
-	if (!containerID) {
+	if (!(containerID = ucPIP_getContainer(identifier, create))) {
 		return NULL;
 	}
 
@@ -224,37 +225,21 @@ int ucPIP_isEmptySet(ucDataSet dataSet) {
 
 
 /**
- * Copy all data in the container identified by srcIdent to
- * the container identified by dstIdent. If there is no container
- * that is identified by dstIdent, then one is transparently created.
+ * Copy all data in the container identified by srcIdentifier to
+ * the container identified by dstIdentifier. If there is no container
+ * that is identified by dstIdentifier, then one is transparently created.
  */
 void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
-	ucContainerID srcContainer;
-	ucContainerID dstContainer;
 	ucDataSet srcDataSet;
 	ucDataSet dstDataSet;
 
-	if (!srcIdentifier || !dstIdentifier) {
-		return;
-	}
-
-	// No source container present.
-	if (!(srcContainer = ucPIP_getContainer(srcIdentifier, 0))) {
-		return;
-	}
-
 	// No sensitive data in source container. Nothing to do.
-	if (!(srcDataSet = ucPIP_getDataSet(srcContainer, 0)) || ucPIP_isEmptySet(srcDataSet)) {
-		return;
-	}
-
-	// Get the destination container
-	if (!(dstContainer = ucPIP_getContainer(dstIdentifier, 1))) {
+	if (!(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || ucPIP_isEmptySet(srcDataSet)) {
 		return;
 	}
 
 	// Get the destination data set
-	if (!(dstDataSet = ucPIP_getDataSet(dstContainer, 1))) {
+	if (!(dstDataSet = ucPIP_getDataSet(dstIdentifier, 1))) {
 		return;
 	}
 
@@ -281,11 +266,14 @@ void ucPIP_printF() {
 
 	g_hash_table_iter_init (&iterateIdentifiers, f);
 	while (g_hash_table_iter_next (&iterateIdentifiers, &identifier, &contID)) {
-		printf("  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
+		if (UC_PIP_PRINT_EMPTY_CONTAINERS || !ucPIP_isEmptySet(ucPIP_getDataSet(identifier, 0))) {
+			printf("  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
+		}
 	}
 
 	printf("\n");
 }
+
 
 void ucPIP_printS() {
 	GHashTableIter iterateContainers;
@@ -323,6 +311,8 @@ void ucPIP_init() {
 	ucPIP_removeIdentifier("");
 
 	printf("%d\n",ucPIP_getContainer("/tmp/foo", 1));
+
+
 
 	int *foo = malloc(sizeof(int));
 
