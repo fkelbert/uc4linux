@@ -20,6 +20,7 @@
 typedef guint ucDataID;			// 0 is invalid
 typedef guint ucContainerID;	// 0 is invalid
 typedef	gchar* ucIdentifier;
+typedef GHashTable* ucDataSet;
 
 void			ucPIP_init();
 
@@ -32,7 +33,7 @@ ucContainerID*	ucPIP_l_get(ucContainerID, int *count);
 void			ucPIP_l_remove(ucContainerID);
 
 ucContainerID	ucPIP_f_add(ucIdentifier, ucContainerID);
-ucContainerID	ucPIP_f_get(ucIdentifier);
+ucContainerID 	ucPIP_getContainer(ucIdentifier identifier, int create);
 void 			ucPIP_f_remove(ucIdentifier);
 
 ucDataID		ucPIP_newDataID();

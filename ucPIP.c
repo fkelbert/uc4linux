@@ -43,53 +43,73 @@ ucContainerID ucPIP_newContainerID() {
 }
 
 
-/**
- * Add a new mapping to f: Identifier -> Container, i.e. f(Identifier) = containerID
- * If the specified containerID is NULL, then a new container ID is transparently generated.
- *
- * @param identifier the identifier
- * @param containerID the container
- * @return the specified or created container ID. On error, 0 is returned.
- */
-ucContainerID ucPIP_f_add(ucIdentifier identifier, ucContainerID containerID) {
-	ucIdentifier identifierCopy;
-	ucContainerID *containerIDCopy;
-
-	if (!identifier) {
-		return (0);
-	}
-
-	if (!containerID) {
-		containerID = ucPIP_newContainerID();
-	}
-
-	if (!(identifierCopy = strdup(identifier))) {
-		ucPIP_errorExitMemory();
-	}
-
-	if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
-		ucPIP_errorExitMemory();
-	}
-	*containerIDCopy = containerID;
-
-	g_hash_table_insert(f, identifierCopy, containerIDCopy);
-
-	return (containerID);
-}
 
 
 /**
  * Retrieve the container ID associated with the specified identifier, i.e. return f(identifier).
  * @param identifier the identifier
+ * @param create whether to create a new container in case none is found, 1 = create, 0 = do not create
  * @result the container ID associated with f(identifier). On error, 0 is returned.
  */
-ucContainerID ucPIP_f_get(ucIdentifier identifier) {
-	gpointer retval;
-	if (identifier && (retval = g_hash_table_lookup(f, identifier))) {
-		return (*(ucContainerID*) retval);
+ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
+	ucContainerID *contID;
+
+	if (!identifier) {
+		return (0);
+	}
+
+
+	if ((contID = (ucContainerID*) g_hash_table_lookup(f, identifier))) {
+		return (*contID);
+	}
+
+
+	if (create) {
+		if (!(contID = (ucContainerID*) calloc(1, sizeof(ucContainerID)))) {
+			ucPIP_errorExitMemory();
+		}
+		*contID = ucPIP_newContainerID();
+		g_hash_table_insert(f, strdup(identifier), contID);
+
+		return (*contID);
 	}
 
 	return (0);
+}
+
+
+/**
+ * Retrieves the data set associated with the specified container ID, i.e. s(containerID)
+ * @param containerID the container of which the data set is retrieved
+ * @param create whether to create a new (empty) data set, in case none is associated. 1 = create, 0 = do not create
+ * @return the data set associated with containerID, NULL on error
+ */
+ucDataSet ucPIP_getDataSet(ucContainerID containerID, int create) {
+	ucDataSet dataSet;
+	ucContainerID *containerIDCopy;
+
+	if (!containerID) {
+		return NULL;
+	}
+
+	if ((dataSet = g_hash_table_lookup(s, &containerID))) {
+		return (dataSet);
+	}
+
+	if (create) {
+		dataSet = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, NULL);
+
+		if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
+			ucPIP_errorExitMemory();
+		}
+		*containerIDCopy = containerID;
+
+		g_hash_table_insert(s, containerIDCopy, dataSet);
+
+		return (dataSet);
+	}
+
+	return NULL;
 }
 
 
@@ -100,35 +120,25 @@ void ucPIP_f_remove(ucIdentifier identifier) {
 }
 
 
-void ucPIP_s_add(ucContainerID containerID, ucDataID* dataIDs, int count) {
-	GHashTable *dataSet;
-	ucContainerID *containerIDCopy;
-	ucDataID *dataIDsCopy;
-	int i;
-
-	if (!containerID || !dataIDs || count <= 0) {
-		return;
-	}
-
-	if (!(dataSet = g_hash_table_lookup(s, &containerID))) {
-		// We did not find an associated data set. Create one.
-		// We do not care about the values of that data set -- always insert NULL values
-		dataSet = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, NULL);
-
-		if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
-			ucPIP_errorExitMemory();
-		}
-		*containerIDCopy = containerID;
-
-		g_hash_table_insert(s, containerIDCopy, dataSet);
-	}
-
-	dataIDsCopy = calloc(count, sizeof(ucDataID));
-	memcpy(dataIDsCopy, dataIDs, count * sizeof(ucDataID));
-	for (i = 0; i < count; i++) {
-		g_hash_table_insert(dataSet, &dataIDsCopy[i], NULL);
-	}
-}
+//void ucPIP_s_add(ucContainerID containerID, ucDataID* dataIDs, int count) {
+//	ucDataSet dataSet;
+//	ucDataID *dataIDsCopy;
+//	int i;
+//
+//	if (!containerID || !dataIDs || count <= 0) {
+//		return;
+//	}
+//
+//	if (!(dataSet = ucPIP_getDataSet(containerID, 1))) {
+//		return;
+//	}
+//
+//	dataIDsCopy = calloc(count, sizeof(ucDataID));
+//	memcpy(dataIDsCopy, dataIDs, count * sizeof(ucDataID));
+//	for (i = 0; i < count; i++) {
+//		g_hash_table_insert(dataSet, &dataIDsCopy[i], NULL);
+//	}
+//}
 
 /**
  * Retrieves the data IDs associated with the specified container ID, i.e. s(containerID).
@@ -177,30 +187,24 @@ void ucPIP_s_add(ucContainerID containerID, ucDataID* dataIDs, int count) {
  *
  */
 void ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newIdentifier) {
-	ucContainerID *container;
-	ucContainerID *container2;
+	ucContainerID contID;
+	ucContainerID *contIDCopy;
 
 	if (!oldIdentifier || !newIdentifier) {
 		return;
 	}
 
-	if (!(container = g_hash_table_lookup(f, oldIdentifier))) {
-		if (!(container = calloc(1, sizeof(ucContainerID)))) {
-			ucPIP_errorExitMemory();
-		}
-
-		*container = ucPIP_newContainerID();
-
-		g_hash_table_insert(f, strdup(oldIdentifier), container);
+	if (!(contID = ucPIP_getContainer(oldIdentifier, 1))) {
+		return;
 	}
 
-	if (!(container2 = calloc(1, sizeof(ucContainerID)))) {
+	if (!(contIDCopy = calloc(1, sizeof(ucContainerID)))) {
 		ucPIP_errorExitMemory();
 	}
 
-	*container2 = *container;
+	*contIDCopy = contID;
 
-	g_hash_table_insert(f, strdup(newIdentifier), container2);
+	g_hash_table_insert(f, strdup(newIdentifier), contIDCopy);
 }
 
 
@@ -214,10 +218,8 @@ void ucPIP_removeIdentifier(ucIdentifier identifier) {
 }
 
 
-void ucPIP_copyDataEntry(gpointer key, gpointer value, gpointer dstStorage) {
-	ucDataID *keyCopy = calloc(1, sizeof(ucDataID));
-	*keyCopy = * (ucDataID*) key;
-	g_hash_table_insert(dstStorage, keyCopy, NULL);
+int ucPIP_isEmptySet(ucDataSet dataSet) {
+	return (!dataSet || !g_hash_table_size(dataSet));
 }
 
 
@@ -227,75 +229,89 @@ void ucPIP_copyDataEntry(gpointer key, gpointer value, gpointer dstStorage) {
  * that is identified by dstIdent, then one is transparently created.
  */
 void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
-	ucContainerID *srcContainer;
-	ucContainerID *dstContainer;
-	GHashTable *srcStorage;
-	GHashTable *dstStorage;
+	ucContainerID srcContainer;
+	ucContainerID dstContainer;
+	ucDataSet srcDataSet;
+	ucDataSet dstDataSet;
 
 	if (!srcIdentifier || !dstIdentifier) {
 		return;
 	}
 
-	if (!(srcContainer = g_hash_table_lookup(f, srcIdentifier))) {
+	// No source container present.
+	if (!(srcContainer = ucPIP_getContainer(srcIdentifier, 0))) {
 		return;
 	}
 
 	// No sensitive data in source container. Nothing to do.
-	if (!(srcStorage = g_hash_table_lookup(s, srcContainer)) || !g_hash_table_size(srcStorage)) {
+	if (!(srcDataSet = ucPIP_getDataSet(srcContainer, 0)) || ucPIP_isEmptySet(srcDataSet)) {
 		return;
 	}
 
-	if (!(dstContainer = g_hash_table_lookup(f, dstIdentifier))) {
-		if (!(dstContainer = calloc(1, sizeof(ucContainerID)))) {
-			ucPIP_errorExitMemory();
-		}
-
-		*dstContainer = ucPIP_newContainerID();
-
-		g_hash_table_insert(f, strdup(dstIdentifier), dstContainer);
+	// Get the destination container
+	if (!(dstContainer = ucPIP_getContainer(dstIdentifier, 1))) {
+		return;
 	}
 
-	if (!(dstStorage = g_hash_table_lookup(s, dstContainer))) {
-		if (!(dstStorage = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, NULL))) {
-			ucPIP_errorExitMemory();
-		}
-
-		// TODO: this will probably fail if dstContainer gets deleted afterwards.
-		// Create a copy of dstContainer for this case first.
-		// see above, addIdentifier()
-		g_hash_table_insert(s, dstContainer, dstStorage);
+	// Get the destination data set
+	if (!(dstDataSet = ucPIP_getDataSet(dstContainer, 1))) {
+		return;
 	}
 
-	g_hash_table_foreach(srcStorage, ucPIP_copyDataEntry, dstStorage);
+
+	GHashTableIter iter;
+	gpointer dataID;
+
+	// copy each and every entry from source container to destination container
+	g_hash_table_iter_init(&iter, srcDataSet);
+	while (g_hash_table_iter_next (&iter, &dataID, NULL)) {
+		ucDataID *dataIDCopy = calloc(1, sizeof(ucDataID));
+		*dataIDCopy = * (ucDataID*) dataID;
+		g_hash_table_insert(dstDataSet, dataIDCopy, NULL);
+	}
 }
 
 
-
-void ucPIP_printFentry(gpointer key, gpointer value, gpointer data) {
-	printf(" %s --> %d\n", (char*) key, * ((ucContainerID*) value));
-}
 
 void ucPIP_printF() {
+	GHashTableIter iterateIdentifiers;
+	gpointer identifier, contID;
+
 	printf("Function f():\n");
-	g_hash_table_foreach(f, ucPIP_printFentry, NULL);
+
+	g_hash_table_iter_init (&iterateIdentifiers, f);
+	while (g_hash_table_iter_next (&iterateIdentifiers, &identifier, &contID)) {
+		printf("  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
+	}
+
 	printf("\n");
-}
-
-void ucPIP_printSentryentry(gpointer key, gpointer value, gpointer data) {
-	printf("%d, ", *(ucDataID*)key);
-}
-
-void ucPIP_printSentry(gpointer key, gpointer value, gpointer data) {
-	printf(" %d --> {", *(ucContainerID*) key);
-	g_hash_table_foreach(value, ucPIP_printSentryentry, NULL);
-	printf("}\n");
 }
 
 void ucPIP_printS() {
+	GHashTableIter iterateContainers;
+	GHashTableIter iterateData;
+	gpointer contID, dataSet, dataID;
+
 	printf("Function s():\n");
-	g_hash_table_foreach(s, ucPIP_printSentry, NULL);
+
+	g_hash_table_iter_init (&iterateContainers, s);
+	while (g_hash_table_iter_next (&iterateContainers, &contID, &dataSet)) {
+		if (!ucPIP_isEmptySet(dataSet)) {
+			printf("  %10d --> {", *(ucContainerID*) contID);
+
+			g_hash_table_iter_init (&iterateData, dataSet);
+			while (g_hash_table_iter_next (&iterateData, &dataID, NULL)) {
+				printf("%d, ", *(ucDataID*)dataID);
+			}
+			printf("}\n");
+		}
+	}
+
+
 	printf("\n");
 }
+
+
 
 
 void ucPIP_init() {
@@ -306,11 +322,11 @@ void ucPIP_init() {
 	ucPIP_addIdentifier("", "/tmp/foo");
 	ucPIP_removeIdentifier("");
 
-	printf("%d\n",ucPIP_f_get("/tmp/foo"));
+	printf("%d\n",ucPIP_getContainer("/tmp/foo", 1));
 
 	int *foo = malloc(sizeof(int));
 
-	*foo = ucPIP_f_get("/tmp/foo");
+	*foo = ucPIP_getContainer("/tmp/foo", 1);
 
 	GHashTable *x = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, NULL);
 
