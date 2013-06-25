@@ -14,6 +14,10 @@ GHashTable *s;
 GHashTable *l;
 GHashTable *f;
 
+GHashTable *s_rev;
+GHashTable *l_rev;
+GHashTable *f_rev;
+
 
 
 void destroyKey(gpointer data) {
@@ -219,8 +223,15 @@ void ucPIP_removeIdentifier(ucIdentifier identifier) {
 }
 
 
-int ucPIP_isEmptySet(ucDataSet dataSet) {
+int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
 	return (!dataSet || !g_hash_table_size(dataSet));
+}
+
+void ucPIP_removeDataSet(ucIdentifier identifier) {
+	ucDataSet ds = ucPIP_getDataSet(identifier, 0);
+	if (ds) {
+		g_hash_table_remove(s, ds);
+	}
 }
 
 
@@ -234,7 +245,7 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	ucDataSet dstDataSet;
 
 	// No sensitive data in source container. Nothing to do.
-	if (!(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || ucPIP_isEmptySet(srcDataSet)) {
+	if (!(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || ucPIP_isEmptyDataSet(srcDataSet)) {
 		return;
 	}
 
@@ -266,7 +277,7 @@ void ucPIP_printF() {
 
 	g_hash_table_iter_init (&iterateIdentifiers, f);
 	while (g_hash_table_iter_next (&iterateIdentifiers, &identifier, &contID)) {
-		if (UC_PIP_PRINT_EMPTY_CONTAINERS || !ucPIP_isEmptySet(ucPIP_getDataSet(identifier, 0))) {
+		if (UC_PIP_PRINT_EMPTY_CONTAINERS || !ucPIP_isEmptyDataSet(ucPIP_getDataSet(identifier, 0))) {
 			printf("  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
 		}
 	}
@@ -284,7 +295,7 @@ void ucPIP_printS() {
 
 	g_hash_table_iter_init (&iterateContainers, s);
 	while (g_hash_table_iter_next (&iterateContainers, &contID, &dataSet)) {
-		if (!ucPIP_isEmptySet(dataSet)) {
+		if (!ucPIP_isEmptyDataSet(dataSet)) {
 			printf("  %10d --> {", *(ucContainerID*) contID);
 
 			g_hash_table_iter_init (&iterateData, dataSet);
@@ -306,6 +317,9 @@ void ucPIP_init() {
 	s = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
 	l = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, destroyKey, destroyValuePrimitive);
+
+	l_rev = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
+	f_rev = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
 
 	ucPIP_addIdentifier("", "/tmp/foo");
 	ucPIP_removeIdentifier("");

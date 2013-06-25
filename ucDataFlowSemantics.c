@@ -12,6 +12,12 @@
 char identifier[IDENTIFIER_MAX_LEN];
 char identifier2[IDENTIFIER_MAX_LEN];
 
+#define ucSemantics_errorExit(msg) \
+			fprintf(stderr, "%s\n", msg); \
+			fprintf(stderr, "Happened in: %s:%d\n", __FILE__, __LINE__); \
+			fprintf(stderr, "Exiting.\n"); \
+			exit (1);
+
 #define isAbsolute(string) *string == '/'
 
 /// FIXME: this will most likely fail for chrooted processes
@@ -57,48 +63,98 @@ char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int abs
 }
 
 
+/**
+ * Makes an identifier out of the specified PIDxFD and returns it in ident of size len.
+ * This function always returns ident.
+ */
 char *getIdentifierFD(int pid, int fd, char *ident, int len) {
-	snprintf(ident, len, "FD %dx%d", pid, fd);
+	int ret = snprintf(ident, len, "FD %dx%d", pid, fd);
+
+	if (ret >= len) {
+		ucSemantics_errorExit("Buffer overflowed.");
+	}
+	else if (ret < 0) {
+		ucSemantics_errorExit("Error while writing to buffer.");
+	}
+
 	return (ident);
 }
 
+/**
+ * Makes an identifier out of the specified PID and returns it in ident of size len.
+ * This function always returns ident.
+ */
 char *getIdentifierPID(int pid, char *ident, int len) {
-	snprintf(ident, len, "PID %d", pid);
+	int ret = snprintf(ident, len, "PID %d", pid);
+
+	if (ret >= len) {
+		ucSemantics_errorExit("Buffer overflowed.");
+	}
+	else if (ret < 0) {
+		ucSemantics_errorExit("Error while writing to buffer.");
+	}
+
 	return (ident);
 }
 
-
+// todo: write into aliases
 void ucDataFlowSemanticsWrite(struct tcb *tcp) {
-	printf("%d writes to %s\n",tcp->pid,identifier);
+	printf("write(): %d --> %s\n",tcp->pid,identifier);
 
-	ucPIP_copyData(getIdentifierPID(tcp->pid, identifier, sizeof(identifier)),
-			getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2)));
+	if (tcp->u_arg[0] > 0) {
+		ucPIP_copyData(
+				getIdentifierPID(tcp->pid, identifier, sizeof(identifier)),
+				getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2)));
+	}
+
 	ucPIP_printF();
 	ucPIP_printS();
 }
 
+// todo: write into aliases
 void ucDataFlowSemanticsRead(struct tcb *tcp) {
-	printf("%d reads from %s\n",tcp->pid, identifier);
-	ucPIP_copyData(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
-			getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2)));
+	printf("read(): %d <-- %s\n",tcp->pid, identifier);
+
+	if (tcp->u_arg[0] > 0) {
+		ucPIP_copyData(
+				getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
+				getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2)));
+	}
+
 	ucPIP_printF();
 	ucPIP_printS();
 }
 
 void ucDataFlowSemanticsExit(struct tcb *tcp) {
 	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
-	printf("exiting %s\n", identifier);
+
+	printf("exit(): %s\n", identifier);
+
+	ucPIP_removeDataSet(identifier);
+	ucPIP_removeIdentifier(identifier);
+
+	ucPIP_printF();
 }
 
 void ucDataFlowSemanticsExecve(struct tcb *tcp) {
 	printf("UUUppdating execve\n");
 }
 
+
+// done
 void ucDataFlowSemanticsClose(struct tcb *tcp) {
-	ucPIP_removeIdentifier(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)));
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
+
+	printf("close(): %s\n", identifier);
+
+	if (tcp->u_arg[0] > 0) {
+		ucPIP_removeIdentifier(identifier);
+	}
 	ucPIP_printF();
 }
 
+
+// done
 void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
@@ -117,9 +173,12 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 		return;
 	}
 
-	ucPIP_addIdentifier(
-			fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)),
-			getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier)));
+	fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename));
+	getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier));
+
+	printf("open(): %d: %s --> %s\n",tcp->pid,absFilename,identifier);
+
+	ucPIP_addIdentifier(absFilename, identifier);
 
 	ucPIP_printF();
 }
