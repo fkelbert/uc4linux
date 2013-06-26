@@ -17,8 +17,8 @@
 #include <glib.h>
 #include <string.h>
 
-typedef guint ucDataID;			// 0 is invalid
-typedef guint ucContainerID;	// 0 is invalid
+typedef guint ucDataID;
+typedef guint ucContainerID;
 typedef	gchar* ucIdentifier;
 typedef GHashTable* ucDataSet;
 
@@ -39,7 +39,7 @@ typedef GHashTable* ucDataSet;
 #define INVALID_DATASET(dataset) ((dataset) == UC_INVALID_DATASET)
 #define VALID_DATASET(dataset) ((dataset) != UC_INVALID_DATASET)
 
-#define UC_PIP_PRINT_EMPTY_CONTAINERS 1
+#define UC_PIP_PRINT_EMPTY_CONTAINERS 0
 
 void			ucPIP_init();
 

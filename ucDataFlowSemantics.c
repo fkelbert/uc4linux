@@ -227,7 +227,7 @@ void ucDataFlowSemanticsClose(struct tcb *tcp) {
 }
 
 
-// done
+// TODO: handle truncation flag
 void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
@@ -320,9 +320,39 @@ void ucPIPupdate(struct tcb *tcp) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsDup;
 	}
 
+	// TODO: sys_fstatfs may be useful to find out information about mounted file systems
+
 
 	// finally, update the PIP
 	if (ucDataFlowSemanticsFunc) {
 		(*ucDataFlowSemanticsFunc)(tcp);
+	}
+	else {
+		// this calls have been checked to not influence data flow.
+		// they can be ignored
+		if (strcmp(tcp->s_ent->sys_name, "brk") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "fstat64") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "mprotect") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "stat64") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "poll") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "futex") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "fstatfs") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "uname") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getdents64") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "rt_sigaction") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "_llseek") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "prctl") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "geteuid32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getegid32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "gettimeofday") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "select") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "clock_gettime") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "time") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "set_thread_area") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "access") != 0
+			) {
+			printf("unhandled %s\n", tcp->s_ent->sys_name);
+		}
+
 	}
 }
