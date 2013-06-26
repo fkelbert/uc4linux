@@ -156,23 +156,25 @@ char *getIdentifierPID(int pid, char *ident, int len) {
 
 // todo: write into aliases
 void ucDataFlowSemanticsWrite(struct tcb *tcp) {
-	printf("write(): %d --> %s\n",tcp->pid,identifier);
-
 	if (tcp->u_arg[0] > 0) {
-		ucPIP_copyData(
-				getIdentifierPID(tcp->pid, identifier, sizeof(identifier)),
-				getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2)));
+		getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+		getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2));
+
+		printf("write(): %s --> %s\n",identifier, identifier2);
+
+		ucPIP_copyData(identifier, identifier2);
 	}
 }
 
 // todo: write into aliases
 void ucDataFlowSemanticsRead(struct tcb *tcp) {
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
+	getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2));
+
 	printf("read(): %d <-- %s\n",tcp->pid, identifier);
 
 	if (tcp->u_arg[0] > 0) {
-		ucPIP_copyData(
-				getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
-				getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2)));
+		ucPIP_copyData(identifier, identifier2);
 	}
 }
 
@@ -184,7 +186,6 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 
 	printf("exit(): %s\n", identifier);
 
-	ucPIP_removeDataSet(identifier);
 	ucPIP_removeContainer(identifier);
 	ucPIP_removeIdentifier(identifier);
 
@@ -192,6 +193,14 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 	if ((openfds = getListOfOpenFileDescriptors(tcp->pid, &count))) {
 		while (count-- > 0) {
 			getIdentifierFD(tcp->pid, openfds[count], identifier, sizeof(identifier));
+
+			// check whether this is the last identifier for that container
+			// if it is, then also remove the container and its storage
+			// TODO: This operation is expensive, because countIdentifiers() loops over all identifiers
+			if (ucPIP_countIdentifiers(identifier) == 1) {
+				ucPIP_removeContainer(identifier);
+			}
+
 			ucPIP_removeIdentifier(identifier);
 		}
 		free(openfds);
@@ -256,11 +265,11 @@ void ucDataFlowSemanticsPipe(struct tcb *tcp) {
 		return;
 	}
 
-	printf("pipe()\n");
-
 	ucPIP_addIdentifier(
 			getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier)),
 			getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2)));
+
+	printf("pipe(): %s %s\n",identifier, identifier2);
 }
 
 void ucDataFlowSemanticsDup(struct tcb *tcp) {

@@ -15,20 +15,6 @@ GHashTable *l;
 GHashTable *f;
 
 
-
-
-void destroyKey(gpointer data) {
-	if (data) free(data);
-}
-
-void destroyValueHashTable(gpointer data) {
-	if (data) g_hash_table_destroy(data);
-}
-
-void destroyValuePrimitive(gpointer data) {
-	if (data) free(data);
-}
-
 ucDataID ucPIP_newDataID() {
 	if (!nextDataID) {
 		ucPIP_errorExit("Run out of data IDs. Consider implementing data IDs using another data type.");
@@ -99,7 +85,7 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 	}
 
 	if (create) {
-		dataSet = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, NULL);
+		dataSet = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
 
 		if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
 			ucPIP_errorExitMemory();
@@ -188,19 +174,24 @@ int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
 	return (INVALID_DATASET(dataSet) || !g_hash_table_size(dataSet));
 }
 
-void ucPIP_removeDataSet(ucIdentifier identifier) {
-	ucDataSet ds;
-
-	if (VALID_DATASET(ds = ucPIP_getDataSet(identifier, 0))) {
-		g_hash_table_destroy(ds);
-	}
-}
+//void ucPIP_removeDataSet(ucIdentifier identifier) {
+//	ucDataSet ds;
+//
+//	if (VALID_DATASET(ds = ucPIP_getDataSet(identifier, 0))) {
+//		g_hash_table_destroy(ds);
+//	}
+//}
 
 
 void ucPIP_removeContainer(ucIdentifier identifier) {
 	ucContainerID cont;
+	ucDataSet ds;
 
-	if (VALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
+	ds = ucPIP_getDataSet(identifier, 0);
+	cont = ucPIP_getContainer(identifier, 0);
+
+	if (VALID_CONTID(cont)) {
+		// this will automatically destroy the hashtable associated with that container
 		g_hash_table_remove(s, &cont);
 	}
 }
@@ -336,9 +327,9 @@ void ucPIP_printS() {
 
 
 void ucPIP_init() {
-	s = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
-	l = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
-	f = g_hash_table_new_full(g_str_hash, g_str_equal, destroyKey, destroyValuePrimitive);
+	s = g_hash_table_new_full(g_int_hash, g_int_equal, free, g_hash_table_destroy);
+	l = g_hash_table_new_full(g_int_hash, g_int_equal, free, g_hash_table_destroy);
+	f = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
 
 	ucPIP_addInitialData("/tmp/foo");
 
