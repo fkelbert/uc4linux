@@ -122,63 +122,6 @@ void ucPIP_f_remove(ucIdentifier identifier) {
 }
 
 
-//void ucPIP_s_add(ucContainerID containerID, ucDataID* dataIDs, int count) {
-//	ucDataSet dataSet;
-//	ucDataID *dataIDsCopy;
-//	int i;
-//
-//	if (!containerID || !dataIDs || count <= 0) {
-//		return;
-//	}
-//
-//	if (!(dataSet = ucPIP_getDataSet(containerID, 1))) {
-//		return;
-//	}
-//
-//	dataIDsCopy = calloc(count, sizeof(ucDataID));
-//	memcpy(dataIDsCopy, dataIDs, count * sizeof(ucDataID));
-//	for (i = 0; i < count; i++) {
-//		g_hash_table_insert(dataSet, &dataIDsCopy[i], NULL);
-//	}
-//}
-
-/**
- * Retrieves the data IDs associated with the specified container ID, i.e. s(containerID).
- * The data IDs are returned. count is set to the number of entries. This function allocates the necessary memory which
- * must then be freed by the caller using free().
- * @return count the number of entries, -1 on error. -1 is also returned, if dataIDs != NULL.
- * @return the allocated memory area
- */
-//ucDataID *ucPIP_s_get(ucContainerID containerID, int *count) {
-//	GHashTable *dataSet;
-//
-//	if (!containerID || dataIDs) {
-//		return -1;
-//	}
-//
-//	if ((dataSet = g_hash_table_lookup(s, &containerID)) == NULL) {
-//		return 0;
-//	}
-//
-//	*count = g_hash_table_size(dataSet);
-//
-//	ucDataID *dataIDs;
-//
-//	if ((dataIDs = calloc(*count, sizeof(ucDataID))) == NULL) {
-//		ucPIP_errorExit("Unable to allocate enough memory");
-//	}
-//
-//	int i;
-//	for (i = 0; i < *count; i++) {
-//		dataIDs[i] =
-//	}
-//}
-
-//void ucPIP_s_remove(ucContainerID) {
-//
-//}
-
-
 /**
  * Adds a new (additional) identifier for the container that has so far
  * been identified with the specified old identifier. If the old identifier
