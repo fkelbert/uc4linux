@@ -22,6 +22,9 @@ typedef guint ucContainerID;	// 0 is invalid
 typedef	gchar* ucIdentifier;
 typedef GHashTable* ucDataSet;
 
+#define UC_INVALID_CONTID 0
+#define UC_INVALID_DATAID 0
+
 #define UC_PIP_PRINT_EMPTY_CONTAINERS 1
 
 void			ucPIP_init();
