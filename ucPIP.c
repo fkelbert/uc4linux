@@ -191,8 +191,7 @@ int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
 void ucPIP_removeDataSet(ucIdentifier identifier) {
 	ucDataSet ds;
 
-	if (VALID_IDENTIFIER(identifier) &&
-		VALID_DATASET(ds = ucPIP_getDataSet(identifier, 0))) {
+	if (VALID_DATASET(ds = ucPIP_getDataSet(identifier, 0))) {
 			g_hash_table_remove(s, ds);
 	}
 }
@@ -227,6 +226,24 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 		*dataIDCopy = * (ucDataID*) dataID;
 		g_hash_table_insert(dstDataSet, dataIDCopy, NULL);
 	}
+}
+
+
+
+ucDataID ucPIP_addInitialData(ucIdentifier identifier) {
+	ucDataSet dataSet = UC_INVALID_DATASET;
+	ucDataID *dataID;
+
+	if (VALID_DATASET(dataSet = ucPIP_getDataSet(identifier, 1))) {
+		if (!(dataID = calloc(1, sizeof(ucDataID)))) {
+			ucPIP_errorExitMemory();
+		}
+		*dataID = ucPIP_newDataID();
+
+		g_hash_table_insert(dataSet, dataID, NULL);
+	}
+
+	return (*dataID);
 }
 
 
@@ -280,24 +297,7 @@ void ucPIP_init() {
 	l = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, destroyKey, destroyValuePrimitive);
 
-	ucPIP_getContainer("/tmp/foo", 1);
-
-	int *foo = malloc(sizeof(int));
-
-	*foo = ucPIP_getContainer("/tmp/foo", 1);
-
-	GHashTable *x = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, NULL);
-
-	g_hash_table_insert(s, foo, x);
-
-	int *y = calloc(1, sizeof(int));
-	*y = 5;
-
-	g_hash_table_insert(x, y,  NULL);
-	int *z = calloc(1, sizeof(int));
-	*z = 6;
-
-	g_hash_table_insert(x, z,  NULL);
+	ucPIP_addInitialData("/tmp/foo");
 
 	ucPIP_printF();
 	ucPIP_printS();
