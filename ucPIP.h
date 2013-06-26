@@ -24,6 +24,20 @@ typedef GHashTable* ucDataSet;
 
 #define UC_INVALID_CONTID 0
 #define UC_INVALID_DATAID 0
+#define UC_INVALID_IDENTIFIER NULL
+#define UC_INVALID_DATASET NULL
+
+#define INVALID_CONTID(contid) ((contid) == UC_INVALID_CONTID)
+#define VALID_CONTID(contid) ((contid) != UC_INVALID_CONTID)
+
+#define INVALID_DATAID(dataid) ((dataid) == UC_INVALID_DATAID)
+#define VALID_DATAID(dataid) ((dataid) != UC_INVALID_DATAID)
+
+#define INVALID_IDENTIFIER(ident) ((ident) == UC_INVALID_IDENTIFIER)
+#define VALID_IDENTIFIER(ident) ((ident) != UC_INVALID_IDENTIFIER)
+
+#define INVALID_DATASET(dataset) ((dataset) == UC_INVALID_DATASET)
+#define VALID_DATASET(dataset) ((dataset) != UC_INVALID_DATASET)
 
 #define UC_PIP_PRINT_EMPTY_CONTAINERS 1
 

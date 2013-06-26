@@ -55,12 +55,12 @@ ucContainerID ucPIP_newContainerID() {
 ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
 	ucContainerID *contID;
 
-	if (!identifier) {
-		return (0);
+	if (INVALID_IDENTIFIER(identifier)) {
+		return (UC_INVALID_CONTID);
 	}
 
 
-	if ((contID = (ucContainerID*) g_hash_table_lookup(f, identifier))) {
+	if (VALID_CONTID(contID = (ucContainerID*) g_hash_table_lookup(f, identifier))) {
 		return (*contID);
 	}
 
@@ -75,7 +75,7 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
 		return (*contID);
 	}
 
-	return (0);
+	return (UC_INVALID_CONTID);
 }
 
 
@@ -90,11 +90,11 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 	ucContainerID containerID;
 	ucContainerID *containerIDCopy;
 
-	if (!(containerID = ucPIP_getContainer(identifier, create))) {
-		return NULL;
+	if (INVALID_CONTID(containerID = ucPIP_getContainer(identifier, create))) {
+		return UC_INVALID_DATASET;
 	}
 
-	if ((dataSet = g_hash_table_lookup(s, &containerID))) {
+	if (VALID_DATASET(dataSet = g_hash_table_lookup(s, &containerID))) {
 		return (dataSet);
 	}
 
@@ -111,12 +111,12 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 		return (dataSet);
 	}
 
-	return NULL;
+	return UC_INVALID_DATASET;
 }
 
 
 void ucPIP_f_remove(ucIdentifier identifier) {
-	if (identifier) {
+	if (VALID_IDENTIFIER(identifier)) {
 		g_hash_table_remove(f, &identifier);
 	}
 }
@@ -202,17 +202,17 @@ ucContainerID ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newId
 	ucContainerID contID;
 	ucContainerID *contIDCopy;
 
-	if (!oldIdentifier && !newIdentifier) {
+	if (INVALID_IDENTIFIER(oldIdentifier) && INVALID_IDENTIFIER(newIdentifier)) {
 		return (UC_INVALID_CONTID);
 	}
-	else if (!oldIdentifier) {
+	else if (INVALID_IDENTIFIER(oldIdentifier)) {
 		oldIdentifier = newIdentifier;
 	}
-	else if (!newIdentifier) {
+	else if (INVALID_IDENTIFIER(newIdentifier)) {
 		newIdentifier = oldIdentifier;
 	}
 
-	if (!(contID = ucPIP_getContainer(oldIdentifier, 1))) {
+	if (INVALID_CONTID(contID = ucPIP_getContainer(oldIdentifier, 1))) {
 		return (UC_INVALID_CONTID);
 	}
 
@@ -235,20 +235,22 @@ ucContainerID ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newId
  * Removes the specified identifier mapping in function f().
  */
 void ucPIP_removeIdentifier(ucIdentifier identifier) {
-	if (identifier) {
+	if (VALID_IDENTIFIER(identifier)) {
 		g_hash_table_remove(f, identifier);
 	}
 }
 
 
 int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
-	return (!dataSet || !g_hash_table_size(dataSet));
+	return (INVALID_DATASET(dataSet) || !g_hash_table_size(dataSet));
 }
 
 void ucPIP_removeDataSet(ucIdentifier identifier) {
-	ucDataSet ds = ucPIP_getDataSet(identifier, 0);
-	if (ds) {
-		g_hash_table_remove(s, ds);
+	ucDataSet ds;
+
+	if (VALID_IDENTIFIER(identifier) &&
+		VALID_DATASET(ds = ucPIP_getDataSet(identifier, 0))) {
+			g_hash_table_remove(s, ds);
 	}
 }
 
@@ -261,20 +263,19 @@ void ucPIP_removeDataSet(ucIdentifier identifier) {
 void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	ucDataSet srcDataSet;
 	ucDataSet dstDataSet;
+	GHashTableIter iter;
+	gpointer dataID;
 
 	// No sensitive data in source container. Nothing to do.
-	if (!(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || ucPIP_isEmptyDataSet(srcDataSet)) {
+	if (INVALID_DATASET(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || ucPIP_isEmptyDataSet(srcDataSet)) {
 		return;
 	}
 
 	// Get the destination data set
-	if (!(dstDataSet = ucPIP_getDataSet(dstIdentifier, 1))) {
+	if (INVALID_DATASET(dstDataSet = ucPIP_getDataSet(dstIdentifier, 1))) {
 		return;
 	}
 
-
-	GHashTableIter iter;
-	gpointer dataID;
 
 	// copy each and every entry from source container to destination container
 	g_hash_table_iter_init(&iter, srcDataSet);
@@ -337,8 +338,6 @@ void ucPIP_init() {
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, destroyKey, destroyValuePrimitive);
 
 	ucPIP_getContainer("/tmp/foo", 1);
-
-
 
 	int *foo = malloc(sizeof(int));
 
