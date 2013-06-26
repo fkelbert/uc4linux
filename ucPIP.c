@@ -183,14 +183,13 @@ int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
 //}
 
 
+/*
+ * Removes a container and its associated data set completely.
+ */
 void ucPIP_removeContainer(ucIdentifier identifier) {
 	ucContainerID cont;
-	ucDataSet ds;
 
-	ds = ucPIP_getDataSet(identifier, 0);
-	cont = ucPIP_getContainer(identifier, 0);
-
-	if (VALID_CONTID(cont)) {
+	if (VALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
 		// this will automatically destroy the hashtable associated with that container
 		g_hash_table_remove(s, &cont);
 	}
@@ -327,8 +326,8 @@ void ucPIP_printS() {
 
 
 void ucPIP_init() {
-	s = g_hash_table_new_full(g_int_hash, g_int_equal, free, g_hash_table_destroy);
-	l = g_hash_table_new_full(g_int_hash, g_int_equal, free, g_hash_table_destroy);
+	s = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
+	l = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
 
 	ucPIP_addInitialData("/tmp/foo");
