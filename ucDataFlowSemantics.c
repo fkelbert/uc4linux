@@ -185,6 +185,7 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 	printf("exit(): %s\n", identifier);
 
 	ucPIP_removeDataSet(identifier);
+	ucPIP_removeContainer(identifier);
 	ucPIP_removeIdentifier(identifier);
 
 	// delete all of the processes' open file descriptors
@@ -195,6 +196,7 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 		}
 		free(openfds);
 	}
+
 
 	// TODO: delete aliases
 }

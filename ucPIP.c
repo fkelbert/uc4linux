@@ -114,12 +114,12 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 	return UC_INVALID_DATASET;
 }
 
-
-void ucPIP_f_remove(ucIdentifier identifier) {
-	if (VALID_IDENTIFIER(identifier)) {
-		g_hash_table_remove(f, &identifier);
-	}
-}
+//
+//void ucPIP_f_remove(ucIdentifier identifier) {
+//	if (VALID_IDENTIFIER(identifier)) {
+//		g_hash_table_remove(f, &identifier);
+//	}
+//}
 
 
 /**
@@ -192,9 +192,19 @@ void ucPIP_removeDataSet(ucIdentifier identifier) {
 	ucDataSet ds;
 
 	if (VALID_DATASET(ds = ucPIP_getDataSet(identifier, 0))) {
-			g_hash_table_remove(s, ds);
+		g_hash_table_destroy(ds);
 	}
 }
+
+
+void ucPIP_removeContainer(ucIdentifier identifier) {
+	ucContainerID cont;
+
+	if (VALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
+		g_hash_table_remove(s, &cont);
+	}
+}
+
 
 
 /**
@@ -253,7 +263,33 @@ ucDataID ucPIP_addInitialData(ucIdentifier identifier) {
 }
 
 
+/**
+ * Count the number of identifiers associated with the container
+ * that is identified by the specified identifier.
+ * @param identifier one of the identifiers of the container whose number of identifiers is to be counted
+ * @return the total number of identifiers identifying this container
+ */
+int ucPIP_countIdentifiers(ucIdentifier identifier) {
+	ucContainerID container;
+	GHashTableIter iter;
+	int count = 0;
+	GList *li;
 
+	// TODO: This may be more efficient by implementing f^-1, ie f_rev ==> a reverse lookup hashtable for f.
+	// Here we iterate over all values in that table :-(
+	if (VALID_CONTID(container = ucPIP_getContainer(identifier, 0))) {
+		GList *conts = g_hash_table_get_values(f);
+
+		for (li = conts; li != NULL; li = g_list_next(li)) {
+			if (* (ucContainerID*) li->data == container) {
+		        count++;
+			}
+		}
+		g_list_free(conts);
+	}
+
+	return (count);
+}
 
 
 void ucPIP_printF() {
@@ -292,7 +328,6 @@ void ucPIP_printS() {
 			printf("}\n");
 		}
 	}
-
 
 	printf("\n");
 }
