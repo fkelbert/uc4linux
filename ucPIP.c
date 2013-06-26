@@ -50,7 +50,7 @@ ucContainerID ucPIP_newContainerID() {
  * Retrieve the container ID associated with the specified identifier, i.e. return f(identifier).
  * @param identifier the identifier
  * @param create whether to create a new container in case none is found, 1 = create, 0 = do not create
- * @result the container ID associated with f(identifier). On error, 0 is returned.
+ * @result the container ID associated with f(identifier). On error, UC_INVALID_CONTID is returned.
  */
 ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
 	ucContainerID *contID;
@@ -83,7 +83,7 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
  * Retrieves the data set associated with the specified container ID, i.e. s(containerID)
  * @param containerID the container of which the data set is retrieved
  * @param create whether to create a new (empty) data set, in case none is associated. 1 = create, 0 = do not create
- * @return the data set associated with containerID, NULL on error
+ * @return the data set associated with containerID, UC_INVALID_DATASET on error
  */
 ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 	ucDataSet dataSet;
@@ -229,10 +229,16 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 }
 
 
-
+/*
+ * Adds a new initial data ID to the container identified by the specified identifier
+ * and returns the added data ID. In case no such container is found, then it will
+ * be transparently created.
+ * @param identifier the container's identifier to which a new data ID is added.
+ * @return the added data ID or UC_INVALID_DATAID on error
+ */
 ucDataID ucPIP_addInitialData(ucIdentifier identifier) {
-	ucDataSet dataSet = UC_INVALID_DATASET;
-	ucDataID *dataID;
+	ucDataSet dataSet;
+	ucDataID *dataID = UC_INVALID_DATAID;
 
 	if (VALID_DATASET(dataSet = ucPIP_getDataSet(identifier, 1))) {
 		if (!(dataID = calloc(1, sizeof(ucDataID)))) {
@@ -245,6 +251,8 @@ ucDataID ucPIP_addInitialData(ucIdentifier identifier) {
 
 	return (*dataID);
 }
+
+
 
 
 
