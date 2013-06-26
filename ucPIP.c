@@ -183,21 +183,37 @@ void ucPIP_f_remove(ucIdentifier identifier) {
  * Adds a new (additional) identifier for the container that has so far
  * been identified with the specified old identifier. If the old identifier
  * is not yet associated with a container, then a new container is created
- * transparently.
+ * transparently and it is assigned to both oldIdentifier and newIdentifier.
+ * In any case, the identified container is returned; UC_INVALID_CONTID on error.
+ *
+ * If oldIdentifier == newIdentifier or
+ * if oldIdentifier == NULL and newIdentifier != NULL or
+ * if newIdentifier == NULL and oldIdentifier != NULL,
+ * then we have in fact only one identifier. In this case
+ * it is checked whether a container for that identifier already exists.
+ * If this is the case, then it is returned. If not, then a container will be
+ * transparently created and assigned the corresponding identifier.
+ *
  * @param oldIdentifier the old identifier identifying the container
  * @param newIdentifier the new (additional) identifier for that same container
- *
+ * @return the identified container or UC_INVALID_CONTID on error
  */
-void ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newIdentifier) {
+ucContainerID ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newIdentifier) {
 	ucContainerID contID;
 	ucContainerID *contIDCopy;
 
-	if (!oldIdentifier || !newIdentifier) {
-		return;
+	if (!oldIdentifier && !newIdentifier) {
+		return (UC_INVALID_CONTID);
+	}
+	else if (!oldIdentifier) {
+		oldIdentifier = newIdentifier;
+	}
+	else if (!newIdentifier) {
+		newIdentifier = oldIdentifier;
 	}
 
 	if (!(contID = ucPIP_getContainer(oldIdentifier, 1))) {
-		return;
+		return (UC_INVALID_CONTID);
 	}
 
 	if (!(contIDCopy = calloc(1, sizeof(ucContainerID)))) {
@@ -207,6 +223,8 @@ void ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newIdentifier)
 	*contIDCopy = contID;
 
 	g_hash_table_insert(f, strdup(newIdentifier), contIDCopy);
+
+	return (contID);
 }
 
 
@@ -318,10 +336,7 @@ void ucPIP_init() {
 	l = g_hash_table_new_full(g_int_hash, g_int_equal, destroyKey, destroyValueHashTable);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, destroyKey, destroyValuePrimitive);
 
-	ucPIP_addIdentifier("", "/tmp/foo");
-	ucPIP_removeIdentifier("");
-
-	printf("%d\n",ucPIP_getContainer("/tmp/foo", 1));
+	ucPIP_getContainer("/tmp/foo", 1);
 
 
 
