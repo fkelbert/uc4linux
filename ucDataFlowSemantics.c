@@ -163,9 +163,6 @@ void ucDataFlowSemanticsWrite(struct tcb *tcp) {
 				getIdentifierPID(tcp->pid, identifier, sizeof(identifier)),
 				getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2)));
 	}
-
-	ucPIP_printF();
-	ucPIP_printS();
 }
 
 // todo: write into aliases
@@ -177,9 +174,6 @@ void ucDataFlowSemanticsRead(struct tcb *tcp) {
 				getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
 				getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2)));
 	}
-
-	ucPIP_printF();
-	ucPIP_printS();
 }
 
 void ucDataFlowSemanticsExit(struct tcb *tcp) {
@@ -202,9 +196,7 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 		free(openfds);
 	}
 
-	// TODO: delte aliases
-
-	ucPIP_printF();
+	// TODO: delete aliases
 }
 
 void ucDataFlowSemanticsExecve(struct tcb *tcp) {
@@ -221,8 +213,6 @@ void ucDataFlowSemanticsClose(struct tcb *tcp) {
 	if (tcp->u_arg[0] > 0) {
 		ucPIP_removeIdentifier(identifier);
 	}
-
-	ucPIP_printF();
 }
 
 
@@ -251,8 +241,6 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	printf("open(): %d: %s --> %s\n",tcp->pid,absFilename,identifier);
 
 	ucPIP_addIdentifier(absFilename, identifier);
-
-	ucPIP_printF();
 }
 
 void ucDataFlowSemanticsPipe(struct tcb *tcp) {
@@ -271,8 +259,6 @@ void ucDataFlowSemanticsPipe(struct tcb *tcp) {
 	ucPIP_addIdentifier(
 			getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier)),
 			getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2)));
-
-	ucPIP_printF();
 }
 
 void ucDataFlowSemanticsDup(struct tcb *tcp) {
@@ -283,8 +269,6 @@ void ucDataFlowSemanticsDup(struct tcb *tcp) {
 				getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2)));
 
 		printf("dup(): %s --> %s\n", identifier, identifier2);
-
-		ucPIP_printF();
 	}
 }
 
