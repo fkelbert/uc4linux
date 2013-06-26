@@ -328,7 +328,7 @@ void ucPIPupdate(struct tcb *tcp) {
 		(*ucDataFlowSemanticsFunc)(tcp);
 	}
 	else {
-		// this calls have been checked to not influence data flow.
+		// this calls have been  checked to not influence data flow.
 		// they can be ignored
 		if (strcmp(tcp->s_ent->sys_name, "brk") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "fstat64") != 0 &&
