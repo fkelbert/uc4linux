@@ -13,6 +13,8 @@ int ucBeforeSyscallEnter(struct tcb *tcp) {
 		case UC_PDP_MODIFY:	// modify assumes that the syscall has already been modified transparently		
 			if (ucPIPupdateBefore(tcp)) {
 				ucPIPupdate(tcp);
+				ucPIP_printF();
+				ucPIP_printS();
 			}
 			break;
 		case UC_PDP_INHIBIT:
@@ -34,6 +36,8 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 		case UC_PDP_ALLOW:		
 			if (ucPIPupdateAfter(tcp)) {
 				ucPIPupdate(tcp);
+				ucPIP_printF();
+				ucPIP_printS();
 			}
 			break;
 		case UC_PDP_DELAY:
