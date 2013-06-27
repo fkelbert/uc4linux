@@ -266,6 +266,10 @@ void ucDataFlowSemanticsSocket(struct tcb *tcp) {
 	// TODO. man 2 socket
 }
 
+void ucDataFlowSemanticsSocketpair(struct tcb *tcp) {
+	// TODO. man 2 socketpair
+}
+
 void ucDataFlowSemanticsFcntl(struct tcb *tcp) {
 	// TODO. man 2 fcntl64
 }
@@ -296,6 +300,10 @@ void ucDataFlowSemanticsConnect(struct tcb *tcp) {
 
 void ucDataFlowSemanticsRename(struct tcb *tcp) {
 	// TODO. man 2 rename
+}
+
+void ucDataFlowSemanticsClone(struct tcb *tcp) {
+	// TODO. man 2 clone
 }
 
 void ucDataFlowSemanticsUnlink(struct tcb *tcp) {
@@ -386,6 +394,9 @@ void ucPIPupdate(struct tcb *tcp) {
 	else if (strcmp(tcp->s_ent->sys_name, "socket") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsSocket;
 	}
+	else if (strcmp(tcp->s_ent->sys_name, "socketpair") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsSocketpair;
+	}
 	else if (strcmp(tcp->s_ent->sys_name, "accept") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsAccept;
 	}
@@ -412,6 +423,9 @@ void ucPIPupdate(struct tcb *tcp) {
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "munmap") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsMunmap;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "clone") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsClone;
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "mmap")  == 0
 		||	 strcmp(tcp->s_ent->sys_name, "mmap2") == 0) {
@@ -448,6 +462,9 @@ void ucPIPupdate(struct tcb *tcp) {
 			strcmp(tcp->s_ent->sys_name, "lstat64") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "chmod") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "umask") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getxattr") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "lgetxattr") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "fgetxattr") != 0 &&
 
 			// directory meta operations
 			strcmp(tcp->s_ent->sys_name, "chdir") != 0 &&
@@ -466,13 +483,18 @@ void ucPIPupdate(struct tcb *tcp) {
 			strcmp(tcp->s_ent->sys_name, "getresgid32") != 0 &&
 
 			// time
+			strcmp(tcp->s_ent->sys_name, "clock_getres") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "clock_gettime") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "clock_settime") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "gettimeofday") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "time") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "times") != 0 &&
 
 			// socket operations & information
 			strcmp(tcp->s_ent->sys_name, "bind") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "listen") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setsockopt") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getsockopt") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getpeername") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getsockname") != 0 &&
 
@@ -490,11 +512,16 @@ void ucPIPupdate(struct tcb *tcp) {
 			strcmp(tcp->s_ent->sys_name, "madvise") != 0 &&
 
 			// wait
-			strcmp(tcp->s_ent->sys_name, "wait4") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "waitpid") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "wait4") != 0 &&		// TODO: Actually, upon wait we get the return value of the child. Therefore,
+			strcmp(tcp->s_ent->sys_name, "waitpid") != 0 &&		// we should handle these calls. But they will most likely kill data flow tracking due to overapproximations
+
+			// thread management
+			strcmp(tcp->s_ent->sys_name, "get_robust_list") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "set_robust_list") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "set_thread_area") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "set_tid_address") != 0 &&
 
 			// misc.
-			strcmp(tcp->s_ent->sys_name, "set_thread_area") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "access") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "mprotect") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "poll") != 0 &&
@@ -504,6 +531,10 @@ void ucPIPupdate(struct tcb *tcp) {
 			strcmp(tcp->s_ent->sys_name, "ioctl") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "prctl") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "readlink") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getrusage") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "restart_syscall") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getpid") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getppid") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "select") != 0
 			) {
 			printf("unhandled %s\n", tcp->s_ent->sys_name);
