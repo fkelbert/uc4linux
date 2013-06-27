@@ -211,7 +211,8 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsExecve(struct tcb *tcp) {
-	printf("UUUppdating execve\n");
+	// TODO: man 2 execve
+	// Also consider man 2 open and fcntl: some file descriptors close automatically on exeve()
 }
 
 
@@ -254,6 +255,52 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	ucPIP_addIdentifier(absFilename, identifier);
 }
 
+
+
+void ucDataFlowSemanticsOpenat(struct tcb *tcp) {
+	// TODO. man 2 openat
+}
+
+
+void ucDataFlowSemanticsSocket(struct tcb *tcp) {
+	// TODO. man 2 socket
+}
+
+void ucDataFlowSemanticsFcntl(struct tcb *tcp) {
+	// TODO. man 2 fcntl64
+}
+
+void ucDataFlowSemanticsShutdown(struct tcb *tcp) {
+	// TODO. man 2 shutdown
+}
+
+void ucDataFlowSemanticsEventfd(struct tcb *tcp) {
+	// TODO. man 2 eventfd
+}
+
+void ucDataFlowSemanticsMmap(struct tcb *tcp) {
+	// TODO. man 2 mmap
+}
+
+void ucDataFlowSemanticsKill(struct tcb *tcp) {
+	// TODO. man 2 kill
+}
+
+void ucDataFlowSemanticsAccept(struct tcb *tcp) {
+	// TODO. man 2 accept
+}
+
+void ucDataFlowSemanticsUnlink(struct tcb *tcp) {
+	// TODO. man 2 unlink
+}
+
+void ucDataFlowSemanticsMunmap(struct tcb *tcp) {
+	// TODO. man 2 munmap
+	// is it possible to do something useful here?
+}
+
+
+
 void ucDataFlowSemanticsPipe(struct tcb *tcp) {
 	int fds[2];
 
@@ -291,13 +338,28 @@ void ucPIPupdate(struct tcb *tcp) {
 
 	// Note: Do not(!) compare function pointer. This will not work out,
 	// e.g. for dup() which is mapped to the internal sys_open()!
-	if (strcmp(tcp->s_ent->sys_name, "write") == 0) {
+	if (strcmp(tcp->s_ent->sys_name, "write") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "writev") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "pwrite") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "pwritev") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "pwrite64") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "send") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "sendto") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "sendmsg") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsWrite;
 	}
-	else if (strcmp(tcp->s_ent->sys_name, "read") == 0) {
+	else if (strcmp(tcp->s_ent->sys_name, "read") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "readv") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "pread") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "pread64") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "preadv") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "recv") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "recvfrom") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "recvmsg") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsRead;
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "exit") == 0 ||
+			strcmp(tcp->s_ent->sys_name, "_exit") == 0 ||
 			strcmp(tcp->s_ent->sys_name, "exit_group") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsExit;
 	}
@@ -309,6 +371,37 @@ void ucPIPupdate(struct tcb *tcp) {
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "open") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsOpen;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "openat") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsOpenat;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "socket") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsSocket;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "accept") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsAccept;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "fcntl64") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsFcntl;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "shutdown") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsShutdown;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "eventfd2") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsEventfd;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "unlink") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsUnlink;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "kill") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsKill;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "munmap") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsMunmap;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "mmap")  == 0
+		||	 strcmp(tcp->s_ent->sys_name, "mmap2") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsMmap;
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "pipe")  == 0
 		||	 strcmp(tcp->s_ent->sys_name, "pipe2") == 0) {
@@ -328,28 +421,70 @@ void ucPIPupdate(struct tcb *tcp) {
 		(*ucDataFlowSemanticsFunc)(tcp);
 	}
 	else {
-		// this calls have been  checked to not influence data flow.
+		// this calls have been checked to not influence data flow.
 		// they can be ignored
 		if (strcmp(tcp->s_ent->sys_name, "brk") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "fstat64") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "mprotect") != 0 &&
+
+			// stat family
 			strcmp(tcp->s_ent->sys_name, "stat64") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "poll") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "futex") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "statfs64") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "statfs") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "fstatfs") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "uname") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "fstat64") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "lstat64") != 0 &&
+
+			// information about directories
+			strcmp(tcp->s_ent->sys_name, "mkdir") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "rmdir") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getcwd") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getdents") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getdents64") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "rt_sigaction") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "_llseek") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "prctl") != 0 &&
+
+			// user IDs, group IDs, ...
+			strcmp(tcp->s_ent->sys_name, "getuid32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getgid32") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "geteuid32") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getegid32") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "gettimeofday") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "select") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getresuid32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getresgid32") != 0 &&
+
+			// time
 			strcmp(tcp->s_ent->sys_name, "clock_gettime") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "gettimeofday") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "time") != 0 &&
+
+			// socket information
+			strcmp(tcp->s_ent->sys_name, "getpeername") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getsockname") != 0 &&
+
+			// system limits
+			strcmp(tcp->s_ent->sys_name, "getrlimit") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setrlimit") != 0 &&
+
+			// signal handling
+			strcmp(tcp->s_ent->sys_name, "rt_sigaction") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "rt_sigprocmask") != 0 &&	// handling this call may slightly reduce overapproximations, because less signals get delivered
+
+			// kernel advises
+			strcmp(tcp->s_ent->sys_name, "fadvise64") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "madvise	") != 0 &&
+
+			// wait
+			strcmp(tcp->s_ent->sys_name, "wait4") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "waitpid") != 0 &&
+
+			// misc.
 			strcmp(tcp->s_ent->sys_name, "set_thread_area") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "access") != 0
+			strcmp(tcp->s_ent->sys_name, "access") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "mprotect") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "poll") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "futex") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "uname") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "_llseek") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "ioctl") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "prctl") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "readlink") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "select") != 0
 			) {
 			printf("unhandled %s\n", tcp->s_ent->sys_name);
 		}
