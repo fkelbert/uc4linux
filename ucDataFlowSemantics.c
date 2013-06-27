@@ -9,6 +9,11 @@
 
 #define IDENTIFIER_MAX_LEN 512
 
+#define IS_O_RDWR(flag)		((flag & O_RDWR) 	== O_RDWR)
+#define IS_O_WRONLY(flag)	((flag & O_WRONLY) 	== O_WRONLY)
+#define IS_O_TRUNC(flag)	((flag & O_TRUNC) 	== O_TRUNC)
+
+
 char identifier[IDENTIFIER_MAX_LEN];
 char identifier2[IDENTIFIER_MAX_LEN];
 
@@ -20,8 +25,7 @@ char identifier2[IDENTIFIER_MAX_LEN];
 
 #define isAbsolute(string) *string == '/'
 
-#define MAX_PROCS 65536
-int procMem[MAX_PROCS];
+int *procMem;
 int initialProcess = 1;
 
 
@@ -355,6 +359,12 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 		fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1),
 		getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier)));
 
+	// handle truncation flag
+	if (IS_O_TRUNC(tcp->u_arg[1]) &&
+		(IS_O_RDWR(tcp->u_arg[1]) || IS_O_WRONLY(tcp->u_arg[1]))) {
+		ucPIP_removeContainer(absFilename);
+	}
+
 	printf("open(): %d: %s --> %s\n",tcp->pid,absFilename,identifier);
 }
 
@@ -449,6 +459,8 @@ void ucDataFlowSemanticsClone(struct tcb *tcp) {
 		printf("mapp clone (pid: %ld)\n",tcp->u_rval);
 		addProcMem(tcp->u_rval);
 	}
+
+	// TODO. what?
 }
 
 void ucDataFlowSemanticsFtruncate(struct tcb *tcp) {
@@ -763,8 +775,23 @@ void ucPIPupdate(struct tcb *tcp) {
 
 
 void ucDataFlowSemantics__init() {
+	int pid_max;
 	int i;
-	for (i = 0; i < MAX_PROCS; i++) {
-		procMem[i] = 0;
+	FILE *f;
+
+	if (!(f = fopen("/proc/sys/kernel/pid_max", "r"))) {
+		ucSemantics_errorExit("Unable to open /proc/sys/kernel/pid_max");
 	}
+
+	if (fscanf(f, "%d", &pid_max) != 1 || pid_max <= 1) {
+		ucSemantics_errorExit("Unable to read proper value for pid_max");
+	}
+
+	// random max value here... (should not really matter)
+	if (pid_max > 1048576) {
+		ucSemantics_errorExit("Value for pid_max too large ( > 1048576). Change that value in file '/proc/sys/kernel/pid_max' or change the code to allow for larger values.");
+	}
+
+	// important fact: this memory is initialized to zero!
+	procMem = calloc(pid_max, sizeof(int));
 }
