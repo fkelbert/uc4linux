@@ -242,7 +242,7 @@ char *getAbsoluteFilename(char *dir, char *relFilename, char *absFilename, int a
 }
 
 
-char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen, int mustExist) {
+char *cwdAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen, int mustExist) {
 	char cwd[PATH_MAX];
 
 	if (!getCwd(pid, cwd, sizeof(cwd))) {
@@ -378,7 +378,7 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	// retrieve the filename
 	getString(tcp, tcp->u_arg[0], relFilename, sizeof(relFilename));
 
-	ucPIP_addIdentifier(fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1),
+	ucPIP_addIdentifier(cwdAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1),
 			getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier)));
 
 	// handle truncation flag
@@ -461,8 +461,8 @@ void ucDataFlowSemanticsRename(struct tcb *tcp) {
 		return;
 	}
 
-	fsAbsoluteFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename), 0);
-	fsAbsoluteFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), 1);
+	cwdAbsoluteFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename), 0);
+	cwdAbsoluteFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), 1);
 
 	ucPIP_removeContainer(newAbsFilename);
 	ucPIP_addIdentifier(oldAbsFilename, newAbsFilename);
