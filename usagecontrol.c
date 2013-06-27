@@ -1,6 +1,7 @@
 #include "usagecontrol.h"
 
 void ucInit() {
+	ucDataFlowSemantics__init();
 	ucPIP_init();
 }
 
