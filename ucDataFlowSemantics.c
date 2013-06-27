@@ -121,10 +121,12 @@ char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int abs
 	snprintf(concatPath, sizeof(concatPath), "%s/%s", cwd, relFilename);
 
 	// was resolving successful and is the provided buffer large enough?
-	if ((absNew = realpath(concatPath, NULL )) == NULL || strlen(absNew) >= absFilenameLen) {
+	if (!(absNew = realpath(concatPath, NULL )) || strlen(absNew) >= absFilenameLen) {
 		if (errno == ENOENT && !mustExist) {
+
 			// In some cases the file we asked for may be missing and still we want to know its absolute filename (e.g. for sys_rename())
-			// In this case we canonicalize the path to the file and append the filename manually
+			// In this case we canonicalize the path to the file and append the filename manually as follows:
+
 			int lastSlashIndex = strlen(concatPath) - 1;
 			while (concatPath[lastSlashIndex] != '/') {
 				lastSlashIndex--;
@@ -134,12 +136,11 @@ char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int abs
 			}
 
 
-
 			char concatPath2[2 * PATH_MAX];
 			strncpy(concatPath2, concatPath, lastSlashIndex);
 			concatPath2[lastSlashIndex] = '\0';
 
-			if ((absNew = realpath(concatPath2, NULL )) == NULL || strlen(absNew) >= absFilenameLen) {
+			if (!(absNew = realpath(concatPath2, NULL )) || strlen(absNew) + strlen(concatPath + lastSlashIndex) >= absFilenameLen) {
 				return NULL;
 			}
 
