@@ -290,6 +290,14 @@ void ucDataFlowSemanticsAccept(struct tcb *tcp) {
 	// TODO. man 2 accept
 }
 
+void ucDataFlowSemanticsConnect(struct tcb *tcp) {
+	// TODO. man 2 connect
+}
+
+void ucDataFlowSemanticsRename(struct tcb *tcp) {
+	// TODO. man 2 rename
+}
+
 void ucDataFlowSemanticsUnlink(struct tcb *tcp) {
 	// TODO. man 2 unlink
 }
@@ -381,11 +389,17 @@ void ucPIPupdate(struct tcb *tcp) {
 	else if (strcmp(tcp->s_ent->sys_name, "accept") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsAccept;
 	}
+	else if (strcmp(tcp->s_ent->sys_name, "connect") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsConnect;
+	}
 	else if (strcmp(tcp->s_ent->sys_name, "fcntl64") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsFcntl;
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "shutdown") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsShutdown;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "rename") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsRename;
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "eventfd2") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsEventfd;
@@ -425,15 +439,18 @@ void ucPIPupdate(struct tcb *tcp) {
 		// they can be ignored
 		if (strcmp(tcp->s_ent->sys_name, "brk") != 0 &&
 
-			// stat family
+			// stat family & file meta operations
 			strcmp(tcp->s_ent->sys_name, "stat64") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "statfs64") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "statfs") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "fstatfs") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "fstat64") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "lstat64") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "chmod") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "umask") != 0 &&
 
-			// information about directories
+			// directory meta operations
+			strcmp(tcp->s_ent->sys_name, "chdir") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "mkdir") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "rmdir") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getcwd") != 0 &&
@@ -453,7 +470,9 @@ void ucPIPupdate(struct tcb *tcp) {
 			strcmp(tcp->s_ent->sys_name, "gettimeofday") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "time") != 0 &&
 
-			// socket information
+			// socket operations & information
+			strcmp(tcp->s_ent->sys_name, "bind") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "listen") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getpeername") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getsockname") != 0 &&
 
@@ -462,12 +481,13 @@ void ucPIPupdate(struct tcb *tcp) {
 			strcmp(tcp->s_ent->sys_name, "setrlimit") != 0 &&
 
 			// signal handling
+			strcmp(tcp->s_ent->sys_name, "sigreturn") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "rt_sigaction") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "rt_sigprocmask") != 0 &&	// handling this call may slightly reduce overapproximations, because less signals get delivered
 
 			// kernel advises
 			strcmp(tcp->s_ent->sys_name, "fadvise64") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "madvise	") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "madvise") != 0 &&
 
 			// wait
 			strcmp(tcp->s_ent->sys_name, "wait4") != 0 &&
