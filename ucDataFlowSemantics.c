@@ -57,9 +57,14 @@ char *getString(struct tcb *tcp, long addr, char *dataStr, int len_buf) {
 	// if (for whatever reason) reading from /proc/<pid>/mem fails, then
 	// fallback to a function provided by strace
 	if (r <= 0) {
+		printf("getstr fallback\n");
 		if (!umovestr(tcp, addr, len_buf, dataStr)) {
 			dataStr[len_buf - 1] = '\0';
 		}
+	}
+	else {
+
+		printf("getstr usual\n");
 	}
 
 	// safety
@@ -317,21 +322,12 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 
 	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
 
-	ucPIP_removeContainer(identifier);
 	ucPIP_removeIdentifier(identifier);
 
 	// delete all of the processes' open file descriptors
 	if ((openfds = getListOfOpenFileDescriptors(tcp->pid, &count))) {
 		while (count-- > 0) {
 			getIdentifierFD(tcp->pid, openfds[count], identifier, sizeof(identifier));
-
-			// check whether this is the last identifier for that container
-			// if it is, then also remove the container and its storage
-			// TODO: This operation is expensive, because countIdentifiers() loops over all identifiers
-			if (ucPIP_countIdentifiers(identifier) == 1) {
-				ucPIP_removeContainer(identifier);
-			}
-
 			ucPIP_removeIdentifier(identifier);
 		}
 		free(openfds);
@@ -366,10 +362,11 @@ void ucDataFlowSemanticsClose(struct tcb *tcp) {
 	printf("close(): %s\n", identifier);
 }
 
-// TODO: handle truncation flag
+
 void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
+	char *trunkstr = "";
 
 	if (tcp->u_rval < 0) {
 		return;
@@ -384,9 +381,10 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	// handle truncation flag
 	if (IS_O_TRUNC(tcp->u_arg[1]) && (IS_O_RDWR(tcp->u_arg[1]) || IS_O_WRONLY(tcp->u_arg[1]))) {
 		ucPIP_removeContainer(absFilename);
+		trunkstr = "(truncated)";
 	}
 
-	printf("open(): %d: %s --> %s\n", tcp->pid, absFilename, identifier);
+	printf("open(): %s %d: %s --> %s\n", trunkstr, tcp->pid, absFilename, identifier);
 }
 
 void ucDataFlowSemanticsOpenat(struct tcb *tcp) {
@@ -445,21 +443,8 @@ void ucDataFlowSemanticsRename(struct tcb *tcp) {
 		return;
 	}
 
-	// retrieve old filename
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(oldRelFilename), oldRelFilename)) {
-		oldRelFilename[sizeof(oldRelFilename) - 1] = '\0';
-	}
-	if (oldRelFilename[0] == '\0') {
-		return;
-	}
-
-	// retrieve new filename
-	if (!umovestr(tcp, tcp->u_arg[1], sizeof(newRelFilename), newRelFilename)) {
-		newRelFilename[sizeof(newRelFilename) - 1] = '\0';
-	}
-	if (newRelFilename[0] == '\0') {
-		return;
-	}
+	getString(tcp,tcp->u_arg[0],oldRelFilename, sizeof(oldRelFilename));
+	getString(tcp,tcp->u_arg[1],newRelFilename, sizeof(newRelFilename));
 
 	cwdAbsoluteFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename), 0);
 	cwdAbsoluteFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), 1);
@@ -485,7 +470,15 @@ void ucDataFlowSemanticsFtruncate(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsUnlink(struct tcb *tcp) {
-	// TODO. man 2 unlink
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+	getString(tcp, tcp->u_arg[0], identifier, sizeof(identifier));
+
+	ucPIP_removeIdentifier(identifier);
+
+	printf("unlink(): %s\n", identifier);
 }
 
 void ucDataFlowSemanticsSplice(struct tcb *tcp) {

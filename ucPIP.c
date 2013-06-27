@@ -162,8 +162,17 @@ ucContainerID ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newId
 
 /**
  * Removes the specified identifier mapping in function f().
+ * If this is the last identifier for the container identified by this identifier,
+ * then this container will be transparently removed as well.
  */
 void ucPIP_removeIdentifier(ucIdentifier identifier) {
+	// Also remove the container if this was the last identifier for it.
+
+	// TODO: This operation is expensive, because countIdentifiers() loops over all identifiers
+	if (ucPIP_countIdentifiers(identifier) == 1) {
+		ucPIP_removeContainer(identifier);
+	}
+
 	if (VALID_IDENTIFIER(identifier)) {
 		g_hash_table_remove(f, identifier);
 	}
@@ -228,6 +237,13 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	}
 }
 
+
+/**
+ * Delete all aliases _from_ the container specified by identifier.
+ */
+void ucPIP_removeAllAliasesFrom(ucIdentifier identifier) {
+	// TODO
+}
 
 
 
