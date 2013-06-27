@@ -77,8 +77,23 @@ int *getListOfOpenFileDescriptors(long pid, int *count) {
 }
 
 
+/**
+ * Converts the relative filename relFilename to an absolute filename. The current working directory (cwd) of the specified
+ * process with process ID pid is taken as a baseline. Basically, cwd of pid and the relative filename are
+ * concatenated and the result is canonicalized. mustExist specifies whether the resulting absolute file must in fact exist.
+ *
+ * The resulting absolute filename is written into absFilename of length absFilenameLen.
+ * The address of absFilename is returned, NULL on error.
+ *
+ * @param pid the cwd of this process is taken as a baseline to build the absolute filename
+ * @param relFilename the filename relative to cwd
+ * @param absFilename a pre-allocated memory area which will return the result
+ * @param absFilenameLen the length of absFilename
+ * @param mustExist whether the resolved absolute filename must exist. 1 if it must, 0 if it may not.
+ * @return the address of absFilename
+ */
 /// FIXME: this will most likely fail for chrooted processes
-char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen) {
+char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen, int mustExist) {
 	ssize_t read;
 	char *absNew;
 	char procfsPath[PATH_MAX];
@@ -91,7 +106,6 @@ char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int abs
 		absFilename[absFilenameLen - 1] = '\0';
 		return (absFilename);
 	}
-
 	if (absFilenameLen < 1) {
 		return NULL ;
 	}
@@ -108,13 +122,41 @@ char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int abs
 
 	// was resolving successful and is the provided buffer large enough?
 	if ((absNew = realpath(concatPath, NULL )) == NULL || strlen(absNew) >= absFilenameLen) {
-		return NULL ;
+		if (errno == ENOENT && !mustExist) {
+			// In some cases the file we asked for may be missing and still we want to know its absolute filename (e.g. for sys_rename())
+			// In this case we canonicalize the path to the file and append the filename manually
+			int lastSlashIndex = strlen(concatPath) - 1;
+			while (concatPath[lastSlashIndex] != '/') {
+				lastSlashIndex--;
+			}
+			if (lastSlashIndex < 0) {
+				return NULL;
+			}
+
+
+
+			char concatPath2[2 * PATH_MAX];
+			strncpy(concatPath2, concatPath, lastSlashIndex);
+			concatPath2[lastSlashIndex] = '\0';
+
+			if ((absNew = realpath(concatPath2, NULL )) == NULL || strlen(absNew) >= absFilenameLen) {
+				return NULL;
+			}
+
+			strncpy(absFilename, absNew, absFilenameLen);
+			strncpy(absFilename + strlen(absFilename), concatPath + lastSlashIndex, absFilenameLen - strlen(absFilename));
+		}
+		else {
+			return NULL ;
+		}
+	}
+	else {
+		strncpy(absFilename, absNew, absFilenameLen);
 	}
 
-	// as we have tested the size before, an additional null byte is written by strncpy()
-	strncpy(absFilename, absNew, absFilenameLen);
-
-	free(absNew);
+	if (absNew) {
+		free(absNew);
+	}
 
 	return (absFilename);
 }
@@ -156,26 +198,28 @@ char *getIdentifierPID(int pid, char *ident, int len) {
 
 // todo: write into aliases
 void ucDataFlowSemanticsWrite(struct tcb *tcp) {
-	if (tcp->u_arg[0] > 0) {
-		getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
-		getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2));
-
-		printf("write(): %s --> %s\n",identifier, identifier2);
-
-		ucPIP_copyData(identifier, identifier2);
+	if (tcp->u_arg[0] < 0) {
+		return;
 	}
+
+	ucPIP_copyData(
+			getIdentifierPID(tcp->pid, identifier, sizeof(identifier)),
+			getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2)));
+
+	printf("write(): %s --> %s\n",identifier, identifier2);
 }
 
 // todo: write into aliases
 void ucDataFlowSemanticsRead(struct tcb *tcp) {
-	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
-	getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2));
+	if (tcp->u_arg[0] < 0) {
+		return;
+	}
+
+	ucPIP_copyData(
+			getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
+			getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2)));
 
 	printf("read(): %d <-- %s\n",tcp->pid, identifier);
-
-	if (tcp->u_arg[0] > 0) {
-		ucPIP_copyData(identifier, identifier2);
-	}
 }
 
 void ucDataFlowSemanticsExit(struct tcb *tcp) {
@@ -183,8 +227,6 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 	int *openfds;
 
 	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
-
-	printf("exit(): %s\n", identifier);
 
 	ucPIP_removeContainer(identifier);
 	ucPIP_removeIdentifier(identifier);
@@ -206,6 +248,7 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 		free(openfds);
 	}
 
+	printf("exit(): %s\n", identifier);
 
 	// TODO: delete aliases
 }
@@ -218,13 +261,13 @@ void ucDataFlowSemanticsExecve(struct tcb *tcp) {
 
 // done
 void ucDataFlowSemanticsClose(struct tcb *tcp) {
-	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
+	if (tcp->u_arg[0] < 0) {
+		return;
+	}
+
+	ucPIP_removeIdentifier(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)));
 
 	printf("close(): %s\n", identifier);
-
-	if (tcp->u_arg[0] > 0) {
-		ucPIP_removeIdentifier(identifier);
-	}
 }
 
 
@@ -233,7 +276,6 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 
-	// invalid return value
 	if (tcp->u_rval < 0) {
 		return;
 	}
@@ -247,12 +289,11 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 		return;
 	}
 
-	fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename));
-	getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier));
+	ucPIP_addIdentifier(
+		fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1),
+		getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier)));
 
 	printf("open(): %d: %s --> %s\n",tcp->pid,absFilename,identifier);
-
-	ucPIP_addIdentifier(absFilename, identifier);
 }
 
 
@@ -298,7 +339,40 @@ void ucDataFlowSemanticsConnect(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsRename(struct tcb *tcp) {
-	// TODO. man 2 rename
+	char oldRelFilename[FILENAME_MAX];
+	char newRelFilename[FILENAME_MAX];
+	char oldAbsFilename[FILENAME_MAX];
+	char newAbsFilename[FILENAME_MAX];
+
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+	// retrieve old filename
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(oldRelFilename), oldRelFilename)) {
+		oldRelFilename[sizeof(oldRelFilename) - 1] = '\0';
+	}
+	if (oldRelFilename[0] == '\0') {
+		return;
+	}
+
+	// retrieve new filename
+	if (!umovestr(tcp, tcp->u_arg[1], sizeof(newRelFilename), newRelFilename)) {
+		newRelFilename[sizeof(newRelFilename) - 1] = '\0';
+	}
+	if (newRelFilename[0] == '\0') {
+		return;
+	}
+
+	printf("old rel filename: %s\n",oldRelFilename);
+	fsAbsoluteFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename), 0);
+	fsAbsoluteFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), 1);
+
+	ucPIP_removeContainer(newAbsFilename);
+	ucPIP_addIdentifier(oldAbsFilename, newAbsFilename);
+	ucPIP_removeIdentifier(oldAbsFilename);
+
+	printf("rename(): %s --> %s\n", oldAbsFilename, newAbsFilename);
 }
 
 void ucDataFlowSemanticsClone(struct tcb *tcp) {
@@ -327,7 +401,7 @@ void ucDataFlowSemanticsMunmap(struct tcb *tcp) {
 void ucDataFlowSemanticsPipe(struct tcb *tcp) {
 	int fds[2];
 
-	if (tcp->u_rval == -1) {
+	if (tcp->u_rval < 0) {
 		return;
 	}
 
@@ -343,14 +417,15 @@ void ucDataFlowSemanticsPipe(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsDup(struct tcb *tcp) {
-	if (tcp->u_rval > 0) {
-
-		ucPIP_addIdentifier(
-				getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
-				getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2)));
-
-		printf("dup(): %s --> %s\n", identifier, identifier2);
+	if (tcp->u_rval < 0) {
+		return;
 	}
+
+	ucPIP_addIdentifier(
+			getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
+			getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2)));
+
+	printf("dup(): %s --> %s\n", identifier, identifier2);
 }
 
 
