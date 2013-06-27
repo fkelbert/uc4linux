@@ -20,6 +20,51 @@ char identifier2[IDENTIFIER_MAX_LEN];
 
 #define isAbsolute(string) *string == '/'
 
+#define MAX_PROCS 65536
+int procMem[MAX_PROCS];
+int initialProcess = 1;
+
+
+// FIXME reading from /proc/pid/mem seems to be much faster than reading using ptrace().
+// Still, the code below may still have some flaws:
+// When reading shared libraries, the old code for getString() returns something containing ELF, while this code returns garbage.
+// Therefore we seem to have problems with binary content
+char *getString(struct tcb *tcp, long addr, char *dataStr, int len_buf) {
+	char filename[FILENAME_MAX];
+	int fd;
+
+	memset(dataStr, 0, len_buf);
+
+	if (len_buf < 1) {
+		return (dataStr) ;
+	}
+
+	// by default, the following block tries to read from the file descriptor procMem[pid],
+	// which maps to /proc/<pid>/mem
+	fd = procMem[tcp->pid];
+	int r = 0;
+	int pos = 0;
+	int toread = len_buf - 1;
+	do {
+		pos += r;
+		r = pread(fd, dataStr + pos, toread, addr + pos);
+		toread -= r;
+	}
+	while (r > 0 && toread > 0);
+
+	// if (for whatever reason) reading from /proc/<pid>/mem fails, then
+	// fallback to a function provided by strace
+	if (r <= 0) {
+		if (!umovestr(tcp, addr, len_buf, dataStr)) {
+			dataStr[len_buf - 1] = '\0';
+		}
+	}
+
+	// safety
+	dataStr[len_buf - 1] = '\0';
+
+	return (dataStr);
+}
 
 /**
  * Returns a list of open filedescriptors for the process identified with the specified process ID.
@@ -74,6 +119,20 @@ int *getListOfOpenFileDescriptors(long pid, int *count) {
 	}
 
 	return (fds);
+}
+
+
+void addProcMem(int pid) {
+	if (procMem[pid] == 0) {
+		char foo[512];
+		snprintf(foo,512,"/proc/%d/mem",pid);
+		procMem[pid] = open(foo, O_RDONLY);
+	}
+}
+
+void removeProcMem(int pid) {
+	close(procMem[pid]);
+	procMem[pid] = 0;
 }
 
 
@@ -249,13 +308,21 @@ void ucDataFlowSemanticsExit(struct tcb *tcp) {
 		free(openfds);
 	}
 
-	printf("exit(): %s\n", identifier);
+	removeProcMem(tcp->pid);
+
+	printf("exit(): %d\n", tcp->pid);
 
 	// TODO: delete aliases
 }
 
 void ucDataFlowSemanticsExecve(struct tcb *tcp) {
+	if(initialProcess) {
+		printf("mapp execve\n");
+		addProcMem(tcp->pid);
+		initialProcess = 0;
+	}
 	// TODO: man 2 execve
+	// Remember that execve returns 3 times!
 	// Also consider man 2 open and fcntl: some file descriptors close automatically on exeve()
 }
 
@@ -282,13 +349,7 @@ void ucDataFlowSemanticsOpen(struct tcb *tcp) {
 	}
 
 	// retrieve the filename
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(relFilename), relFilename)) {
-		relFilename[sizeof(relFilename) - 1] = '\0';
-	}
-
-	if (relFilename[0] == '\0') {
-		return;
-	}
+	getString(tcp, tcp->u_arg[0], relFilename, sizeof(relFilename));
 
 	ucPIP_addIdentifier(
 		fsAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1),
@@ -328,7 +389,15 @@ void ucDataFlowSemanticsMmap(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsKill(struct tcb *tcp) {
-	// TODO. man 2 kill
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+	ucPIP_copyData(
+			getIdentifierPID(tcp->pid, identifier, sizeof(identifier)),
+			getIdentifierPID(tcp->u_arg[0], identifier2, sizeof(identifier2)));
+
+	printf("kill(): %s --> %s\n", identifier, identifier2);
 }
 
 void ucDataFlowSemanticsAccept(struct tcb *tcp) {
@@ -365,7 +434,6 @@ void ucDataFlowSemanticsRename(struct tcb *tcp) {
 		return;
 	}
 
-	printf("old rel filename: %s\n",oldRelFilename);
 	fsAbsoluteFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename), 0);
 	fsAbsoluteFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), 1);
 
@@ -377,7 +445,10 @@ void ucDataFlowSemanticsRename(struct tcb *tcp) {
 }
 
 void ucDataFlowSemanticsClone(struct tcb *tcp) {
-	// TODO. man 2 clone
+	if (tcp->u_rval > 0) {
+		printf("mapp clone (pid: %ld)\n",tcp->u_rval);
+		addProcMem(tcp->u_rval);
+	}
 }
 
 void ucDataFlowSemanticsFtruncate(struct tcb *tcp) {
@@ -685,5 +756,15 @@ void ucPIPupdate(struct tcb *tcp) {
 			printf("unhandled %s\n", tcp->s_ent->sys_name);
 		}
 
+	}
+
+}
+
+
+
+void ucDataFlowSemantics__init() {
+	int i;
+	for (i = 0; i < MAX_PROCS; i++) {
+		procMem[i] = 0;
 	}
 }
