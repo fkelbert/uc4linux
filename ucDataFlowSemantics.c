@@ -136,15 +136,45 @@ void removeProcMem(int pid) {
 	procMem[pid] = 0;
 }
 
+
 /**
- * Converts the relative filename relFilename to an absolute filename. The current working directory (cwd) of the specified
- * process with process ID pid is taken as a baseline. Basically, cwd of pid and the relative filename are
+ * Returns the current working directory (cwd) of the process identified by the specified process id pid.
+ * The result is written into buffer cwd of length len.
+ * The address of cwd is returned, NULL on error.
+ *
+ * @param pid the process id
+ * @param cwd the provided buffer in which the cwd is returned
+ * @param len the length of the buffer
+ * @result address of cwd on success, NULL on error
+ */
+char *getCwd(long pid, char *cwd, int len) {
+	ssize_t read;
+	char tmp[PATH_MAX];
+
+	if (len <= 1) {
+		return NULL;
+	}
+
+	snprintf(tmp, sizeof(tmp), "/proc/%ld/cwd", pid);
+	if ((read = readlink(tmp, cwd, sizeof(cwd) - 1)) == -1) {
+		return NULL ;
+	}
+	cwd[read] = '\0';
+
+	return (cwd);
+}
+
+
+
+/**
+ * Converts the relative filename relFilename to an absolute filename. The specified directory dir
+ * is taken as a baseline. Basically, dirand the relative filename are
  * concatenated and the result is canonicalized. mustExist specifies whether the resulting absolute file must in fact exist.
  *
  * The resulting absolute filename is written into absFilename of length absFilenameLen.
  * The address of absFilename is returned, NULL on error.
  *
- * @param pid the cwd of this process is taken as a baseline to build the absolute filename
+ * @param dir the baseline directory to build the absolute filename
  * @param relFilename the filename relative to cwd
  * @param absFilename a pre-allocated memory area which will return the result
  * @param absFilenameLen the length of absFilename
@@ -152,11 +182,9 @@ void removeProcMem(int pid) {
  * @return the address of absFilename
  */
 /// FIXME: this will most likely fail for chrooted processes
-char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen, int mustExist) {
-	ssize_t read;
+char *getAbsoluteFilename(char *dir, char *relFilename, char *absFilename, int absFilenameLen, int mustExist) {
 	char *absNew;
 	char procfsPath[PATH_MAX];
-	char cwd[PATH_MAX];
 	char concatPath[2 * PATH_MAX];
 
 	// we are done!
@@ -169,15 +197,8 @@ char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int abs
 		return NULL ;
 	}
 
-	// get the processes' current working directory
-	snprintf(procfsPath, sizeof(procfsPath), "/proc/%ld/cwd", pid);
-	if ((read = readlink(procfsPath, cwd, sizeof(cwd) - 1)) == -1) {
-		return NULL ;
-	}
-	cwd[read] = '\0';
-
 	// concatenate cwd and relative filename and convert it to an absolute filename
-	snprintf(concatPath, sizeof(concatPath), "%s/%s", cwd, relFilename);
+	snprintf(concatPath, sizeof(concatPath), "%s/%s", dir, relFilename);
 
 	// was resolving successful and is the provided buffer large enough?
 	if (!(absNew = realpath(concatPath, NULL )) || strlen(absNew) >= absFilenameLen) {
@@ -219,6 +240,20 @@ char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int abs
 
 	return (absFilename);
 }
+
+
+char *fsAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen, int mustExist) {
+	char cwd[PATH_MAX];
+
+	if (!getCwd(pid, cwd, sizeof(cwd))) {
+		return NULL;
+	}
+
+	getAbsoluteFilename(cwd, relFilename, absFilename, absFilenameLen, mustExist);
+
+	return (absFilename);
+}
+
 
 /**
  * Makes an identifier out of the specified PIDxFD and returns it in ident of size len.
