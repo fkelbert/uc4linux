@@ -261,7 +261,6 @@ void ucDataFlowSemanticsOpenat(struct tcb *tcp) {
 	// TODO. man 2 openat
 }
 
-
 void ucDataFlowSemanticsSocket(struct tcb *tcp) {
 	// TODO. man 2 socket
 }
@@ -306,8 +305,16 @@ void ucDataFlowSemanticsClone(struct tcb *tcp) {
 	// TODO. man 2 clone
 }
 
+void ucDataFlowSemanticsFtruncate(struct tcb *tcp) {
+	// TODO. man 2 ftruncate; do sth if length == 0
+}
+
 void ucDataFlowSemanticsUnlink(struct tcb *tcp) {
 	// TODO. man 2 unlink
+}
+
+void ucDataFlowSemanticsSplice(struct tcb *tcp) {
+	// TODO. man 2 splice
 }
 
 void ucDataFlowSemanticsMunmap(struct tcb *tcp) {
@@ -361,7 +368,8 @@ void ucPIPupdate(struct tcb *tcp) {
 		||	 strcmp(tcp->s_ent->sys_name, "pwrite64") == 0
 		||	 strcmp(tcp->s_ent->sys_name, "send") == 0
 		||	 strcmp(tcp->s_ent->sys_name, "sendto") == 0
-		||	 strcmp(tcp->s_ent->sys_name, "sendmsg") == 0) {
+		||	 strcmp(tcp->s_ent->sys_name, "sendmsg") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "sendmmsg") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsWrite;
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "read") == 0
@@ -409,6 +417,9 @@ void ucPIPupdate(struct tcb *tcp) {
 	else if (strcmp(tcp->s_ent->sys_name, "shutdown") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsShutdown;
 	}
+	else if (strcmp(tcp->s_ent->sys_name, "splice") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsSplice;
+	}
 	else if (strcmp(tcp->s_ent->sys_name, "rename") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsRename;
 	}
@@ -426,6 +437,10 @@ void ucPIPupdate(struct tcb *tcp) {
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "clone") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemanticsClone;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "ftruncate") == 0
+		||	 strcmp(tcp->s_ent->sys_name, "ftruncate64") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemanticsFtruncate;
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "mmap")  == 0
 		||	 strcmp(tcp->s_ent->sys_name, "mmap2") == 0) {
@@ -461,10 +476,18 @@ void ucPIPupdate(struct tcb *tcp) {
 			strcmp(tcp->s_ent->sys_name, "fstat64") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "lstat64") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "chmod") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "chown32") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "umask") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getxattr") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "lgetxattr") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "fgetxattr") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "readlink") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "lseek") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "fsync") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "utime") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "flock") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "symlink") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "faccessat") != 0 &&
 
 			// directory meta operations
 			strcmp(tcp->s_ent->sys_name, "chdir") != 0 &&
@@ -481,6 +504,10 @@ void ucPIPupdate(struct tcb *tcp) {
 			strcmp(tcp->s_ent->sys_name, "getegid32") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getresuid32") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "getresgid32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setresuid32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setresgid32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setuid32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setgid32") != 0 &&
 
 			// time
 			strcmp(tcp->s_ent->sys_name, "clock_getres") != 0 &&
@@ -501,9 +528,13 @@ void ucPIPupdate(struct tcb *tcp) {
 			// system limits
 			strcmp(tcp->s_ent->sys_name, "getrlimit") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "setrlimit") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getprlimit64") != 0 &&
 
 			// signal handling
+			strcmp(tcp->s_ent->sys_name, "alarm") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "sigreturn") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "sigaltstack") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "rt_sigreturn") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "rt_sigaction") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "rt_sigprocmask") != 0 &&	// handling this call may slightly reduce overapproximations, because less signals get delivered
 
@@ -514,28 +545,66 @@ void ucPIPupdate(struct tcb *tcp) {
 			// wait
 			strcmp(tcp->s_ent->sys_name, "wait4") != 0 &&		// TODO: Actually, upon wait we get the return value of the child. Therefore,
 			strcmp(tcp->s_ent->sys_name, "waitpid") != 0 &&		// we should handle these calls. But they will most likely kill data flow tracking due to overapproximations
+			strcmp(tcp->s_ent->sys_name, "select") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "poll") != 0 &&
 
 			// thread management
+			strcmp(tcp->s_ent->sys_name, "gettid") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "capset") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "capget") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "get_robust_list") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "set_robust_list") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "set_thread_area") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "set_tid_address") != 0 &&
 
+			// process & system operations
+			strcmp(tcp->s_ent->sys_name, "getpid") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getppid") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getpgid") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getpgrp") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getrusage") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "prctl") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getpriority") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setpriority") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "sysinfo") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setgroups") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getgroups") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getgroups32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setgroups32") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "getsid") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "setsid") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "sched_getaffinity") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "sched_setaffinity") != 0 &&
+
+			// shared memory
+			strcmp(tcp->s_ent->sys_name, "shmdt") != 0 &&		// TODO: we should handle them!
+			strcmp(tcp->s_ent->sys_name, "shmat") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "shmctl") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "shmget") != 0 &&
+
+			// inotify(7)
+			strcmp(tcp->s_ent->sys_name, "inotify_init") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "inotify_init1") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "inotify_rm_watch") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "inotify_add_watch") != 0 &&
+
+			// epoll(7)
+			strcmp(tcp->s_ent->sys_name, "epoll_create") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "epoll_create1") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "epoll_ctl") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "epoll_wait") != 0 &&
+
 			// misc.
+			strcmp(tcp->s_ent->sys_name, "quotactl") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "readahead") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "access") != 0 &&
+			strcmp(tcp->s_ent->sys_name, "fallocate") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "mprotect") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "poll") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "futex") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "uname") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "_llseek") != 0 &&
 			strcmp(tcp->s_ent->sys_name, "ioctl") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "prctl") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "readlink") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "getrusage") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "restart_syscall") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "getpid") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "getppid") != 0 &&
-			strcmp(tcp->s_ent->sys_name, "select") != 0
+			strcmp(tcp->s_ent->sys_name, "restart_syscall") != 0
 			) {
 			printf("unhandled %s\n", tcp->s_ent->sys_name);
 		}
