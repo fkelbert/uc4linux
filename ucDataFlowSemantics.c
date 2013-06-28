@@ -266,7 +266,7 @@ char *cwdAbsoluteFilename(long pid, char *relFilename, char *absFilename, int ab
  * Makes an identifier out of the specified PIDxFD and returns it in ident of size len.
  * This function always returns ident.
  */
-char *getIdentifierFD(int pid, int fd, char *ident, int len) {
+void getIdentifierFD(int pid, int fd, char *ident, int len) {
 	int ret = snprintf(ident, len, "FD %dx%d", pid, fd);
 
 	if (ret >= len) {
@@ -276,7 +276,7 @@ char *getIdentifierFD(int pid, int fd, char *ident, int len) {
 		ucSemantics_errorExit("Error while writing to buffer.");
 	}
 
-	return (ident);
+//	return (ident);
 }
 
 /**
@@ -358,6 +358,7 @@ void ucDataFlowSemantics_execve(struct tcb *tcp) {
 	// TODO: man 2 execve
 	// Remember that execve returns 3 times!
 	// Also consider man 2 open and fcntl: some file descriptors close automatically on exeve()
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
 // done
