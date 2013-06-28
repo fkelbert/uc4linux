@@ -564,10 +564,33 @@ void ucDataFlowSemantics_dup(struct tcb *tcp) {
 		return;
 	}
 
-	ucPIP_addIdentifier(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)),
-			getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2)));
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
+	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2));
+
+	ucPIP_addIdentifier(identifier, identifier2);
 
 	printf("dup(): %s --> %s\n", identifier, identifier2);
+}
+
+void ucDataFlowSemantics_dup2(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+	// dup2() does nothing if oldfd == newfd; dup3() would have failed anyway
+	if (tcp->u_arg[0] == tcp->u_rval) {
+		return;
+	}
+
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
+	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2));
+
+	// close the new fd first, if necessary
+	ucPIP_removeIdentifier(identifier2);
+
+	ucPIP_addIdentifier(identifier, identifier2);
+
+	printf("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
 }
 
 void ucPIPupdate(struct tcb *tcp) {
@@ -665,10 +688,12 @@ void ucPIPupdate(struct tcb *tcp) {
 			|| strcmp(tcp->s_ent->sys_name, "pipe2") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_pipe;
 	}
-	else if (strcmp(tcp->s_ent->sys_name, "dup") == 0
-			|| strcmp(tcp->s_ent->sys_name, "dup2") == 0
-			|| strcmp(tcp->s_ent->sys_name, "dup3") == 0) {
+	else if (strcmp(tcp->s_ent->sys_name, "dup")) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup;
+	}
+	else if (strcmp(tcp->s_ent->sys_name, "dup2") == 0
+			|| strcmp(tcp->s_ent->sys_name, "dup3") == 0) {
+		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup2;
 	}
 
 	// TODO: sys_fstatfs may be useful to find out information about mounted file systems
