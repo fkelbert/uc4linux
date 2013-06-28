@@ -65,6 +65,11 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
 }
 
 
+int ucpIP_existsContainer(ucIdentifier identifier) {
+	return VALID_CONTID((ucContainerID*) g_hash_table_lookup(f, identifier));
+}
+
+
 /**
  * Retrieves the data set associated with the specified container ID, i.e. s(containerID)
  * @param containerID the container of which the data set is retrieved
@@ -100,12 +105,34 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 	return UC_INVALID_DATASET;
 }
 
-//
-//void ucPIP_f_remove(ucIdentifier identifier) {
-//	if (VALID_IDENTIFIER(identifier)) {
-//		g_hash_table_remove(f, &identifier);
-//	}
-//}
+ucAliasSet ucPIP_getAliasSet(ucIdentifier identifier, int create) {
+	ucAliasSet aliasSet;
+	ucContainerID containerID;
+	ucContainerID *containerIDCopy;
+
+	if (INVALID_CONTID(containerID = ucPIP_getContainer(identifier, create))) {
+		return UC_INVALID_ALIASSET;
+	}
+
+	if (VALID_ALIASSET(aliasSet = g_hash_table_lookup(l, &containerID))) {
+		return (aliasSet);
+	}
+
+	if (create) {
+		aliasSet = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+
+		if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
+			ucPIP_errorExitMemory();
+		}
+		*containerIDCopy = containerID;
+
+		g_hash_table_insert(l, containerIDCopy, aliasSet);
+
+		return (aliasSet);
+	}
+
+	return UC_INVALID_ALIASSET;
+}
 
 
 /**
@@ -160,6 +187,31 @@ ucContainerID ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newId
 
 
 
+
+int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
+	return (INVALID_DATASET(dataSet) || !g_hash_table_size(dataSet));
+}
+
+int ucPIP_isEmptyAliasSet(ucAliasSet aliasSet) {
+	return (INVALID_ALIASSET(aliasSet) || !g_hash_table_size(aliasSet));
+}
+
+
+/*
+ * Removes a container and its associated data set completely.
+ */
+void ucPIP_removeContainer(ucIdentifier identifier) {
+	ucContainerID cont;
+
+	if (VALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
+		// this will automatically destroy the hashtable associated with that container
+		g_hash_table_remove(s, &cont);
+	}
+}
+
+
+
+
 /**
  * Removes the specified identifier mapping in function f().
  * If this is the last identifier for the container identified by this identifier,
@@ -178,31 +230,83 @@ void ucPIP_removeIdentifier(ucIdentifier identifier) {
 	}
 }
 
-
-int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
-	return (INVALID_DATASET(dataSet) || !g_hash_table_size(dataSet));
-}
-
-
-
-
-/*
- * Removes a container and its associated data set completely.
+/**
+ * Clone all aliases of the container identified by srcIdentifier to
+ * the container identified by dstIdentifier. If no container is identified
+ * with srcIdentifier, then nothing will happen. If there is no container
+ * that is identified by dstIdentifier, then one is transparently created.
  */
-void ucPIP_removeContainer(ucIdentifier identifier) {
-	ucContainerID cont;
+void ucPIP_copyAliases(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
+	ucAliasSet srcAliasSet;
+	ucAliasSet dstAliasSet;
+	GHashTableIter iter;
+	gpointer aliasedContainer;
+	ucContainerID *aliasedContainerCopy;
 
-	if (VALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
-		// this will automatically destroy the hashtable associated with that container
-		g_hash_table_remove(s, &cont);
+	// No aliases in source container. Nothing to do.
+	if (INVALID_ALIASSET(srcAliasSet = ucPIP_getAliasSet(srcIdentifier, 0)) || ucPIP_isEmptyAliasSet(srcAliasSet)) {
+		return;
+	}
+
+	// Get the destination alias set
+	if (INVALID_ALIASSET(dstAliasSet = ucPIP_getAliasSet(dstIdentifier, 1))) {
+		return;
+	}
+
+
+	// copy each and every entry from source container to destination container
+	g_hash_table_iter_init(&iter, srcAliasSet);
+	while (g_hash_table_iter_next (&iter, &aliasedContainer, NULL)) {
+
+		if (!(aliasedContainerCopy = calloc(1, sizeof(ucContainerID)))) {
+			ucPIP_errorExit("Unable to allocate enough memory");
+		}
+		*aliasedContainerCopy = * (ucContainerID*) aliasedContainer;
+		g_hash_table_insert(dstAliasSet, aliasedContainerCopy, NULL);
 	}
 }
 
 
 
 /**
+ * Find out which containers have an alias to the container identified by stencil. All
+ * these containers will also alias the container identified by stenciled.
+ */
+void ucPIP_alsoAlias(ucIdentifier stencilIdentifier, ucIdentifier stenciledIdentifier) {
+	GHashTableIter iter;
+	ucContainerID stencilCont;
+	ucContainerID stenciledCont;
+	ucContainerID *stenciledContCopy;
+	ucAliasSet aliasSet;
+
+	if (INVALID_CONTID(stencilCont = ucPIP_getContainer(stencilIdentifier, 0))) {
+		return;
+	}
+
+	if (INVALID_CONTID(stenciledCont = ucPIP_getContainer(stenciledIdentifier, 0))) {
+		return;
+	}
+
+	g_hash_table_iter_init(&iter, l);
+	while (g_hash_table_iter_next (&iter, (void **)&aliasSet, NULL)) {
+		if (g_hash_table_contains(aliasSet, &stencilCont)) {
+
+			if (!(stenciledContCopy = calloc(1, sizeof(ucContainerID)))) {
+				ucPIP_errorExit("Unable to allocate enough memory.");
+			}
+
+			*stenciledContCopy = stenciledCont;
+
+			g_hash_table_insert(aliasSet, stenciledContCopy, NULL);
+		}
+	}
+}
+
+
+/**
  * Copy all data in the container identified by srcIdentifier to
- * the container identified by dstIdentifier. If there is no container
+ * the container identified by dstIdentifier. If no container is identified
+ * with srcIdentifier, then nothing will happen. If there is no container
  * that is identified by dstIdentifier, then one is transparently created.
  */
 void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
@@ -210,6 +314,7 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	ucDataSet dstDataSet;
 	GHashTableIter iter;
 	gpointer dataID;
+	ucDataID *dataIDCopy;
 
 	// No sensitive data in source container. Nothing to do.
 	if (INVALID_DATASET(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || ucPIP_isEmptyDataSet(srcDataSet)) {
@@ -225,18 +330,75 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	// copy each and every entry from source container to destination container
 	g_hash_table_iter_init(&iter, srcDataSet);
 	while (g_hash_table_iter_next (&iter, &dataID, NULL)) {
-		ucDataID *dataIDCopy = calloc(1, sizeof(ucDataID));
+
+		if (!(dataIDCopy = calloc(1, sizeof(ucDataID)))) {
+			ucPIP_errorExit("Unable to allocate enough memory");
+		}
 		*dataIDCopy = * (ucDataID*) dataID;
 		g_hash_table_insert(dstDataSet, dataIDCopy, NULL);
 	}
 }
 
 
+
 /**
  * Delete all aliases _from_ the container specified by identifier.
  */
 void ucPIP_removeAllAliasesFrom(ucIdentifier identifier) {
-	// TODO
+	ucContainerID cont;
+
+	if (VALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
+		// this will automatically destroy the hashtable associated with that container
+		g_hash_table_remove(l, &cont);
+	}
+}
+
+
+/**
+ * Delete all aliases _to_ the container specified by identifier.
+ */
+void ucPIP_removeAllAliasesTo(ucIdentifier identifier) {
+	ucContainerID cont;
+	GHashTableIter iterAliasSets;
+	ucAliasSet aliasSet;
+
+	if (INVALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
+		return;
+	}
+
+	g_hash_table_iter_init(&iterAliasSets, l);
+	while (g_hash_table_iter_next (&iterAliasSets, (void **) &aliasSet, NULL)) {
+		g_hash_table_remove(aliasSet, &cont);
+	}
+}
+
+
+
+/**
+ * Adds an alias from the container identified by identifierFrom the
+ * container identified by identifierTo. Both containers must exist,
+ * otherwise nothing will happen.
+ */
+void ucPIP_addAlias(ucIdentifier identifierFrom, ucIdentifier identifierTo) {
+	ucContainerID containerTo;
+	ucContainerID *containerToCopy;
+	ucAliasSet aliasSet;
+
+	if (INVALID_CONTID(containerTo = ucPIP_getContainer(identifierTo, 0))) {
+		return;
+	}
+
+	if (INVALID_ALIASSET(aliasSet = ucPIP_getAliasSet(identifierFrom, 1))) {
+		return;
+	}
+
+	if (!(containerToCopy = calloc(1, sizeof(ucContainerID)))) {
+		ucPIP_errorExit("Unable to allocate enough memory");
+	}
+
+	*containerToCopy = containerTo;
+
+	g_hash_table_insert(aliasSet, containerToCopy, NULL);
 }
 
 
