@@ -400,29 +400,36 @@ void ucDataFlowSemantics_open(struct tcb *tcp) {
 
 void ucDataFlowSemantics_openat(struct tcb *tcp) {
 	// TODO. man 2 openat
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
 void ucDataFlowSemantics_socket(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 socket
 }
 
 void ucDataFlowSemantics_socketpair(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 socketpair
 }
 
 void ucDataFlowSemantics_fcntl(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 fcntl64
 }
 
 void ucDataFlowSemantics_shutdown(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 shutdown
 }
 
 void ucDataFlowSemantics_eventfd(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 eventfd
 }
 
 void ucDataFlowSemantics_mmap(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 mmap
 }
 
@@ -437,10 +444,12 @@ void ucDataFlowSemantics_kill(struct tcb *tcp) {
 }
 
 void ucDataFlowSemantics_accept(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 accept
 }
 
 void ucDataFlowSemantics_connect(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 connect
 }
 
@@ -523,6 +532,7 @@ void ucDataFlowSemantics_unlink(struct tcb *tcp) {
 }
 
 void ucDataFlowSemantics_splice(struct tcb *tcp) {
+	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 splice
 }
 
@@ -575,12 +585,19 @@ void ucPIPupdate(struct tcb *tcp) {
 			|| strcmp(tcp->s_ent->sys_name, "sendmmsg") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_write;
 	}
-	else if (strcmp(tcp->s_ent->sys_name, "read") == 0 || strcmp(tcp->s_ent->sys_name, "readv") == 0 || strcmp(tcp->s_ent->sys_name, "pread") == 0
-			|| strcmp(tcp->s_ent->sys_name, "pread64") == 0 || strcmp(tcp->s_ent->sys_name, "preadv") == 0 || strcmp(tcp->s_ent->sys_name, "recv") == 0
-			|| strcmp(tcp->s_ent->sys_name, "recvfrom") == 0 || strcmp(tcp->s_ent->sys_name, "recvmsg") == 0) {
+	else if (strcmp(tcp->s_ent->sys_name, "read") == 0
+			|| strcmp(tcp->s_ent->sys_name, "readv") == 0
+			|| strcmp(tcp->s_ent->sys_name, "pread") == 0
+			|| strcmp(tcp->s_ent->sys_name, "pread64") == 0
+			|| strcmp(tcp->s_ent->sys_name, "preadv") == 0
+			|| strcmp(tcp->s_ent->sys_name, "recv") == 0
+			|| strcmp(tcp->s_ent->sys_name, "recvfrom") == 0
+			|| strcmp(tcp->s_ent->sys_name, "recvmsg") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_read;
 	}
-	else if (strcmp(tcp->s_ent->sys_name, "exit") == 0 || strcmp(tcp->s_ent->sys_name, "_exit") == 0 || strcmp(tcp->s_ent->sys_name, "exit_group") == 0) {
+	else if (strcmp(tcp->s_ent->sys_name, "exit") == 0
+			|| strcmp(tcp->s_ent->sys_name, "_exit") == 0
+			|| strcmp(tcp->s_ent->sys_name, "exit_group") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_exit;
 	}
 	else if (strcmp(tcp->s_ent->sys_name, "execve") == 0) {
@@ -634,16 +651,21 @@ void ucPIPupdate(struct tcb *tcp) {
 	else if (strcmp(tcp->s_ent->sys_name, "clone") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_clone;
 	}
-	else if (strcmp(tcp->s_ent->sys_name, "ftruncate") == 0 || strcmp(tcp->s_ent->sys_name, "ftruncate64") == 0) {
+	else if (strcmp(tcp->s_ent->sys_name, "ftruncate") == 0
+			|| strcmp(tcp->s_ent->sys_name, "ftruncate64") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_ftruncate;
 	}
-	else if (strcmp(tcp->s_ent->sys_name, "mmap") == 0 || strcmp(tcp->s_ent->sys_name, "mmap2") == 0) {
+	else if (strcmp(tcp->s_ent->sys_name, "mmap") == 0
+			|| strcmp(tcp->s_ent->sys_name, "mmap2") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_mmap;
 	}
-	else if (strcmp(tcp->s_ent->sys_name, "pipe") == 0 || strcmp(tcp->s_ent->sys_name, "pipe2") == 0) {
+	else if (strcmp(tcp->s_ent->sys_name, "pipe") == 0
+			|| strcmp(tcp->s_ent->sys_name, "pipe2") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_pipe;
 	}
-	else if (strcmp(tcp->s_ent->sys_name, "dup") == 0 || strcmp(tcp->s_ent->sys_name, "dup2") == 0 || strcmp(tcp->s_ent->sys_name, "dup3") == 0) {
+	else if (strcmp(tcp->s_ent->sys_name, "dup") == 0
+			|| strcmp(tcp->s_ent->sys_name, "dup2") == 0
+			|| strcmp(tcp->s_ent->sys_name, "dup3") == 0) {
 		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup;
 	}
 
@@ -657,104 +679,146 @@ void ucPIPupdate(struct tcb *tcp) {
 		// this calls have been checked to not influence data flow.
 		// they can be ignored
 		if (strcmp(tcp->s_ent->sys_name, "brk") != 0
-				&&
 
 				// stat family & file meta operations
-				strcmp(tcp->s_ent->sys_name, "stat64") != 0 && strcmp(tcp->s_ent->sys_name, "statfs64") != 0 && strcmp(tcp->s_ent->sys_name, "statfs") != 0
-				&& strcmp(tcp->s_ent->sys_name, "fstatfs") != 0 && strcmp(tcp->s_ent->sys_name, "fstat64") != 0 && strcmp(tcp->s_ent->sys_name, "lstat64") != 0
-				&& strcmp(tcp->s_ent->sys_name, "chmod") != 0 && strcmp(tcp->s_ent->sys_name, "chown32") != 0 && strcmp(tcp->s_ent->sys_name, "umask") != 0
-				&& strcmp(tcp->s_ent->sys_name, "getxattr") != 0 && strcmp(tcp->s_ent->sys_name, "lgetxattr") != 0
-				&& strcmp(tcp->s_ent->sys_name, "fgetxattr") != 0 && strcmp(tcp->s_ent->sys_name, "readlink") != 0 && strcmp(tcp->s_ent->sys_name, "lseek") != 0
-				&& strcmp(tcp->s_ent->sys_name, "fsync") != 0 && strcmp(tcp->s_ent->sys_name, "utime") != 0 && strcmp(tcp->s_ent->sys_name, "flock") != 0
-				&& strcmp(tcp->s_ent->sys_name, "symlink") != 0 && strcmp(tcp->s_ent->sys_name, "faccessat") != 0
-				&&
+				&& strcmp(tcp->s_ent->sys_name, "stat64") != 0
+				&& strcmp(tcp->s_ent->sys_name, "statfs64") != 0
+				&& strcmp(tcp->s_ent->sys_name, "statfs") != 0
+				&& strcmp(tcp->s_ent->sys_name, "fstatfs") != 0
+				&& strcmp(tcp->s_ent->sys_name, "fstat64") != 0
+				&& strcmp(tcp->s_ent->sys_name, "lstat64") != 0
+				&& strcmp(tcp->s_ent->sys_name, "chmod") != 0
+				&& strcmp(tcp->s_ent->sys_name, "chown32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "umask") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getxattr") != 0
+				&& strcmp(tcp->s_ent->sys_name, "lgetxattr") != 0
+				&& strcmp(tcp->s_ent->sys_name, "fgetxattr") != 0
+				&& strcmp(tcp->s_ent->sys_name, "readlink") != 0
+				&& strcmp(tcp->s_ent->sys_name, "lseek") != 0
+				&& strcmp(tcp->s_ent->sys_name, "fsync") != 0
+				&& strcmp(tcp->s_ent->sys_name, "utime") != 0
+				&& strcmp(tcp->s_ent->sys_name, "flock") != 0
+				&& strcmp(tcp->s_ent->sys_name, "symlink") != 0
+				&& strcmp(tcp->s_ent->sys_name, "faccessat") != 0
 
 				// directory meta operations
-				strcmp(tcp->s_ent->sys_name, "chdir") != 0 && strcmp(tcp->s_ent->sys_name, "mkdir") != 0 && strcmp(tcp->s_ent->sys_name, "rmdir") != 0
-				&& strcmp(tcp->s_ent->sys_name, "getcwd") != 0 && strcmp(tcp->s_ent->sys_name, "getdents") != 0
+				&& strcmp(tcp->s_ent->sys_name, "chdir") != 0
+				&& strcmp(tcp->s_ent->sys_name, "mkdir") != 0
+				&& strcmp(tcp->s_ent->sys_name, "rmdir") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getcwd") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getdents") != 0
 				&& strcmp(tcp->s_ent->sys_name, "getdents64") != 0
-				&&
 
 				// user IDs, group IDs, ...
-				strcmp(tcp->s_ent->sys_name, "getuid32") != 0 && strcmp(tcp->s_ent->sys_name, "getgid32") != 0 && strcmp(tcp->s_ent->sys_name, "geteuid32") != 0
-				&& strcmp(tcp->s_ent->sys_name, "getegid32") != 0 && strcmp(tcp->s_ent->sys_name, "getresuid32") != 0
-				&& strcmp(tcp->s_ent->sys_name, "getresgid32") != 0 && strcmp(tcp->s_ent->sys_name, "setresuid32") != 0
-				&& strcmp(tcp->s_ent->sys_name, "setresgid32") != 0 && strcmp(tcp->s_ent->sys_name, "setuid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getuid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getgid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "geteuid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getegid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getresuid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getresgid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setresuid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setresgid32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setuid32") != 0
 				&& strcmp(tcp->s_ent->sys_name, "setgid32") != 0
-				&&
 
 				// time
-				strcmp(tcp->s_ent->sys_name, "clock_getres") != 0 && strcmp(tcp->s_ent->sys_name, "clock_gettime") != 0
-				&& strcmp(tcp->s_ent->sys_name, "clock_settime") != 0 && strcmp(tcp->s_ent->sys_name, "gettimeofday") != 0
-				&& strcmp(tcp->s_ent->sys_name, "time") != 0 && strcmp(tcp->s_ent->sys_name, "times") != 0
-				&&
+				&& strcmp(tcp->s_ent->sys_name, "clock_getres") != 0
+				&& strcmp(tcp->s_ent->sys_name, "clock_gettime") != 0
+				&& strcmp(tcp->s_ent->sys_name, "clock_settime") != 0
+				&& strcmp(tcp->s_ent->sys_name, "gettimeofday") != 0
+				&& strcmp(tcp->s_ent->sys_name, "time") != 0
+				&& strcmp(tcp->s_ent->sys_name, "times") != 0
 
 				// socket operations & information
-				strcmp(tcp->s_ent->sys_name, "bind") != 0 && strcmp(tcp->s_ent->sys_name, "listen") != 0 && strcmp(tcp->s_ent->sys_name, "setsockopt") != 0
-				&& strcmp(tcp->s_ent->sys_name, "getsockopt") != 0 && strcmp(tcp->s_ent->sys_name, "getpeername") != 0
+				&& strcmp(tcp->s_ent->sys_name, "bind") != 0
+				&& strcmp(tcp->s_ent->sys_name, "listen") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setsockopt") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getsockopt") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getpeername") != 0
 				&& strcmp(tcp->s_ent->sys_name, "getsockname") != 0
-				&&
 
 				// system limits
-				strcmp(tcp->s_ent->sys_name, "getrlimit") != 0 && strcmp(tcp->s_ent->sys_name, "setrlimit") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getrlimit") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setrlimit") != 0
 				&& strcmp(tcp->s_ent->sys_name, "getprlimit64") != 0
-				&&
 
 				// signal handling
-				strcmp(tcp->s_ent->sys_name, "alarm") != 0 && strcmp(tcp->s_ent->sys_name, "sigreturn") != 0 && strcmp(tcp->s_ent->sys_name, "sigaltstack") != 0
-				&& strcmp(tcp->s_ent->sys_name, "rt_sigreturn") != 0 && strcmp(tcp->s_ent->sys_name, "rt_sigaction") != 0
-				&& strcmp(tcp->s_ent->sys_name, "rt_sigprocmask") != 0
-				&& // handling this call may slightly reduce overapproximations, because less signals get delivered
+				&& strcmp(tcp->s_ent->sys_name, "alarm") != 0
+				&& strcmp(tcp->s_ent->sys_name, "sigreturn") != 0
+				&& strcmp(tcp->s_ent->sys_name, "sigaltstack") != 0
+				&& strcmp(tcp->s_ent->sys_name, "rt_sigreturn") != 0
+				&& strcmp(tcp->s_ent->sys_name, "rt_sigaction") != 0
+				&& strcmp(tcp->s_ent->sys_name, "rt_sigprocmask") != 0	// handling this call may slightly reduce overapproximations, because less signals get delivered
 
 				// kernel advises
-				strcmp(tcp->s_ent->sys_name, "fadvise64") != 0 && strcmp(tcp->s_ent->sys_name, "madvise") != 0
-				&&
+				&& strcmp(tcp->s_ent->sys_name, "fadvise64") != 0
+				&& strcmp(tcp->s_ent->sys_name, "madvise") != 0
 
 				// wait
-				strcmp(tcp->s_ent->sys_name, "wait4") != 0
+				&& strcmp(tcp->s_ent->sys_name, "wait4") != 0
 				&& // TODO: Actually, upon wait we get the return value of the child. Therefore,
 				strcmp(tcp->s_ent->sys_name, "waitpid") != 0
 				&& // we should handle these calls. But they will most likely kill data flow tracking due to overapproximations
 				strcmp(tcp->s_ent->sys_name, "select") != 0 && strcmp(tcp->s_ent->sys_name, "poll") != 0
-				&&
+
 
 				// thread management
-				strcmp(tcp->s_ent->sys_name, "gettid") != 0 && strcmp(tcp->s_ent->sys_name, "capset") != 0 && strcmp(tcp->s_ent->sys_name, "capget") != 0
-				&& strcmp(tcp->s_ent->sys_name, "get_robust_list") != 0 && strcmp(tcp->s_ent->sys_name, "set_robust_list") != 0
-				&& strcmp(tcp->s_ent->sys_name, "set_thread_area") != 0 && strcmp(tcp->s_ent->sys_name, "set_tid_address") != 0
-				&&
+				&& strcmp(tcp->s_ent->sys_name, "gettid") != 0
+				&& strcmp(tcp->s_ent->sys_name, "capset") != 0
+				&& strcmp(tcp->s_ent->sys_name, "capget") != 0
+				&& strcmp(tcp->s_ent->sys_name, "get_robust_list") != 0
+				&& strcmp(tcp->s_ent->sys_name, "set_robust_list") != 0
+				&& strcmp(tcp->s_ent->sys_name, "set_thread_area") != 0
+				&& strcmp(tcp->s_ent->sys_name, "set_tid_address") != 0
 
 				// process & system operations
-				strcmp(tcp->s_ent->sys_name, "getpid") != 0 && strcmp(tcp->s_ent->sys_name, "getppid") != 0 && strcmp(tcp->s_ent->sys_name, "getpgid") != 0
-				&& strcmp(tcp->s_ent->sys_name, "getpgrp") != 0 && strcmp(tcp->s_ent->sys_name, "getrusage") != 0 && strcmp(tcp->s_ent->sys_name, "prctl") != 0
-				&& strcmp(tcp->s_ent->sys_name, "getpriority") != 0 && strcmp(tcp->s_ent->sys_name, "setpriority") != 0
-				&& strcmp(tcp->s_ent->sys_name, "sysinfo") != 0 && strcmp(tcp->s_ent->sys_name, "setgroups") != 0
-				&& strcmp(tcp->s_ent->sys_name, "getgroups") != 0 && strcmp(tcp->s_ent->sys_name, "getgroups32") != 0
-				&& strcmp(tcp->s_ent->sys_name, "setgroups32") != 0 && strcmp(tcp->s_ent->sys_name, "getsid") != 0
-				&& strcmp(tcp->s_ent->sys_name, "setsid") != 0 && strcmp(tcp->s_ent->sys_name, "sched_getaffinity") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getpid") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getppid") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getpgid") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getpgrp") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getrusage") != 0
+				&& strcmp(tcp->s_ent->sys_name, "prctl") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getpriority") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setpriority") != 0
+				&& strcmp(tcp->s_ent->sys_name, "sysinfo") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setgroups") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getgroups") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getgroups32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setgroups32") != 0
+				&& strcmp(tcp->s_ent->sys_name, "getsid") != 0
+				&& strcmp(tcp->s_ent->sys_name, "setsid") != 0
+				&& strcmp(tcp->s_ent->sys_name, "sched_getaffinity") != 0
 				&& strcmp(tcp->s_ent->sys_name, "sched_setaffinity") != 0
-				&&
 
 				// shared memory
-				strcmp(tcp->s_ent->sys_name, "shmdt") != 0
-				&& // TODO: we should handle them!
-				strcmp(tcp->s_ent->sys_name, "shmat") != 0 && strcmp(tcp->s_ent->sys_name, "shmctl") != 0 && strcmp(tcp->s_ent->sys_name, "shmget") != 0
-				&&
+				&& strcmp(tcp->s_ent->sys_name, "shmdt") != 0  // TODO: we should handle them!
+				&& strcmp(tcp->s_ent->sys_name, "shmat") != 0
+				&& strcmp(tcp->s_ent->sys_name, "shmctl") != 0
+				&& strcmp(tcp->s_ent->sys_name, "shmget") != 0
 
 				// inotify(7)
-				strcmp(tcp->s_ent->sys_name, "inotify_init") != 0 && strcmp(tcp->s_ent->sys_name, "inotify_init1") != 0
-				&& strcmp(tcp->s_ent->sys_name, "inotify_rm_watch") != 0 && strcmp(tcp->s_ent->sys_name, "inotify_add_watch") != 0
-				&&
+				&& strcmp(tcp->s_ent->sys_name, "inotify_init") != 0
+				&& strcmp(tcp->s_ent->sys_name, "inotify_init1") != 0
+				&& strcmp(tcp->s_ent->sys_name, "inotify_rm_watch") != 0
+				&& strcmp(tcp->s_ent->sys_name, "inotify_add_watch") != 0
 
 				// epoll(7)
-				strcmp(tcp->s_ent->sys_name, "epoll_create") != 0 && strcmp(tcp->s_ent->sys_name, "epoll_create1") != 0
-				&& strcmp(tcp->s_ent->sys_name, "epoll_ctl") != 0 && strcmp(tcp->s_ent->sys_name, "epoll_wait") != 0
-				&&
+				&& strcmp(tcp->s_ent->sys_name, "epoll_create") != 0
+				&& strcmp(tcp->s_ent->sys_name, "epoll_create1") != 0
+				&& strcmp(tcp->s_ent->sys_name, "epoll_ctl") != 0
+				&& strcmp(tcp->s_ent->sys_name, "epoll_wait") != 0
 
 				// misc.
-				strcmp(tcp->s_ent->sys_name, "quotactl") != 0 && strcmp(tcp->s_ent->sys_name, "readahead") != 0 && strcmp(tcp->s_ent->sys_name, "access") != 0
-				&& strcmp(tcp->s_ent->sys_name, "fallocate") != 0 && strcmp(tcp->s_ent->sys_name, "mprotect") != 0 && strcmp(tcp->s_ent->sys_name, "futex") != 0
-				&& strcmp(tcp->s_ent->sys_name, "uname") != 0 && strcmp(tcp->s_ent->sys_name, "_llseek") != 0 && strcmp(tcp->s_ent->sys_name, "ioctl") != 0
+				&& strcmp(tcp->s_ent->sys_name, "quotactl") != 0
+				&& strcmp(tcp->s_ent->sys_name, "readahead") != 0
+				&& strcmp(tcp->s_ent->sys_name, "access") != 0
+				&& strcmp(tcp->s_ent->sys_name, "fallocate") != 0
+				&& strcmp(tcp->s_ent->sys_name, "mprotect") != 0
+				&& strcmp(tcp->s_ent->sys_name, "futex") != 0
+				&& strcmp(tcp->s_ent->sys_name, "uname") != 0
+				&& strcmp(tcp->s_ent->sys_name, "_llseek") != 0
+				&& strcmp(tcp->s_ent->sys_name, "ioctl") != 0
+				&& strcmp(tcp->s_ent->sys_name, "nanosleep") != 0
 				&& strcmp(tcp->s_ent->sys_name, "restart_syscall") != 0) {
 			printf("unhandled %s\n", tcp->s_ent->sys_name);
 		}
