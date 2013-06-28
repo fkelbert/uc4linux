@@ -400,36 +400,36 @@ void ucDataFlowSemantics_open(struct tcb *tcp) {
 
 void ucDataFlowSemantics_openat(struct tcb *tcp) {
 	// TODO. man 2 openat
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
 void ucDataFlowSemantics_socket(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 socket
 }
 
 void ucDataFlowSemantics_socketpair(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 socketpair
 }
 
 void ucDataFlowSemantics_fcntl(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 fcntl64
 }
 
 void ucDataFlowSemantics_shutdown(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 shutdown
 }
 
 void ucDataFlowSemantics_eventfd(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 eventfd
 }
 
 void ucDataFlowSemantics_mmap(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 mmap
 }
 
@@ -444,12 +444,12 @@ void ucDataFlowSemantics_kill(struct tcb *tcp) {
 }
 
 void ucDataFlowSemantics_accept(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 accept
 }
 
 void ucDataFlowSemantics_connect(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 connect
 }
 
@@ -532,13 +532,14 @@ void ucDataFlowSemantics_unlink(struct tcb *tcp) {
 }
 
 void ucDataFlowSemantics_splice(struct tcb *tcp) {
-	printf("missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 splice
 }
 
 void ucDataFlowSemantics_munmap(struct tcb *tcp) {
 	// TODO. man 2 munmap
 	// is it possible to do something useful here?
+	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
 void ucDataFlowSemantics_pipe(struct tcb *tcp) {
