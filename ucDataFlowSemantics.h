@@ -21,8 +21,8 @@
 
 void ucPIPupdate(struct tcb *tcp);
 
-void ucDataFlowSemanticsWrite(struct tcb *tcp);
-void ucDataFlowSemanticsRead(struct tcb *tcp);
-void ucDataFlowSemanticsExit(struct tcb *tcp);
+void ucDataFlowSemantics_write(struct tcb *tcp);
+void ucDataFlowSemantics_read(struct tcb *tcp);
+void ucDataFlowSemantics_exit(struct tcb *tcp);
 
 #endif /* UCSEMANTICS_H_ */
