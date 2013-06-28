@@ -2320,6 +2320,7 @@ trace(void)
 		 * (Or it still can be that pesky post-execve SIGTRAP!)
 		 * Handle it.
 		 */
+
 		if (trace_syscall(tcp) < 0) {
 			/* ptrace() failed in trace_syscall().
 			 * Likely a result of process disappearing mid-flight.
@@ -2355,7 +2356,12 @@ trace(void)
   *    This has not been tested.
   *
  */
-		if (tcp && tcp->s_ent && tcp->s_ent->sys_name) {
+		if (tcp
+#if UC_PERFORMANCE_MODE
+			&& ucHandleSyscall(tcp->scno)
+#endif
+			&& tcp->s_ent
+			&& tcp->s_ent->sys_name) {
 			/* It is kind of weird, that we need to use exiting()
 			 * in this way here. My guess is, that execve (which is stopped
 			 * three times in the beginning) makes this necessary. 

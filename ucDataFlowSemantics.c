@@ -615,269 +615,269 @@ void ucDataFlowSemantics_dup2(struct tcb *tcp) {
 	printf("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
 }
 
-void ucPIPupdate(struct tcb *tcp) {
-	// pointer to the function to execute in order to update the PIP
-	void (*ucDataFlowSemanticsFunc)(struct tcb *tcp) = NULL;
-
-	// Note: Do not(!) compare function pointer. This will not work out,
-	// e.g. for dup() which is mapped to the internal sys_open()!
-	if (streq(tcp->s_ent->sys_name, "write")
-			|| streq(tcp->s_ent->sys_name, "writev")
-			|| streq(tcp->s_ent->sys_name, "pwrite")
-			|| streq(tcp->s_ent->sys_name, "pwritev")
-			|| streq(tcp->s_ent->sys_name, "pwrite64")
-			|| streq(tcp->s_ent->sys_name, "send")
-			|| streq(tcp->s_ent->sys_name, "sendto")
-			|| streq(tcp->s_ent->sys_name, "sendmsg")
-			|| streq(tcp->s_ent->sys_name, "sendmmsg")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_write;
-	}
-	else if (streq(tcp->s_ent->sys_name, "read")
-			|| streq(tcp->s_ent->sys_name, "readv")
-			|| streq(tcp->s_ent->sys_name, "pread")
-			|| streq(tcp->s_ent->sys_name, "pread64")
-			|| streq(tcp->s_ent->sys_name, "preadv")
-			|| streq(tcp->s_ent->sys_name, "recv")
-			|| streq(tcp->s_ent->sys_name, "recvfrom")
-			|| streq(tcp->s_ent->sys_name, "recvmsg")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_read;
-	}
-	else if (streq(tcp->s_ent->sys_name, "exit")
-			|| streq(tcp->s_ent->sys_name, "_exit")
-			|| streq(tcp->s_ent->sys_name, "exit_group")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_exit;
-	}
-	else if (streq(tcp->s_ent->sys_name, "execve")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_execve;
-	}
-	else if (streq(tcp->s_ent->sys_name, "close")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_close;
-	}
-	else if (streq(tcp->s_ent->sys_name, "open")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_open;
-	}
-	else if (streq(tcp->s_ent->sys_name, "openat")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_openat;
-	}
-	else if (streq(tcp->s_ent->sys_name, "socket")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_socket;
-	}
-	else if (streq(tcp->s_ent->sys_name, "socketpair")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_socketpair;
-	}
-	else if (streq(tcp->s_ent->sys_name, "accept")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_accept;
-	}
-	else if (streq(tcp->s_ent->sys_name, "connect")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_connect;
-	}
-	else if (streq(tcp->s_ent->sys_name, "fcntl64")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_fcntl;
-	}
-	else if (streq(tcp->s_ent->sys_name, "shutdown")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_shutdown;
-	}
-	else if (streq(tcp->s_ent->sys_name, "splice")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_splice;
-	}
-	else if (streq(tcp->s_ent->sys_name, "rename")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_rename;
-	}
-	else if (streq(tcp->s_ent->sys_name, "eventfd2")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_eventfd;
-	}
-	else if (streq(tcp->s_ent->sys_name, "unlink")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_unlink;
-	}
-	else if (streq(tcp->s_ent->sys_name, "kill")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_kill;
-	}
-	else if (streq(tcp->s_ent->sys_name, "munmap")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_munmap;
-	}
-	else if (streq(tcp->s_ent->sys_name, "clone")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_clone;
-	}
-	else if (streq(tcp->s_ent->sys_name, "ftruncate")
-			|| streq(tcp->s_ent->sys_name, "ftruncate64")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_ftruncate;
-	}
-	else if (streq(tcp->s_ent->sys_name, "mmap")
-			|| streq(tcp->s_ent->sys_name, "mmap2")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_mmap;
-	}
-	else if (streq(tcp->s_ent->sys_name, "pipe")
-			|| streq(tcp->s_ent->sys_name, "pipe2")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_pipe;
-	}
-	else if (streq(tcp->s_ent->sys_name, "dup")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup;
-	}
-	else if (streq(tcp->s_ent->sys_name, "dup2")
-			|| streq(tcp->s_ent->sys_name, "dup3")) {
-		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup2;
-	}
-	else {
-		ucDataFlowSemanticsFunc = NULL;
-	}
-
-	// TODO: sys_fstatfs may be useful to find out information about mounted file systems
-
-	// finally, update the PIP
-	if (ucDataFlowSemanticsFunc) {
-		(*ucDataFlowSemanticsFunc)(tcp);
-	}
-	else {
-		// this calls have been checked to not influence data flow.
-		// they can be ignored
-		if (!streq(tcp->s_ent->sys_name, "brk")
-
-			// stat family & file meta operations
-			&& !streq(tcp->s_ent->sys_name, "stat64")
-			&& !streq(tcp->s_ent->sys_name, "statfs64")
-			&& !streq(tcp->s_ent->sys_name, "statfs")
-			&& !streq(tcp->s_ent->sys_name, "fstatfs")
-			&& !streq(tcp->s_ent->sys_name, "fstat64")
-			&& !streq(tcp->s_ent->sys_name, "lstat64")
-			&& !streq(tcp->s_ent->sys_name, "chmod")
-			&& !streq(tcp->s_ent->sys_name, "chown32")
-			&& !streq(tcp->s_ent->sys_name, "umask")
-			&& !streq(tcp->s_ent->sys_name, "getxattr")
-			&& !streq(tcp->s_ent->sys_name, "lgetxattr")
-			&& !streq(tcp->s_ent->sys_name, "fgetxattr")
-			&& !streq(tcp->s_ent->sys_name, "readlink")
-			&& !streq(tcp->s_ent->sys_name, "lseek")
-			&& !streq(tcp->s_ent->sys_name, "fsync")
-			&& !streq(tcp->s_ent->sys_name, "utime")
-			&& !streq(tcp->s_ent->sys_name, "flock")
-			&& !streq(tcp->s_ent->sys_name, "symlink")
-			&& !streq(tcp->s_ent->sys_name, "faccessat")
-
-			// directory meta operations
-			&& !streq(tcp->s_ent->sys_name, "chdir")
-			&& !streq(tcp->s_ent->sys_name, "mkdir")
-			&& !streq(tcp->s_ent->sys_name, "rmdir")
-			&& !streq(tcp->s_ent->sys_name, "getcwd")
-			&& !streq(tcp->s_ent->sys_name, "getdents")
-			&& !streq(tcp->s_ent->sys_name, "getdents64")
-
-			// user IDs, group IDs, ...
-			&& !streq(tcp->s_ent->sys_name, "getuid32")
-			&& !streq(tcp->s_ent->sys_name, "getgid32")
-			&& !streq(tcp->s_ent->sys_name, "geteuid32")
-			&& !streq(tcp->s_ent->sys_name, "getegid32")
-			&& !streq(tcp->s_ent->sys_name, "getresuid32")
-			&& !streq(tcp->s_ent->sys_name, "getresgid32")
-			&& !streq(tcp->s_ent->sys_name, "setresuid32")
-			&& !streq(tcp->s_ent->sys_name, "setresgid32")
-			&& !streq(tcp->s_ent->sys_name, "setuid32")
-			&& !streq(tcp->s_ent->sys_name, "setgid32")
-
-			// time
-			&& !streq(tcp->s_ent->sys_name, "clock_getres")
-			&& !streq(tcp->s_ent->sys_name, "clock_gettime")
-			&& !streq(tcp->s_ent->sys_name, "clock_settime")
-			&& !streq(tcp->s_ent->sys_name, "gettimeofday")
-			&& !streq(tcp->s_ent->sys_name, "time")
-			&& !streq(tcp->s_ent->sys_name, "times")
-
-			// socket operations & information
-			&& !streq(tcp->s_ent->sys_name, "bind")
-			&& !streq(tcp->s_ent->sys_name, "listen")
-			&& !streq(tcp->s_ent->sys_name, "setsockopt")
-			&& !streq(tcp->s_ent->sys_name, "getsockopt")
-			&& !streq(tcp->s_ent->sys_name, "getpeername")
-			&& !streq(tcp->s_ent->sys_name, "getsockname")
-
-			// system limits
-			&& !streq(tcp->s_ent->sys_name, "getrlimit")
-			&& !streq(tcp->s_ent->sys_name, "setrlimit")
-			&& !streq(tcp->s_ent->sys_name, "getprlimit64")
-
-			// signal handling
-			&& !streq(tcp->s_ent->sys_name, "alarm")
-			&& !streq(tcp->s_ent->sys_name, "sigreturn")
-			&& !streq(tcp->s_ent->sys_name, "sigaltstack")
-			&& !streq(tcp->s_ent->sys_name, "rt_sigreturn")
-			&& !streq(tcp->s_ent->sys_name, "rt_sigaction")
-			&& !streq(tcp->s_ent->sys_name, "rt_sigprocmask")	// handling this call may slightly reduce overapproximations, because less signals get delivered
-
-			// kernel advises
-			&& !streq(tcp->s_ent->sys_name, "fadvise64")
-			&& !streq(tcp->s_ent->sys_name, "madvise")
-
-			// wait
-			&& !streq(tcp->s_ent->sys_name, "wait4")
-			&& // TODO: Actually, upon wait we get the return value of the child. Therefore,
-			!streq(tcp->s_ent->sys_name, "waitpid")
-			&& // we should handle these calls. But they will most likely kill data flow tracking due to overapproximations
-			!streq(tcp->s_ent->sys_name, "select") && !streq(tcp->s_ent->sys_name, "poll")
-
-
-			// thread management
-			&& !streq(tcp->s_ent->sys_name, "gettid")
-			&& !streq(tcp->s_ent->sys_name, "capset")
-			&& !streq(tcp->s_ent->sys_name, "capget")
-			&& !streq(tcp->s_ent->sys_name, "get_robust_list")
-			&& !streq(tcp->s_ent->sys_name, "set_robust_list")
-			&& !streq(tcp->s_ent->sys_name, "set_thread_area")
-			&& !streq(tcp->s_ent->sys_name, "set_tid_address")
-
-			// process & system operations
-			&& !streq(tcp->s_ent->sys_name, "getpid")
-			&& !streq(tcp->s_ent->sys_name, "getppid")
-			&& !streq(tcp->s_ent->sys_name, "getpgid")
-			&& !streq(tcp->s_ent->sys_name, "getpgrp")
-			&& !streq(tcp->s_ent->sys_name, "getrusage")
-			&& !streq(tcp->s_ent->sys_name, "prctl")
-			&& !streq(tcp->s_ent->sys_name, "getpriority")
-			&& !streq(tcp->s_ent->sys_name, "setpriority")
-			&& !streq(tcp->s_ent->sys_name, "sysinfo")
-			&& !streq(tcp->s_ent->sys_name, "setgroups")
-			&& !streq(tcp->s_ent->sys_name, "getgroups")
-			&& !streq(tcp->s_ent->sys_name, "getgroups32")
-			&& !streq(tcp->s_ent->sys_name, "setgroups32")
-			&& !streq(tcp->s_ent->sys_name, "getsid")
-			&& !streq(tcp->s_ent->sys_name, "setsid")
-			&& !streq(tcp->s_ent->sys_name, "sched_getaffinity")
-			&& !streq(tcp->s_ent->sys_name, "sched_setaffinity")
-
-			// shared memory
-			&& !streq(tcp->s_ent->sys_name, "shmdt")  // TODO: we should handle them!
-			&& !streq(tcp->s_ent->sys_name, "shmat")
-			&& !streq(tcp->s_ent->sys_name, "shmctl")
-			&& !streq(tcp->s_ent->sys_name, "shmget")
-
-			// inotify(7)
-			&& !streq(tcp->s_ent->sys_name, "inotify_init")
-			&& !streq(tcp->s_ent->sys_name, "inotify_init1")
-			&& !streq(tcp->s_ent->sys_name, "inotify_rm_watch")
-			&& !streq(tcp->s_ent->sys_name, "inotify_add_watch")
-
-			// epoll(7)
-			&& !streq(tcp->s_ent->sys_name, "epoll_create")
-			&& !streq(tcp->s_ent->sys_name, "epoll_create1")
-			&& !streq(tcp->s_ent->sys_name, "epoll_ctl")
-			&& !streq(tcp->s_ent->sys_name, "epoll_wait")
-
-			// misc.
-			&& !streq(tcp->s_ent->sys_name, "quotactl")
-			&& !streq(tcp->s_ent->sys_name, "readahead")
-			&& !streq(tcp->s_ent->sys_name, "access")
-			&& !streq(tcp->s_ent->sys_name, "fallocate")
-			&& !streq(tcp->s_ent->sys_name, "mprotect")
-			&& !streq(tcp->s_ent->sys_name, "futex")
-			&& !streq(tcp->s_ent->sys_name, "uname")
-			&& !streq(tcp->s_ent->sys_name, "_llseek")
-			&& !streq(tcp->s_ent->sys_name, "ioctl")
-			&& !streq(tcp->s_ent->sys_name, "nanosleep")
-			&& !streq(tcp->s_ent->sys_name, "restart_syscall")) {
-			printf("unhandled %s\n", tcp->s_ent->sys_name);
-		}
-
-	}
-
-}
+//void ucPIPupdate(struct tcb *tcp) {
+//	// pointer to the function to execute in order to update the PIP
+//	void (*ucDataFlowSemanticsFunc)(struct tcb *tcp) = NULL;
+//
+//	// Note: Do not(!) compare function pointer. This will not work out,
+//	// e.g. for dup() which is mapped to the internal sys_open()!
+//	if (streq(tcp->s_ent->sys_name, "write")
+//			|| streq(tcp->s_ent->sys_name, "writev")
+//			|| streq(tcp->s_ent->sys_name, "pwrite")
+//			|| streq(tcp->s_ent->sys_name, "pwritev")
+//			|| streq(tcp->s_ent->sys_name, "pwrite64")
+//			|| streq(tcp->s_ent->sys_name, "send")
+//			|| streq(tcp->s_ent->sys_name, "sendto")
+//			|| streq(tcp->s_ent->sys_name, "sendmsg")
+//			|| streq(tcp->s_ent->sys_name, "sendmmsg")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_write;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "read")
+//			|| streq(tcp->s_ent->sys_name, "readv")
+//			|| streq(tcp->s_ent->sys_name, "pread")
+//			|| streq(tcp->s_ent->sys_name, "pread64")
+//			|| streq(tcp->s_ent->sys_name, "preadv")
+//			|| streq(tcp->s_ent->sys_name, "recv")
+//			|| streq(tcp->s_ent->sys_name, "recvfrom")
+//			|| streq(tcp->s_ent->sys_name, "recvmsg")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_read;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "exit")
+//			|| streq(tcp->s_ent->sys_name, "_exit")
+//			|| streq(tcp->s_ent->sys_name, "exit_group")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_exit;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "execve")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_execve;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "close")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_close;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "open")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_open;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "openat")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_openat;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "socket")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_socket;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "socketpair")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_socketpair;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "accept")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_accept;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "connect")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_connect;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "fcntl64")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_fcntl;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "shutdown")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_shutdown;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "splice")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_splice;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "rename")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_rename;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "eventfd2")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_eventfd;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "unlink")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_unlink;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "kill")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_kill;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "munmap")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_munmap;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "clone")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_clone;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "ftruncate")
+//			|| streq(tcp->s_ent->sys_name, "ftruncate64")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_ftruncate;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "mmap")
+//			|| streq(tcp->s_ent->sys_name, "mmap2")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_mmap;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "pipe")
+//			|| streq(tcp->s_ent->sys_name, "pipe2")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_pipe;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "dup")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup;
+//	}
+//	else if (streq(tcp->s_ent->sys_name, "dup2")
+//			|| streq(tcp->s_ent->sys_name, "dup3")) {
+//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup2;
+//	}
+//	else {
+//		ucDataFlowSemanticsFunc = NULL;
+//	}
+//
+//	// TODO: sys_fstatfs may be useful to find out information about mounted file systems
+//
+//	// finally, update the PIP
+//	if (ucDataFlowSemanticsFunc) {
+//		(*ucDataFlowSemanticsFunc)(tcp);
+//	}
+//	else {
+//		// this calls have been checked to not influence data flow.
+//		// they can be ignored
+//		if (!streq(tcp->s_ent->sys_name, "brk")
+//
+//			// stat family & file meta operations
+//			&& !streq(tcp->s_ent->sys_name, "stat64")
+//			&& !streq(tcp->s_ent->sys_name, "statfs64")
+//			&& !streq(tcp->s_ent->sys_name, "statfs")
+//			&& !streq(tcp->s_ent->sys_name, "fstatfs")
+//			&& !streq(tcp->s_ent->sys_name, "fstat64")
+//			&& !streq(tcp->s_ent->sys_name, "lstat64")
+//			&& !streq(tcp->s_ent->sys_name, "chmod")
+//			&& !streq(tcp->s_ent->sys_name, "chown32")
+//			&& !streq(tcp->s_ent->sys_name, "umask")
+//			&& !streq(tcp->s_ent->sys_name, "getxattr")
+//			&& !streq(tcp->s_ent->sys_name, "lgetxattr")
+//			&& !streq(tcp->s_ent->sys_name, "fgetxattr")
+//			&& !streq(tcp->s_ent->sys_name, "readlink")
+//			&& !streq(tcp->s_ent->sys_name, "lseek")
+//			&& !streq(tcp->s_ent->sys_name, "fsync")
+//			&& !streq(tcp->s_ent->sys_name, "utime")
+//			&& !streq(tcp->s_ent->sys_name, "flock")
+//			&& !streq(tcp->s_ent->sys_name, "symlink")
+//			&& !streq(tcp->s_ent->sys_name, "faccessat")
+//
+//			// directory meta operations
+//			&& !streq(tcp->s_ent->sys_name, "chdir")
+//			&& !streq(tcp->s_ent->sys_name, "mkdir")
+//			&& !streq(tcp->s_ent->sys_name, "rmdir")
+//			&& !streq(tcp->s_ent->sys_name, "getcwd")
+//			&& !streq(tcp->s_ent->sys_name, "getdents")
+//			&& !streq(tcp->s_ent->sys_name, "getdents64")
+//
+//			// user IDs, group IDs, ...
+//			&& !streq(tcp->s_ent->sys_name, "getuid32")
+//			&& !streq(tcp->s_ent->sys_name, "getgid32")
+//			&& !streq(tcp->s_ent->sys_name, "geteuid32")
+//			&& !streq(tcp->s_ent->sys_name, "getegid32")
+//			&& !streq(tcp->s_ent->sys_name, "getresuid32")
+//			&& !streq(tcp->s_ent->sys_name, "getresgid32")
+//			&& !streq(tcp->s_ent->sys_name, "setresuid32")
+//			&& !streq(tcp->s_ent->sys_name, "setresgid32")
+//			&& !streq(tcp->s_ent->sys_name, "setuid32")
+//			&& !streq(tcp->s_ent->sys_name, "setgid32")
+//
+//			// time
+//			&& !streq(tcp->s_ent->sys_name, "clock_getres")
+//			&& !streq(tcp->s_ent->sys_name, "clock_gettime")
+//			&& !streq(tcp->s_ent->sys_name, "clock_settime")
+//			&& !streq(tcp->s_ent->sys_name, "gettimeofday")
+//			&& !streq(tcp->s_ent->sys_name, "time")
+//			&& !streq(tcp->s_ent->sys_name, "times")
+//
+//			// socket operations & information
+//			&& !streq(tcp->s_ent->sys_name, "bind")
+//			&& !streq(tcp->s_ent->sys_name, "listen")
+//			&& !streq(tcp->s_ent->sys_name, "setsockopt")
+//			&& !streq(tcp->s_ent->sys_name, "getsockopt")
+//			&& !streq(tcp->s_ent->sys_name, "getpeername")
+//			&& !streq(tcp->s_ent->sys_name, "getsockname")
+//
+//			// system limits
+//			&& !streq(tcp->s_ent->sys_name, "getrlimit")
+//			&& !streq(tcp->s_ent->sys_name, "setrlimit")
+//			&& !streq(tcp->s_ent->sys_name, "getprlimit64")
+//
+//			// signal handling
+//			&& !streq(tcp->s_ent->sys_name, "alarm")
+//			&& !streq(tcp->s_ent->sys_name, "sigreturn")
+//			&& !streq(tcp->s_ent->sys_name, "sigaltstack")
+//			&& !streq(tcp->s_ent->sys_name, "rt_sigreturn")
+//			&& !streq(tcp->s_ent->sys_name, "rt_sigaction")
+//			&& !streq(tcp->s_ent->sys_name, "rt_sigprocmask")	// handling this call may slightly reduce overapproximations, because less signals get delivered
+//
+//			// kernel advises
+//			&& !streq(tcp->s_ent->sys_name, "fadvise64")
+//			&& !streq(tcp->s_ent->sys_name, "madvise")
+//
+//			// wait
+//			&& !streq(tcp->s_ent->sys_name, "wait4")
+//			&& // TODO: Actually, upon wait we get the return value of the child. Therefore,
+//			!streq(tcp->s_ent->sys_name, "waitpid")
+//			&& // we should handle these calls. But they will most likely kill data flow tracking due to overapproximations
+//			!streq(tcp->s_ent->sys_name, "select") && !streq(tcp->s_ent->sys_name, "poll")
+//
+//
+//			// thread management
+//			&& !streq(tcp->s_ent->sys_name, "gettid")
+//			&& !streq(tcp->s_ent->sys_name, "capset")
+//			&& !streq(tcp->s_ent->sys_name, "capget")
+//			&& !streq(tcp->s_ent->sys_name, "get_robust_list")
+//			&& !streq(tcp->s_ent->sys_name, "set_robust_list")
+//			&& !streq(tcp->s_ent->sys_name, "set_thread_area")
+//			&& !streq(tcp->s_ent->sys_name, "set_tid_address")
+//
+//			// process & system operations
+//			&& !streq(tcp->s_ent->sys_name, "getpid")
+//			&& !streq(tcp->s_ent->sys_name, "getppid")
+//			&& !streq(tcp->s_ent->sys_name, "getpgid")
+//			&& !streq(tcp->s_ent->sys_name, "getpgrp")
+//			&& !streq(tcp->s_ent->sys_name, "getrusage")
+//			&& !streq(tcp->s_ent->sys_name, "prctl")
+//			&& !streq(tcp->s_ent->sys_name, "getpriority")
+//			&& !streq(tcp->s_ent->sys_name, "setpriority")
+//			&& !streq(tcp->s_ent->sys_name, "sysinfo")
+//			&& !streq(tcp->s_ent->sys_name, "setgroups")
+//			&& !streq(tcp->s_ent->sys_name, "getgroups")
+//			&& !streq(tcp->s_ent->sys_name, "getgroups32")
+//			&& !streq(tcp->s_ent->sys_name, "setgroups32")
+//			&& !streq(tcp->s_ent->sys_name, "getsid")
+//			&& !streq(tcp->s_ent->sys_name, "setsid")
+//			&& !streq(tcp->s_ent->sys_name, "sched_getaffinity")
+//			&& !streq(tcp->s_ent->sys_name, "sched_setaffinity")
+//
+//			// shared memory
+//			&& !streq(tcp->s_ent->sys_name, "shmdt")  // TODO: we should handle them!
+//			&& !streq(tcp->s_ent->sys_name, "shmat")
+//			&& !streq(tcp->s_ent->sys_name, "shmctl")
+//			&& !streq(tcp->s_ent->sys_name, "shmget")
+//
+//			// inotify(7)
+//			&& !streq(tcp->s_ent->sys_name, "inotify_init")
+//			&& !streq(tcp->s_ent->sys_name, "inotify_init1")
+//			&& !streq(tcp->s_ent->sys_name, "inotify_rm_watch")
+//			&& !streq(tcp->s_ent->sys_name, "inotify_add_watch")
+//
+//			// epoll(7)
+//			&& !streq(tcp->s_ent->sys_name, "epoll_create")
+//			&& !streq(tcp->s_ent->sys_name, "epoll_create1")
+//			&& !streq(tcp->s_ent->sys_name, "epoll_ctl")
+//			&& !streq(tcp->s_ent->sys_name, "epoll_wait")
+//
+//			// misc.
+//			&& !streq(tcp->s_ent->sys_name, "quotactl")
+//			&& !streq(tcp->s_ent->sys_name, "readahead")
+//			&& !streq(tcp->s_ent->sys_name, "access")
+//			&& !streq(tcp->s_ent->sys_name, "fallocate")
+//			&& !streq(tcp->s_ent->sys_name, "mprotect")
+//			&& !streq(tcp->s_ent->sys_name, "futex")
+//			&& !streq(tcp->s_ent->sys_name, "uname")
+//			&& !streq(tcp->s_ent->sys_name, "_llseek")
+//			&& !streq(tcp->s_ent->sys_name, "ioctl")
+//			&& !streq(tcp->s_ent->sys_name, "nanosleep")
+//			&& !streq(tcp->s_ent->sys_name, "restart_syscall")) {
+//			printf("unhandled %s\n", tcp->s_ent->sys_name);
+//		}
+//
+//	}
+//
+//}
 
 void ucDataFlowSemantics__init() {
 	int pid_max;
@@ -901,3 +901,5 @@ void ucDataFlowSemantics__init() {
 	// important fact: this memory is initialized to zero!
 	procMem = calloc(pid_max, sizeof(int));
 }
+
+
