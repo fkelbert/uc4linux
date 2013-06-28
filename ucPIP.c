@@ -183,13 +183,7 @@ int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
 	return (INVALID_DATASET(dataSet) || !g_hash_table_size(dataSet));
 }
 
-//void ucPIP_removeDataSet(ucIdentifier identifier) {
-//	ucDataSet ds;
-//
-//	if (VALID_DATASET(ds = ucPIP_getDataSet(identifier, 0))) {
-//		g_hash_table_destroy(ds);
-//	}
-//}
+
 
 
 /*
@@ -347,8 +341,6 @@ void ucPIP_init() {
 	s = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	l = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
-
-	ucPIP_addInitialData("/tmp/foo");
 
 	ucPIP_printF();
 	ucPIP_printS();

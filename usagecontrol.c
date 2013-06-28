@@ -3,6 +3,8 @@
 void ucInit() {
 	ucDataFlowSemantics__init();
 	ucPIP_init();
+
+	ucPIP_addInitialData("/tmp/foo");
 }
 
 // Kelbert
