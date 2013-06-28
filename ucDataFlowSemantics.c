@@ -591,7 +591,7 @@ void ucDataFlowSemantics_dup(struct tcb *tcp) {
 
 	ucPIP_addIdentifier(identifier, identifier2);
 
-	printf("xdup, %s: %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
+	printf("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
 }
 
 void ucDataFlowSemantics_dup2(struct tcb *tcp) {
