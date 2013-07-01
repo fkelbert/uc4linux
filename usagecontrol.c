@@ -25,7 +25,7 @@ int ucBeforeSyscallEnter(struct tcb *tcp) {
 			if (ucPIPupdateBefore(tcp)) {
 				if (ucDataFlowSemanticsFunct[tcp->scno]) {
 					ucDataFlowSemanticsFunct[tcp->scno](tcp);
-#ifdef UC_DECLASS_H_
+#if UC_DECLASS_ENABLED
 //					ucDeclassEvent(tcp);
 #endif
 					ucPIP_printF();
@@ -56,7 +56,7 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 			if (ucPIPupdateAfter(tcp)) {
 				if (ucDataFlowSemanticsFunct[tcp->scno]) {
 					ucDataFlowSemanticsFunct[tcp->scno](tcp);
-#ifdef UC_DECLASS_H_
+#if UC_DECLASS_ENABLED
 //					ucDeclassEvent(tcp);
 #endif
 					ucPIP_printF();
@@ -105,7 +105,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_clock_gettime] = NULL,
 	[SYS_clock_nanosleep] = NULL,
 	[SYS_clock_settime] = NULL,
-	[SYS_clone] = ucDataFlowSemantics_clone,
+	[SYS_clone] = NULL,								// we handle clone differently...
 	[SYS_close] = ucDataFlowSemantics_close,
 	[SYS_connect] = ucDataFlowSemantics_connect,
 	[SYS_create_module] = NULL,
@@ -122,7 +122,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_eventfd2] = ucDataFlowSemantics_eventfd,
 	[SYS_eventfd] = ucDataFlowSemantics_eventfd,
 	[SYS_execve] = ucDataFlowSemantics_execve,
-	[SYS_exit_group] = ucDataFlowSemantics_exit,
+	[SYS_exit_group] = ucDataFlowSemantics_exit_group,
 	[SYS_exit] = ucDataFlowSemantics_exit,
 	[SYS_faccessat] = NULL,
 	[SYS_fadvise64_64] = NULL,
@@ -142,7 +142,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_fgetxattr] = NULL,
 	[SYS_flistxattr] = NULL,
 	[SYS_flock] = NULL,
-	[SYS_fork] = NULL,
+	[SYS_fork] = ucDataFlowSemantics_IGNORE,
 	[SYS_fremovexattr] = NULL,
 	[SYS_fsetxattr] = NULL,
 	[SYS_fstat64] = NULL,
@@ -190,7 +190,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_getsockopt] = NULL,
 	[SYS_get_thread_area] = NULL,
 	[SYS_gettid] = NULL,
-	[SYS_gettimeofday] = NULL,
+	[SYS_gettimeofday] = ucDataFlowSemantics_IGNORE,
 	[SYS_getuid32] = NULL,
 	[SYS_getuid] = NULL,
 	[SYS_getxattr] = NULL,
@@ -279,7 +279,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_pipe2] = ucDataFlowSemantics_pipe,
 	[SYS_pipe] = ucDataFlowSemantics_pipe,
 	[SYS_pivot_root] = NULL,
-	[SYS_poll] = NULL,
+	[SYS_poll] = ucDataFlowSemantics_IGNORE,
 	[SYS_ppoll] = NULL,
 	[SYS_prctl] = NULL,
 	[SYS_pread64] = ucDataFlowSemantics_read,
@@ -436,15 +436,15 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_utimensat] = NULL,
 	[SYS_utimes] = NULL,
 	[SYS_utime] = NULL,
-	[SYS_vfork] = NULL,
+	[SYS_vfork] = ucDataFlowSemantics_IGNORE,
 	[SYS_vhangup] = NULL,
 	[SYS_vm86old] = NULL,
 	[SYS_vm86] = NULL,
 	[SYS_vmsplice] = NULL,
 	[SYS_vserver] = NULL,
-	[SYS_wait4] = NULL,
-	[SYS_waitid] = NULL,
-	[SYS_waitpid] = NULL,
+	[SYS_wait4] = ucDataFlowSemantics_IGNORE,
+	[SYS_waitid] = ucDataFlowSemantics_IGNORE,
+	[SYS_waitpid] = ucDataFlowSemantics_IGNORE,
 	[SYS_write] = ucDataFlowSemantics_write,
 	[SYS_writev] = ucDataFlowSemantics_write,
 
@@ -462,5 +462,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_shmdt] = NULL,
 	[SYS_shmget] = NULL,
 	[SYS_shmctl] = NULL,
+
+	[SYS_cloneFirstAction] = ucDataFlowSemantics_cloneFirstAction
 
 };

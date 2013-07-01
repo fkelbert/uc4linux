@@ -14,7 +14,6 @@
 #define SYS_socket_subcall	400
 #define SYS_ipc_subcall	420
 
-
 #define SYS_socket (SYS_socket_subcall + 1)
 #define SYS_bind (SYS_socket_subcall + 2)
 #define SYS_connect (SYS_socket_subcall + 3)
@@ -48,5 +47,6 @@
 #define SYS_shmget (SYS_ipc_subcall + 43)
 #define SYS_shmctl (SYS_ipc_subcall + 44)
 
+#define SYS_cloneFirstAction 501
 
 #endif /* UCSYSCALL_H_ */
