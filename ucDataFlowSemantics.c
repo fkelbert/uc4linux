@@ -7,24 +7,10 @@
 
 #include "ucDataFlowSemantics.h"
 
-#define IDENTIFIER_MAX_LEN 512
-
-#define IS_O_RDWR(flag)		((flag & O_RDWR) 	== O_RDWR)
-#define IS_O_WRONLY(flag)	((flag & O_WRONLY) 	== O_WRONLY)
-#define IS_O_TRUNC(flag)	((flag & O_TRUNC) 	== O_TRUNC)
 
 char identifier[IDENTIFIER_MAX_LEN];
 char identifier2[IDENTIFIER_MAX_LEN];
 
-#define ucSemantics_errorExit(msg) \
-			fprintf(stderr, "%s\n", msg); \
-			fprintf(stderr, "Happened in: %s:%d\n", __FILE__, __LINE__); \
-			fprintf(stderr, "Exiting.\n"); \
-			exit (1);
-
-#define isAbsolute(string) *string == '/'
-
-#define streq(str1, str2) (strcmp(str1,str2) == 0)
 
 int *procMem;
 int initialProcess = 1;
