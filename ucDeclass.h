@@ -8,19 +8,22 @@
 #ifndef UC_DECLASS_H_
 #define UC_DECLASS_H_
 
+#define UC_DECLASS_ENABLED 1
+
 #include <glib.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include "ucSyscall.h"
+#include "ucPIP.h"
 
-extern int ucDeclassEvents[];
-
-struct declass {
-		pid_t pid;
-		struct timeval time;
-		int syscallno;
-		char *data;
-};
+//extern int ucDeclassEvents[];
+//
+//struct declass {
+//		pid_t pid;
+//		struct timeval time;
+//		int syscallno;
+//		char *data;
+//};
 
 #define ucDeclass_errorExit(msg) \
 			fprintf(stderr, "%s\n", msg); \

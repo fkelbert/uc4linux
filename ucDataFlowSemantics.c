@@ -13,7 +13,72 @@ char identifier2[IDENTIFIER_MAX_LEN];
 
 
 int *procMem;
+GHashTable **procFDs;
 int initialProcess = 1;
+
+
+void addProcMem(int pid) {
+	if (procMem[pid] == 0) {
+		char foo[512];
+		snprintf(foo, 512, "/proc/%d/mem", pid);
+		procMem[pid] = open(foo, O_RDONLY);
+	}
+}
+
+void removeProcMem(int pid) {
+	close(procMem[pid]);
+	procMem[pid] = 0;
+}
+
+int ucSemantics_initProcess(int pid) {
+	char *line = NULL;
+	char *lineCp;
+	size_t len = 0;
+	int ppid = -1;
+
+	printf("baby process %d. Crying for Mummy!\n", pid);
+
+	char procpath[FILENAME_MAX];
+	snprintf(procpath, sizeof(procpath), "/proc/%d/status", pid);
+	FILE *procfs = fopen(procpath, "r");
+
+	if (!procfs) {
+		ucSemantics_errorExit("Unable to read procfs");
+	}
+
+	while ((getline(&line, &len, procfs)) != -1 && ppid == -1) {
+		if (strneq("PPid:",line,5)) {
+			lineCp = line + strlen("PPid:");
+			while(*lineCp++ == ' ');
+			sscanf(lineCp, "%d\n", &ppid);
+		}
+	}
+
+	if (line) {
+		free(line);
+	}
+
+	if (ppid == -1) {
+		ucSemantics_errorExit("No mummy found! Unknown parent process");
+	}
+
+	addProcMem(pid);
+
+	if (procFDs[pid]) {
+		ucSemantics_errorExit("procFDs not unset. This should not happen. This variable should have been set to NULL upon process exit.");
+	}
+
+	procFDs[pid] = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+
+	return (ppid);
+}
+
+void ucSemantics_destroyProcess(int pid) {
+	g_hash_table_destroy(procFDs[pid]);
+	procFDs[pid] = NULL;
+
+	removeProcMem(pid);
+}
 
 // FIXME reading from /proc/pid/mem seems to be much faster than reading using ptrace().
 // Still, the code below may still have some flaws:
@@ -61,25 +126,16 @@ char *getString(struct tcb *tcp, long addr, char *dataStr, int len_buf) {
 	return (dataStr);
 }
 
-/**
- * Returns a list of open filedescriptors for the process identified with the specified process ID.
- * Memory for the result will be allocated by this function and needs to be freed by the caller.
- * @param pid the process id
- * @param count a pointer that will return the number of entries in the returned int*
- * @return an int-Array containing all open file descriptors of that process. The size of this array is returned in count.
- */
-int *getListOfOpenFileDescriptors(long pid, int *count) {
+int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 	char procfsPath[PATH_MAX];
+	int ret;
 	DIR *dir;
 	struct dirent *ent;
 	int *fds;
 	int size = 8; // do not init to 0!
 	*count = 0;
-	int ret;
 
-	// TODO some test showed that this is slow! We should rather keep an internal mapping and avoid read from procfs (e.g. pid --> open fds)
-	// difference for 1000000 executions: 2700ms (readlink /proc/self/fd/3) vs. 180ms (g_hash_table_insert() + g_hash_table_lookup())
-	ret = snprintf(procfsPath, sizeof(procfsPath), "/proc/%ld/fd", pid);
+	ret = snprintf(procfsPath, sizeof(procfsPath), "/proc/%ld/%s", pid, procSubPath);
 
 	if (ret >= sizeof(procfsPath)) {
 		ucSemantics_errorExit("Buffer overflowed.");
@@ -118,18 +174,23 @@ int *getListOfOpenFileDescriptors(long pid, int *count) {
 	return (fds);
 }
 
-void addProcMem(int pid) {
-	if (procMem[pid] == 0) {
-		char foo[512];
-		snprintf(foo, 512, "/proc/%d/mem", pid);
-		procMem[pid] = open(foo, O_RDONLY);
-	}
+
+int *getProcessTasks(long pid, int *count) {
+	return (getIntDirEntries(pid, count, "task"));
 }
 
-void removeProcMem(int pid) {
-	close(procMem[pid]);
-	procMem[pid] = 0;
-}
+
+///**
+// * Returns a list of open filedescriptors for the process identified with the specified process ID.
+// * Memory for the result will be allocated by this function and needs to be freed by the caller.
+// * @param pid the process id
+// * @param count a pointer that will return the number of entries in the returned int*
+// * @return an int-Array containing all open file descriptors of that process. The size of this array is returned in count.
+// */
+//int *getListOfOpenFileDescriptors(long pid, int *count) {
+//	return (getIntDirEntries(pid, count, "fd"));
+//}
+
 
 
 /**
@@ -264,6 +325,19 @@ char *getIdentifierFD(int pid, int fd, char *ident, int len) {
 		ucSemantics_errorExit("Error while writing to buffer.");
 	}
 
+	if (!procFDs[pid]) {
+		procFDs[pid] = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+	}
+
+	int *fdCp;
+
+	if (!(fdCp = calloc(1, sizeof(int)))) {
+		ucSemantics_errorExit("Unable to allocate enough memory");
+	}
+	*fdCp = fd;
+
+	g_hash_table_insert(procFDs[pid], fdCp, NULL);
+
 	return (ident);
 }
 
@@ -308,11 +382,14 @@ void ucDataFlowSemantics_read(struct tcb *tcp) {
 	printf("read(): %d <-- %s\n", tcp->pid, identifier);
 }
 
-void ucDataFlowSemantics_exit(struct tcb *tcp) {
+
+
+
+void ucDataFlowSemantics_do_process_exit(int pid) {
 	int count;
 	int *openfds;
 
-	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+	getIdentifierPID(pid, identifier, sizeof(identifier));
 
 	ucPIP_removeAllAliasesFrom(identifier);
 	ucPIP_removeAllAliasesTo(identifier);
@@ -320,18 +397,43 @@ void ucDataFlowSemantics_exit(struct tcb *tcp) {
 	ucPIP_removeIdentifier(identifier);
 
 	// delete all of the processes' open file descriptors
-	if ((openfds = getListOfOpenFileDescriptors(tcp->pid, &count))) {
-		while (count-- > 0) {
-			getIdentifierFD(tcp->pid, openfds[count], identifier, sizeof(identifier));
+	if (procFDs[pid]) {
+		GHashTableIter iter;
+		gpointer fd;
+		g_hash_table_iter_init(&iter, procFDs[pid]);
+		while (g_hash_table_iter_next (&iter, &fd, NULL)) {
+			getIdentifierFD(pid, * (int*)fd, identifier, sizeof(identifier));
 			ucPIP_removeIdentifier(identifier);
 		}
-		free(openfds);
+	}
+	else {
+		ucSemantics_errorExit("procFDs not set. This should not happen.");
 	}
 
+	ucSemantics_destroyProcess(pid);
 
-	removeProcMem(tcp->pid);
+	printf("exit(): %d\n", pid);
+}
 
-	printf("exit(): %d\n", tcp->pid);
+void ucDataFlowSemantics_exit(struct tcb *tcp) {
+	ucDataFlowSemantics_do_process_exit(tcp->pid);
+}
+
+
+
+void ucDataFlowSemantics_exit_group(struct tcb *tcp) {
+	int count;
+	int *tasks;
+
+	// terminate all of the processes' tasks
+	if ((tasks = getProcessTasks(tcp->pid, &count))) {
+		while (count-- > 0) {
+			ucDataFlowSemantics_do_process_exit(tasks[count]);
+		}
+		free(tasks);
+	}
+
+	printf("exit_group(): %d\n", tcp->pid);
 }
 
 void ucDataFlowSemantics_execve(struct tcb *tcp) {
@@ -348,7 +450,7 @@ void ucDataFlowSemantics_execve(struct tcb *tcp) {
 	// TODO: man 2 execve
 	// Remember that execve returns 3 times!
 	// Also consider man 2 open and fcntl: some file descriptors close automatically on exeve()
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "execve missing semantics for %s (pid: %d)\n", tcp->s_ent->sys_name, tcp->pid);
 }
 
 
@@ -393,16 +495,16 @@ void ucDataFlowSemantics_open(struct tcb *tcp) {
 
 void ucDataFlowSemantics_openat(struct tcb *tcp) {
 	// TODO. man 2 openat
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
 void ucDataFlowSemantics_socket(struct tcb *tcp) {
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 socket
 }
 
 void ucDataFlowSemantics_socketpair(struct tcb *tcp) {
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 socketpair
 }
 
@@ -423,17 +525,17 @@ void ucDataFlowSemantics_fcntl(struct tcb *tcp) {
 }
 
 void ucDataFlowSemantics_shutdown(struct tcb *tcp) {
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 shutdown
 }
 
 void ucDataFlowSemantics_eventfd(struct tcb *tcp) {
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 eventfd
 }
 
 void ucDataFlowSemantics_mmap(struct tcb *tcp) {
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 mmap
 }
 
@@ -448,12 +550,12 @@ void ucDataFlowSemantics_kill(struct tcb *tcp) {
 }
 
 void ucDataFlowSemantics_accept(struct tcb *tcp) {
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 accept
 }
 
 void ucDataFlowSemantics_connect(struct tcb *tcp) {
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 connect
 }
 
@@ -480,20 +582,32 @@ void ucDataFlowSemantics_rename(struct tcb *tcp) {
 	printf("rename(): %s --> %s\n", oldAbsFilename, newAbsFilename);
 }
 
-void ucDataFlowSemantics_clone(struct tcb *tcp) {
-	int count;
-	int *fds;
 
-	if (tcp->u_rval < 0) {
-		return;
-	}
+//void ucDataFlowSemantics_cloneParentEnter(struct tcb *tcp) {
+//	printf("old cloning process: %d %s %d (%d)\n", tcp->pid, tcp->s_ent->sys_name, cloningProcess, exiting(tcp));
+//
+//	if (cloningProcess != -1) {
+//		ucSemantics_errorExit("Cloning process already set.");
+//	}
+//
+//	printf("set cloning process: %d\n", tcp->pid);
+//	cloningProcess = tcp->pid;
+//}
 
-	addProcMem(tcp->u_rval);
+void ucDataFlowSemantics_cloneFirstAction(struct tcb *tcp) {
+	int pid = tcp->pid;
 
-	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
-	getIdentifierPID(tcp->u_rval, identifier2, sizeof(identifier2));
+//	int count;
+//	int *fds;
+
+	int ppid = ucSemantics_initProcess(pid);
+
+	getIdentifierPID(ppid, identifier, sizeof(identifier));
+	getIdentifierPID(pid, identifier2, sizeof(identifier2));
 
 	ucPIP_addIdentifier(identifier2, NULL);
+
+	printf("clone(): %s %s\n", identifier, identifier2);
 
 	// copy all the data to the new process
 	ucPIP_copyData(identifier, identifier2);
@@ -503,19 +617,117 @@ void ucDataFlowSemantics_clone(struct tcb *tcp) {
 	ucPIP_alsoAlias(identifier, identifier2);
 
 	// copy all file descriptors
-	fds = getListOfOpenFileDescriptors(tcp->pid, &count);
-	while (--count >= 0) {
-		getIdentifierFD(tcp->pid, fds[count], identifier, sizeof(identifier));
-		getIdentifierFD(tcp->u_rval, fds[count], identifier2, sizeof(identifier2));
+	if (procFDs[ppid]) {
+		GHashTableIter iter;
+		gpointer fd;
+		g_hash_table_iter_init(&iter, procFDs[ppid]);
+		while (g_hash_table_iter_next (&iter, &fd, NULL)) {
+			getIdentifierFD(ppid, * (int*)fd, identifier, sizeof(identifier));
+			getIdentifierFD(pid, * (int*)fd, identifier2, sizeof(identifier2));
+			printf(" cloning: %s %s\n", identifier, identifier2);
 
-		if (ucpIP_existsContainer(identifier)) {
-			ucPIP_addIdentifier(identifier, identifier2);
+			if (ucpIP_existsContainer(identifier)) {
+				ucPIP_addIdentifier(identifier, identifier2);
+			}
 		}
 	}
-	free(fds);
+	else {
+		ucSemantics_errorExit("procFDs not set. This should not happen.");
+	}
+}
 
+void ucDataFlowSemantics_clone(struct tcb *tcp) {
+//	int count;
+//	int *fds;
+//
+//	if (cloningProcess == -1) {
+//		ucSemantics_errorExit("Cloning process already set.");
+//	}
+//
+//	cloningProcess = tcp->pid;
+//	printf("set cloning process: %d\n", tcp->pid);
 
-	printf("clone(): %d : %ld\n", tcp->pid, tcp->u_rval);
+//	int pid = tcp->
+//	int ppid;
+//
+//	char procpath[FILENAME_MAX];
+//	snprintf(procpath, sizeof(procpath), "/proc/%d/status", pid);
+//	FILE *procfs = fopen(procpath, "r");
+//
+//	printf("procfs %s\n", procfs);
+//
+//	int found = 0;
+//	char *line;
+//	int r = 0;
+//
+//	while (!found && r >= 0) {
+//		line = NULL;
+//		r = getline(&line, 0, procfs);
+//		printf("getline: %s", line);
+//	}
+//
+//	addProcMem(pid);
+//
+//	getIdentifierPID(ppid, identifier, sizeof(identifier));
+//	getIdentifierPID(pid, identifier2, sizeof(identifier2));
+//
+//	ucPIP_addIdentifier(identifier2, NULL);
+//
+//	// copy all the data to the new process
+//	ucPIP_copyData(identifier, identifier2);
+//
+//	// clone all the aliases
+//	ucPIP_copyAliases(identifier, identifier2);
+//	ucPIP_alsoAlias(identifier, identifier2);
+//
+//	// copy all file descriptors
+//	fds = getListOfOpenFileDescriptors(ppid, &count);
+//	while (--count >= 0) {
+//		getIdentifierFD(ppid, fds[count], identifier, sizeof(identifier));
+//		getIdentifierFD(pid, fds[count], identifier2, sizeof(identifier2));
+//
+//		if (ucpIP_existsContainer(identifier)) {
+//			ucPIP_addIdentifier(identifier, identifier2);
+//		}
+//	}
+//	free(fds);
+//
+//
+//	printf("clone(): %d : %d\n", ppid, pid);
+
+//	if (tcp->u_rval < 0) {
+//		return;
+//	}
+//
+//
+//	addProcMem(tcp->u_rval);
+//
+//	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+//	getIdentifierPID(tcp->u_rval, identifier2, sizeof(identifier2));
+//
+//	ucPIP_addIdentifier(identifier2, NULL);
+//
+//	// copy all the data to the new process
+//	ucPIP_copyData(identifier, identifier2);
+//
+//	// clone all the aliases
+//	ucPIP_copyAliases(identifier, identifier2);
+//	ucPIP_alsoAlias(identifier, identifier2);
+//
+//	// copy all file descriptors
+//	fds = getListOfOpenFileDescriptors(tcp->pid, &count);
+//	while (--count >= 0) {
+//		getIdentifierFD(tcp->pid, fds[count], identifier, sizeof(identifier));
+//		getIdentifierFD(tcp->u_rval, fds[count], identifier2, sizeof(identifier2));
+//
+//		if (ucpIP_existsContainer(identifier)) {
+//			ucPIP_addIdentifier(identifier, identifier2);
+//		}
+//	}
+//	free(fds);
+//
+//
+//	printf("clone(): %d : %ld\n", tcp->pid, tcp->u_rval);
 }
 
 void ucDataFlowSemantics_ftruncate(struct tcb *tcp) {
@@ -541,14 +753,14 @@ void ucDataFlowSemantics_splice(struct tcb *tcp) {
 
 
 
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 splice
 }
 
 void ucDataFlowSemantics_munmap(struct tcb *tcp) {
 	// TODO. man 2 munmap
 	// is it possible to do something useful here?
-	fprintf(stderr, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
 void ucDataFlowSemantics_pipe(struct tcb *tcp) {
@@ -886,6 +1098,14 @@ void ucDataFlowSemantics__init() {
 
 	// important fact: this memory is initialized to zero!
 	procMem = calloc(pid_max, sizeof(int));
+	procFDs = calloc(pid_max, sizeof(GHashTable *));
+
+	if (!procMem || !procFDs) {
+		ucSemantics_errorExit("Unable to allocate enoug memory");
+	}
 }
 
 
+void ucDataFlowSemantics_IGNORE(struct tcb *tcp) {
+	printf("ignoring %s (%d)\n",tcp->s_ent->sys_name, tcp->pid);
+}

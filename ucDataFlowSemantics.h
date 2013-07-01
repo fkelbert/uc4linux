@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <glib.h>
 
 #define UC_SEMANTICS_DEBUG 1
 
@@ -35,6 +36,7 @@
 #define isAbsolute(string) *string == '/'
 
 #define streq(str1, str2) (strcmp(str1,str2) == 0)
+#define strneq(str1, str2, n) (strncmp(str1,str2,n) == 0)
 
 void ucPIPupdate(struct tcb *tcp);
 
@@ -47,6 +49,7 @@ void ucDataFlowSemantics_dup(struct tcb *tcp);
 void ucDataFlowSemantics_eventfd(struct tcb *tcp);
 void ucDataFlowSemantics_execve(struct tcb *tcp);
 void ucDataFlowSemantics_exit(struct tcb *tcp);
+void ucDataFlowSemantics_exit_group(struct tcb *tcp);
 void ucDataFlowSemantics_fcntl(struct tcb *tcp);
 void ucDataFlowSemantics_ftruncate(struct tcb *tcp);
 void ucDataFlowSemantics_kill(struct tcb *tcp);
@@ -64,5 +67,14 @@ void ucDataFlowSemantics_splice(struct tcb *tcp);
 void ucDataFlowSemantics_unlink(struct tcb *tcp);
 void ucDataFlowSemantics_write(struct tcb *tcp);
 
+void ucDataFlowSemantics_cloneParentEnter(struct tcb *tcp);
+void ucDataFlowSemantics_cloneFirstAction(struct tcb *tcp);
+
+#if UC_SEMANTICS_DEBUG
+void ucDataFlowSemantics_IGNORE(struct tcb *tcp);
+#else
+#define ucDataFlowSemantics_IGNORE(tcp) NULL
+#endif
 
 #endif /* UC_SEMANTICS_H_ */
+
