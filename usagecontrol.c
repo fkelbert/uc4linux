@@ -2,7 +2,14 @@
 
 
 void ucInit() {
+#ifdef UC_SEMANTICS_H_
 	ucDataFlowSemantics__init();
+#endif
+
+#ifdef UC_DECLASS_H_
+	ucDeclass__init();
+#endif
+
 	ucPIP_init();
 
 	ucPIP_addInitialData("/tmp/foo");
@@ -16,15 +23,17 @@ int ucBeforeSyscallEnter(struct tcb *tcp) {
 		case UC_PDP_ALLOW:
 		case UC_PDP_MODIFY:	// modify assumes that the syscall has already been modified transparently		
 			if (ucPIPupdateBefore(tcp)) {
-//				ucPIPupdate(tcp);
 				if (ucDataFlowSemanticsFunct[tcp->scno]) {
 					ucDataFlowSemanticsFunct[tcp->scno](tcp);
+#ifdef UC_DECLASS_H_
+//					ucDeclassEvent(tcp);
+#endif
+					ucPIP_printF();
+					ucPIP_printS();
 				}
 				else {
 					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
 				}
-				ucPIP_printF();
-				ucPIP_printS();
 			}
 			break;
 		case UC_PDP_INHIBIT:
@@ -45,15 +54,17 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 	switch(retval) {
 		case UC_PDP_ALLOW:		
 			if (ucPIPupdateAfter(tcp)) {
-//				ucPIPupdate(tcp);
 				if (ucDataFlowSemanticsFunct[tcp->scno]) {
 					ucDataFlowSemanticsFunct[tcp->scno](tcp);
+#ifdef UC_DECLASS_H_
+//					ucDeclassEvent(tcp);
+#endif
+					ucPIP_printF();
+					ucPIP_printS();
 				}
 				else {
 					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
 				}
-				ucPIP_printF();
-				ucPIP_printS();
 			}
 			break;
 		case UC_PDP_DELAY:
@@ -66,43 +77,6 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 	return (retval);
 }
 
-
-// these values are from syscallent.h
-#define SYS_socket_subcall	400
-#define SYS_ipc_subcall	420
-
-#define SYS_socket (SYS_socket_subcall + 1)
-#define SYS_bind (SYS_socket_subcall + 2)
-#define SYS_connect (SYS_socket_subcall + 3)
-#define SYS_listen (SYS_socket_subcall + 4)
-#define SYS_accept (SYS_socket_subcall + 5)
-#define SYS_getsockname (SYS_socket_subcall + 6)
-#define SYS_getpeername (SYS_socket_subcall + 7)
-#define SYS_socketpair (SYS_socket_subcall + 8)
-#define SYS_send (SYS_socket_subcall + 9)
-#define SYS_recv (SYS_socket_subcall + 10)
-#define SYS_sendto (SYS_socket_subcall + 11)
-#define SYS_recvfrom (SYS_socket_subcall + 12)
-#define SYS_shutdown (SYS_socket_subcall + 13)
-#define SYS_setsockopt (SYS_socket_subcall + 14)
-#define SYS_getsockopt (SYS_socket_subcall + 15)
-#define SYS_sendmsg (SYS_socket_subcall + 16)
-#define SYS_recvmsg (SYS_socket_subcall + 17)
-#define SYS_accept4 (SYS_socket_subcall + 18)
-//#define SYS_recvmmsg (SYS_socket_subcall + 19)
-
-#define SYS_semop (SYS_ipc_subcall + 21)
-#define SYS_semget (SYS_ipc_subcall + 22)
-#define SYS_semctl (SYS_ipc_subcall + 23)
-#define SYS_semtimedop (SYS_ipc_subcall + 24)
-#define SYS_msgsnd (SYS_ipc_subcall + 31)
-#define SYS_msgrcv (SYS_ipc_subcall + 32)
-#define SYS_msgget (SYS_ipc_subcall + 33)
-#define SYS_msgctl (SYS_ipc_subcall + 34)
-#define SYS_shmat (SYS_ipc_subcall + 41)
-#define SYS_shmdt (SYS_ipc_subcall + 42)
-#define SYS_shmget (SYS_ipc_subcall + 43)
-#define SYS_shmctl (SYS_ipc_subcall + 44)
 
 
 
