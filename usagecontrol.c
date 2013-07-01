@@ -3,7 +3,7 @@
 
 void ucInit() {
 #ifdef UC_SEMANTICS_H_
-	ucDataFlowSemantics__init();
+	ucSemantics__init();
 #endif
 
 #ifdef UC_DECLASS_H_
@@ -23,16 +23,16 @@ int ucBeforeSyscallEnter(struct tcb *tcp) {
 		case UC_PDP_ALLOW:
 		case UC_PDP_MODIFY:	// modify assumes that the syscall has already been modified transparently		
 			if (ucPIPupdateBefore(tcp)) {
-				if (ucDataFlowSemanticsFunct[tcp->scno]) {
-					ucDataFlowSemanticsFunct[tcp->scno](tcp);
+				if (ucSemanticsFunct[tcp->scno]) {
+					ucSemanticsFunct[tcp->scno](tcp);
 #if UC_DECLASS_ENABLED
 //					ucDeclassEvent(tcp);
 #endif
-					ucPIP_printF();
-					ucPIP_printS();
+//					ucPIP_printF();
+//					ucPIP_printS();
 				}
 				else {
-					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
+//					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
 				}
 			}
 			break;
@@ -54,16 +54,16 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 	switch(retval) {
 		case UC_PDP_ALLOW:		
 			if (ucPIPupdateAfter(tcp)) {
-				if (ucDataFlowSemanticsFunct[tcp->scno]) {
-					ucDataFlowSemanticsFunct[tcp->scno](tcp);
+				if (ucSemanticsFunct[tcp->scno]) {
+					ucSemanticsFunct[tcp->scno](tcp);
 #if UC_DECLASS_ENABLED
 //					ucDeclassEvent(tcp);
 #endif
-					ucPIP_printF();
-					ucPIP_printS();
+//					ucPIP_printF();
+//					ucPIP_printS();
 				}
 				else {
-					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
+//					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
 				}
 			}
 			break;
@@ -81,8 +81,8 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 
 
 
-void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
-	[SYS_accept] = ucDataFlowSemantics_accept,
+void (*ucSemanticsFunct[])(struct tcb *tcp) = {
+	[SYS_accept] = ucSemantics_accept,
 	[SYS_access] = NULL,
 	[SYS_acct] = NULL,
 	[SYS_add_key] = NULL,
@@ -106,24 +106,24 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_clock_nanosleep] = NULL,
 	[SYS_clock_settime] = NULL,
 	[SYS_clone] = NULL,								// we handle clone differently...
-	[SYS_close] = ucDataFlowSemantics_close,
-	[SYS_connect] = ucDataFlowSemantics_connect,
+	[SYS_close] = ucSemantics_close,
+	[SYS_connect] = ucSemantics_connect,
 	[SYS_create_module] = NULL,
 	[SYS_creat] = NULL,
 	[SYS_delete_module] = NULL,
-	[SYS_dup2] = ucDataFlowSemantics_dup2,
-	[SYS_dup3] = ucDataFlowSemantics_dup2,
-	[SYS_dup] = ucDataFlowSemantics_dup,
+	[SYS_dup2] = ucSemantics_dup2,
+	[SYS_dup3] = ucSemantics_dup2,
+	[SYS_dup] = ucSemantics_dup,
 	[SYS_epoll_create1] = NULL,
 	[SYS_epoll_create] = NULL,
 	[SYS_epoll_ctl] = NULL,
 	[SYS_epoll_pwait] = NULL,
 	[SYS_epoll_wait] = NULL,
-	[SYS_eventfd2] = ucDataFlowSemantics_eventfd,
-	[SYS_eventfd] = ucDataFlowSemantics_eventfd,
-	[SYS_execve] = ucDataFlowSemantics_execve,
-	[SYS_exit_group] = ucDataFlowSemantics_exit_group,
-	[SYS_exit] = ucDataFlowSemantics_exit,
+	[SYS_eventfd2] = ucSemantics_eventfd,
+	[SYS_eventfd] = ucSemantics_eventfd,
+	[SYS_execve] = ucSemantics_execve,
+	[SYS_exit_group] = ucSemantics_exit_group,
+	[SYS_exit] = ucSemantics_exit,
 	[SYS_faccessat] = NULL,
 	[SYS_fadvise64_64] = NULL,
 	[SYS_fadvise64] = NULL,
@@ -136,13 +136,13 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_fchown32] = NULL,
 	[SYS_fchownat] = NULL,
 	[SYS_fchown] = NULL,
-	[SYS_fcntl64] = ucDataFlowSemantics_fcntl,
-	[SYS_fcntl] = ucDataFlowSemantics_fcntl,
+	[SYS_fcntl64] = ucSemantics_fcntl,
+	[SYS_fcntl] = ucSemantics_fcntl,
 	[SYS_fdatasync] = NULL,
 	[SYS_fgetxattr] = NULL,
 	[SYS_flistxattr] = NULL,
 	[SYS_flock] = NULL,
-	[SYS_fork] = ucDataFlowSemantics_IGNORE,
+	[SYS_fork] = ucSemantics_IGNORE,
 	[SYS_fremovexattr] = NULL,
 	[SYS_fsetxattr] = NULL,
 	[SYS_fstat64] = NULL,
@@ -152,8 +152,8 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_fstat] = NULL,
 	[SYS_fsync] = NULL,
 	[SYS_ftime] = NULL,
-	[SYS_ftruncate64] = ucDataFlowSemantics_ftruncate,
-	[SYS_ftruncate] = ucDataFlowSemantics_ftruncate,
+	[SYS_ftruncate64] = ucSemantics_ftruncate,
+	[SYS_ftruncate] = ucSemantics_ftruncate,
 	[SYS_futex] = NULL,
 	[SYS_futimesat] = NULL,
 	[SYS_getcpu] = NULL,
@@ -190,7 +190,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_getsockopt] = NULL,
 	[SYS_get_thread_area] = NULL,
 	[SYS_gettid] = NULL,
-	[SYS_gettimeofday] = ucDataFlowSemantics_IGNORE,
+	[SYS_gettimeofday] = ucSemantics_IGNORE,
 	[SYS_getuid32] = NULL,
 	[SYS_getuid] = NULL,
 	[SYS_getxattr] = NULL,
@@ -214,7 +214,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_ipc] = NULL,
 	[SYS_kexec_load] = NULL,
 	[SYS_keyctl] = NULL,
-	[SYS_kill] = ucDataFlowSemantics_kill,
+	[SYS_kill] = ucSemantics_kill,
 	[SYS_lchown32] = NULL,
 	[SYS_lchown] = NULL,
 	[SYS_lgetxattr] = NULL,
@@ -242,8 +242,8 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_mknod] = NULL,
 	[SYS_mlockall] = NULL,
 	[SYS_mlock] = NULL,
-	[SYS_mmap2] = ucDataFlowSemantics_mmap,
-	[SYS_mmap] = ucDataFlowSemantics_mmap,
+	[SYS_mmap2] = ucSemantics_mmap,
+	[SYS_mmap] = ucSemantics_mmap,
 	[SYS_modify_ldt] = NULL,
 	[SYS_mount] = NULL,
 	[SYS_move_pages] = NULL,
@@ -254,12 +254,12 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_mq_open ] = NULL,
 	[SYS_mq_timedreceive] = NULL,
 	[SYS_mq_timedsend] = NULL,
-	[SYS_mq_unlink] = ucDataFlowSemantics_unlink,
+	[SYS_mq_unlink] = ucSemantics_unlink,
 	[SYS_mremap] = NULL,
 	[SYS_msync] = NULL,
 	[SYS_munlockall] = NULL,
 	[SYS_munlock] = NULL,
-	[SYS_munmap] = ucDataFlowSemantics_munmap,
+	[SYS_munmap] = ucSemantics_munmap,
 	[SYS_name_to_handle_at] = NULL,
 	[SYS_nanosleep] = NULL,
 	[SYS__newselect] = NULL,
@@ -270,20 +270,20 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_oldolduname] = NULL,
 	[SYS_oldstat] = NULL,
 	[SYS_olduname] = NULL,
-	[SYS_openat] = ucDataFlowSemantics_openat,
+	[SYS_openat] = ucSemantics_openat,
 	[SYS_open_by_handle_at] = NULL,
-	[SYS_open] = ucDataFlowSemantics_open,
+	[SYS_open] = ucSemantics_open,
 	[SYS_pause] = NULL,
 	[SYS_perf_event_open] = NULL,
 	[SYS_personality] = NULL,
-	[SYS_pipe2] = ucDataFlowSemantics_pipe,
-	[SYS_pipe] = ucDataFlowSemantics_pipe,
+	[SYS_pipe2] = ucSemantics_pipe,
+	[SYS_pipe] = ucSemantics_pipe,
 	[SYS_pivot_root] = NULL,
-	[SYS_poll] = ucDataFlowSemantics_IGNORE,
+	[SYS_poll] = ucSemantics_IGNORE,
 	[SYS_ppoll] = NULL,
 	[SYS_prctl] = NULL,
-	[SYS_pread64] = ucDataFlowSemantics_read,
-	[SYS_preadv] = ucDataFlowSemantics_read,
+	[SYS_pread64] = ucSemantics_read,
+	[SYS_preadv] = ucSemantics_read,
 	[SYS_prlimit64] = NULL,
 	[SYS_process_vm_readv] = NULL,
 	[SYS_process_vm_writev] = NULL,
@@ -292,25 +292,25 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_pselect6] = NULL,
 	[SYS_ptrace] = NULL,
 	[SYS_putpmsg] = NULL,
-	[SYS_pwrite64] = ucDataFlowSemantics_write,
-	[SYS_pwritev] = ucDataFlowSemantics_write,
+	[SYS_pwrite64] = ucSemantics_write,
+	[SYS_pwritev] = ucSemantics_write,
 	[SYS_query_module] = NULL,
 	[SYS_quotactl] = NULL,
 	[SYS_readahead] = NULL,
 	[SYS_readdir] = NULL,
 	[SYS_readlinkat] = NULL,
 	[SYS_readlink] = NULL,
-	[SYS_read] = ucDataFlowSemantics_read,
-	[SYS_readv] = ucDataFlowSemantics_read,
+	[SYS_read] = ucSemantics_read,
+	[SYS_readv] = ucSemantics_read,
 	[SYS_reboot] = NULL,
-	[SYS_recvfrom] = ucDataFlowSemantics_read,
-	[SYS_recvmmsg] = ucDataFlowSemantics_read,
-	[SYS_recvmsg] = ucDataFlowSemantics_read,
-	[SYS_recv] = ucDataFlowSemantics_read,
+	[SYS_recvfrom] = ucSemantics_read,
+	[SYS_recvmmsg] = ucSemantics_read,
+	[SYS_recvmsg] = ucSemantics_read,
+	[SYS_recv] = ucSemantics_read,
 	[SYS_remap_file_pages] = NULL,
 	[SYS_removexattr] = NULL,
 	[SYS_renameat] = NULL,
-	[SYS_rename] = ucDataFlowSemantics_rename,
+	[SYS_rename] = ucSemantics_rename,
 	[SYS_request_key] = NULL,
 	[SYS_restart_syscall] = NULL,
 	[SYS_rmdir] = NULL,
@@ -336,10 +336,10 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_select] = NULL,
 	[SYS_sendfile64] = NULL,
 	[SYS_sendfile] = NULL,
-	[SYS_sendmmsg] = ucDataFlowSemantics_write,
-	[SYS_sendmsg] = ucDataFlowSemantics_write,
-	[SYS_send] = ucDataFlowSemantics_write,
-	[SYS_sendto] = ucDataFlowSemantics_write,
+	[SYS_sendmmsg] = ucSemantics_write,
+	[SYS_sendmsg] = ucSemantics_write,
+	[SYS_send] = ucSemantics_write,
+	[SYS_sendto] = ucSemantics_write,
 	[SYS_setdomainname] = NULL,
 	[SYS_setfsgid32] = NULL,
 	[SYS_setfsgid] = NULL,
@@ -375,7 +375,7 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_setuid] = NULL,
 	[SYS_setxattr] = NULL,
 	[SYS_sgetmask] = NULL,
-	[SYS_shutdown] = ucDataFlowSemantics_shutdown,
+	[SYS_shutdown] = ucSemantics_shutdown,
 	[SYS_sigaction] = NULL,
 	[SYS_sigaltstack] = NULL,
 	[SYS_signalfd4] = NULL,
@@ -386,9 +386,9 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_sigreturn] = NULL,
 	[SYS_sigsuspend] = NULL,
 	[SYS_socketcall] = NULL,
-	[SYS_socketpair] = ucDataFlowSemantics_socketpair,
-	[SYS_socket_subcall + 1] = ucDataFlowSemantics_socket,
-	[SYS_splice] = ucDataFlowSemantics_splice,
+	[SYS_socketpair] = ucSemantics_socketpair,
+	[SYS_socket_subcall + 1] = ucSemantics_socket,
+	[SYS_splice] = ucSemantics_splice,
 	[SYS_ssetmask] = NULL,
 	[SYS_stat64] = NULL,
 	[SYS_statfs64] = NULL,
@@ -436,17 +436,17 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_utimensat] = NULL,
 	[SYS_utimes] = NULL,
 	[SYS_utime] = NULL,
-	[SYS_vfork] = ucDataFlowSemantics_IGNORE,
+	[SYS_vfork] = ucSemantics_IGNORE,
 	[SYS_vhangup] = NULL,
 	[SYS_vm86old] = NULL,
 	[SYS_vm86] = NULL,
 	[SYS_vmsplice] = NULL,
 	[SYS_vserver] = NULL,
-	[SYS_wait4] = ucDataFlowSemantics_IGNORE,
-	[SYS_waitid] = ucDataFlowSemantics_IGNORE,
-	[SYS_waitpid] = ucDataFlowSemantics_IGNORE,
-	[SYS_write] = ucDataFlowSemantics_write,
-	[SYS_writev] = ucDataFlowSemantics_write,
+	[SYS_wait4] = ucSemantics_IGNORE,
+	[SYS_waitid] = ucSemantics_IGNORE,
+	[SYS_waitpid] = ucSemantics_IGNORE,
+	[SYS_write] = ucSemantics_write,
+	[SYS_writev] = ucSemantics_write,
 
 
 	[SYS_semop] = NULL,
@@ -463,6 +463,6 @@ void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_shmget] = NULL,
 	[SYS_shmctl] = NULL,
 
-	[SYS_cloneFirstAction] = ucDataFlowSemantics_cloneFirstAction
+	[SYS_cloneFirstAction] = ucSemantics_cloneFirstAction
 
 };

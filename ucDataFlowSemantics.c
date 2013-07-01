@@ -20,7 +20,7 @@ int initialProcess = 1;
 void addProcMem(int pid) {
 	if (procMem[pid] == 0) {
 		char foo[512];
-		snprintf(foo, 512, "/proc/%d/mem", pid);
+		snprintf(foo, 512, "%s/%d/mem", PROCFS_MNT, pid);
 		procMem[pid] = open(foo, O_RDONLY);
 	}
 }
@@ -36,10 +36,8 @@ int ucSemantics_initProcess(int pid) {
 	size_t len = 0;
 	int ppid = -1;
 
-	printf("baby process %d. Crying for Mummy!\n", pid);
-
 	char procpath[FILENAME_MAX];
-	snprintf(procpath, sizeof(procpath), "/proc/%d/status", pid);
+	snprintf(procpath, sizeof(procpath), "%s/%d/status", PROCFS_MNT, pid);
 	FILE *procfs = fopen(procpath, "r");
 
 	if (!procfs) {
@@ -110,14 +108,13 @@ char *getString(struct tcb *tcp, long addr, char *dataStr, int len_buf) {
 	// if (for whatever reason) reading from /proc/<pid>/mem fails, then
 	// fallback to a function provided by strace
 	if (r <= 0) {
-		printf("getstr fallback\n");
+		ucSemantics_log("getString fallback (reading using PTRACE_PEEKDATA)\n");
 		if (!umovestr(tcp, addr, len_buf, dataStr)) {
 			dataStr[len_buf - 1] = '\0';
 		}
 	}
 	else {
-
-		printf("getstr usual\n");
+		ucSemantics_log("getString usual (reading from /proc)\n");
 	}
 
 	// safety
@@ -135,7 +132,7 @@ int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 	int size = 8; // do not init to 0!
 	*count = 0;
 
-	ret = snprintf(procfsPath, sizeof(procfsPath), "/proc/%ld/%s", pid, procSubPath);
+	ret = snprintf(procfsPath, sizeof(procfsPath), "%s/%ld/%s", PROCFS_MNT, pid, procSubPath);
 
 	if (ret >= sizeof(procfsPath)) {
 		ucSemantics_errorExit("Buffer overflowed.");
@@ -211,7 +208,7 @@ char *getCwd(long pid, char *cwd, int len) {
 		return NULL;
 	}
 
-	snprintf(tmp, sizeof(tmp), "/proc/%ld/cwd", pid);
+	snprintf(tmp, sizeof(tmp), "%s/%ld/cwd", PROCFS_MNT, pid);
 	if ((read = readlink(tmp, cwd, sizeof(cwd) - 1)) == -1) {
 		return NULL ;
 	}
@@ -359,7 +356,7 @@ char *getIdentifierPID(int pid, char *ident, int len) {
 }
 
 // todo: write into aliases
-void ucDataFlowSemantics_write(struct tcb *tcp) {
+void ucSemantics_write(struct tcb *tcp) {
 	if (tcp->u_arg[0] <= 0) {
 		// if return value is 0, nothing was written.
 		return;
@@ -367,11 +364,11 @@ void ucDataFlowSemantics_write(struct tcb *tcp) {
 
 	ucPIP_copyData(getIdentifierPID(tcp->pid, identifier, sizeof(identifier)), getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2)));
 
-	printf("write(): %s --> %s\n", identifier, identifier2);
+	ucSemantics_log("write(): %s --> %s\n", identifier, identifier2);
 }
 
 // todo: write into aliases
-void ucDataFlowSemantics_read(struct tcb *tcp) {
+void ucSemantics_read(struct tcb *tcp) {
 	if (tcp->u_arg[0] <= 0) {
 		// if return value is 0, nothing was written.
 		return;
@@ -379,13 +376,13 @@ void ucDataFlowSemantics_read(struct tcb *tcp) {
 
 	ucPIP_copyData(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)), getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2)));
 
-	printf("read(): %d <-- %s\n", tcp->pid, identifier);
+	ucSemantics_log("read(): %d <-- %s\n", tcp->pid, identifier);
 }
 
 
 
 
-void ucDataFlowSemantics_do_process_exit(int pid) {
+void ucSemantics_do_process_exit(int pid) {
 	int count;
 	int *openfds;
 
@@ -412,33 +409,32 @@ void ucDataFlowSemantics_do_process_exit(int pid) {
 
 	ucSemantics_destroyProcess(pid);
 
-	printf("exit(): %d\n", pid);
+	ucSemantics_log("exit(): %d\n", pid);
 }
 
-void ucDataFlowSemantics_exit(struct tcb *tcp) {
-	ucDataFlowSemantics_do_process_exit(tcp->pid);
+void ucSemantics_exit(struct tcb *tcp) {
+	ucSemantics_do_process_exit(tcp->pid);
 }
 
 
 
-void ucDataFlowSemantics_exit_group(struct tcb *tcp) {
+void ucSemantics_exit_group(struct tcb *tcp) {
 	int count;
 	int *tasks;
 
 	// terminate all of the processes' tasks
 	if ((tasks = getProcessTasks(tcp->pid, &count))) {
 		while (count-- > 0) {
-			ucDataFlowSemantics_do_process_exit(tasks[count]);
+			ucSemantics_do_process_exit(tasks[count]);
 		}
 		free(tasks);
 	}
 
-	printf("exit_group(): %d\n", tcp->pid);
+	ucSemantics_log("exit_group(): %d\n", tcp->pid);
 }
 
-void ucDataFlowSemantics_execve(struct tcb *tcp) {
+void ucSemantics_execve(struct tcb *tcp) {
 	if (initialProcess) {
-		printf("execve() initial\n");
 		addProcMem(tcp->pid);
 
 		getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
@@ -450,24 +446,24 @@ void ucDataFlowSemantics_execve(struct tcb *tcp) {
 	// TODO: man 2 execve
 	// Remember that execve returns 3 times!
 	// Also consider man 2 open and fcntl: some file descriptors close automatically on exeve()
-	fprintf(stdout, "execve missing semantics for %s (pid: %d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("execve missing semantics for %s (pid: %d)\n", tcp->s_ent->sys_name, tcp->pid);
 }
 
 
 
 // done
-void ucDataFlowSemantics_close(struct tcb *tcp) {
+void ucSemantics_close(struct tcb *tcp) {
 	if (tcp->u_arg[0] < 0) {
 		return;
 	}
 
 	ucPIP_removeIdentifier(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)));
 
-	printf("close(): %s\n", identifier);
+	ucSemantics_log("close(): %s\n", identifier);
 }
 
 
-void ucDataFlowSemantics_open(struct tcb *tcp) {
+void ucSemantics_open(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 	char *trunkstr = "";
@@ -490,25 +486,25 @@ void ucDataFlowSemantics_open(struct tcb *tcp) {
 
 	ucPIP_addIdentifier(absFilename, identifier);
 
-	printf("open(): %s %d: %s --> %s\n", trunkstr, tcp->pid, absFilename, identifier);
+	ucSemantics_log("open(): %s %d: %s --> %s\n", trunkstr, tcp->pid, absFilename, identifier);
 }
 
-void ucDataFlowSemantics_openat(struct tcb *tcp) {
+void ucSemantics_openat(struct tcb *tcp) {
 	// TODO. man 2 openat
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
-void ucDataFlowSemantics_socket(struct tcb *tcp) {
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+void ucSemantics_socket(struct tcb *tcp) {
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 socket
 }
 
-void ucDataFlowSemantics_socketpair(struct tcb *tcp) {
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+void ucSemantics_socketpair(struct tcb *tcp) {
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 socketpair
 }
 
-void ucDataFlowSemantics_fcntl(struct tcb *tcp) {
+void ucSemantics_fcntl(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return;
 	}
@@ -520,46 +516,46 @@ void ucDataFlowSemantics_fcntl(struct tcb *tcp) {
 
 		ucPIP_addIdentifier(identifier, identifier2);
 
-		printf("fcntl(): %s --> %s\n", identifier, identifier2);
+		ucSemantics_log("fcntl(): %s --> %s\n", identifier, identifier2);
 	}
 }
 
-void ucDataFlowSemantics_shutdown(struct tcb *tcp) {
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+void ucSemantics_shutdown(struct tcb *tcp) {
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 shutdown
 }
 
-void ucDataFlowSemantics_eventfd(struct tcb *tcp) {
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+void ucSemantics_eventfd(struct tcb *tcp) {
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 eventfd
 }
 
-void ucDataFlowSemantics_mmap(struct tcb *tcp) {
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+void ucSemantics_mmap(struct tcb *tcp) {
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 mmap
 }
 
-void ucDataFlowSemantics_kill(struct tcb *tcp) {
+void ucSemantics_kill(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return;
 	}
 
 	ucPIP_copyData(getIdentifierPID(tcp->pid, identifier, sizeof(identifier)), getIdentifierPID(tcp->u_arg[0], identifier2, sizeof(identifier2)));
 
-	printf("kill(): %s --> %s\n", identifier, identifier2);
+	ucSemantics_log("kill(): %s --> %s\n", identifier, identifier2);
 }
 
-void ucDataFlowSemantics_accept(struct tcb *tcp) {
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+void ucSemantics_accept(struct tcb *tcp) {
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 accept
 }
 
-void ucDataFlowSemantics_connect(struct tcb *tcp) {
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+void ucSemantics_connect(struct tcb *tcp) {
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 connect
 }
 
-void ucDataFlowSemantics_rename(struct tcb *tcp) {
+void ucSemantics_rename(struct tcb *tcp) {
 	char oldRelFilename[FILENAME_MAX];
 	char newRelFilename[FILENAME_MAX];
 	char oldAbsFilename[FILENAME_MAX];
@@ -579,26 +575,13 @@ void ucDataFlowSemantics_rename(struct tcb *tcp) {
 	ucPIP_addIdentifier(oldAbsFilename, newAbsFilename);
 	ucPIP_removeIdentifier(oldAbsFilename);
 
-	printf("rename(): %s --> %s\n", oldAbsFilename, newAbsFilename);
+	ucSemantics_log("rename(): %s --> %s\n", oldAbsFilename, newAbsFilename);
 }
 
 
-//void ucDataFlowSemantics_cloneParentEnter(struct tcb *tcp) {
-//	printf("old cloning process: %d %s %d (%d)\n", tcp->pid, tcp->s_ent->sys_name, cloningProcess, exiting(tcp));
-//
-//	if (cloningProcess != -1) {
-//		ucSemantics_errorExit("Cloning process already set.");
-//	}
-//
-//	printf("set cloning process: %d\n", tcp->pid);
-//	cloningProcess = tcp->pid;
-//}
 
-void ucDataFlowSemantics_cloneFirstAction(struct tcb *tcp) {
+void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 	int pid = tcp->pid;
-
-//	int count;
-//	int *fds;
 
 	int ppid = ucSemantics_initProcess(pid);
 
@@ -607,7 +590,7 @@ void ucDataFlowSemantics_cloneFirstAction(struct tcb *tcp) {
 
 	ucPIP_addIdentifier(identifier2, NULL);
 
-	printf("clone(): %s %s\n", identifier, identifier2);
+	ucSemantics_log("clone(): %s %s\n", identifier, identifier2);
 
 	// copy all the data to the new process
 	ucPIP_copyData(identifier, identifier2);
@@ -624,7 +607,6 @@ void ucDataFlowSemantics_cloneFirstAction(struct tcb *tcp) {
 		while (g_hash_table_iter_next (&iter, &fd, NULL)) {
 			getIdentifierFD(ppid, * (int*)fd, identifier, sizeof(identifier));
 			getIdentifierFD(pid, * (int*)fd, identifier2, sizeof(identifier2));
-			printf(" cloning: %s %s\n", identifier, identifier2);
 
 			if (ucpIP_existsContainer(identifier)) {
 				ucPIP_addIdentifier(identifier, identifier2);
@@ -636,7 +618,7 @@ void ucDataFlowSemantics_cloneFirstAction(struct tcb *tcp) {
 	}
 }
 
-void ucDataFlowSemantics_clone(struct tcb *tcp) {
+//void ucSemantics_clone(struct tcb *tcp) {
 //	int count;
 //	int *fds;
 //
@@ -728,13 +710,14 @@ void ucDataFlowSemantics_clone(struct tcb *tcp) {
 //
 //
 //	printf("clone(): %d : %ld\n", tcp->pid, tcp->u_rval);
-}
+//}
 
-void ucDataFlowSemantics_ftruncate(struct tcb *tcp) {
+void ucSemantics_ftruncate(struct tcb *tcp) {
 	// TODO. man 2 ftruncate; do sth if length == 0
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
-void ucDataFlowSemantics_unlink(struct tcb *tcp) {
+void ucSemantics_unlink(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return;
 	}
@@ -743,27 +726,27 @@ void ucDataFlowSemantics_unlink(struct tcb *tcp) {
 
 	ucPIP_removeIdentifier(identifier);
 
-	printf("unlink(): %s\n", identifier);
+	ucSemantics_log("unlink(): %s\n", identifier);
 }
 
-void ucDataFlowSemantics_splice(struct tcb *tcp) {
+void ucSemantics_splice(struct tcb *tcp) {
 	if (tcp->u_rval <= 0) {
 		return;
 	}
 
 
 
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 	// TODO. man 2 splice
 }
 
-void ucDataFlowSemantics_munmap(struct tcb *tcp) {
+void ucSemantics_munmap(struct tcb *tcp) {
 	// TODO. man 2 munmap
 	// is it possible to do something useful here?
-	fprintf(stdout, "missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
 }
 
-void ucDataFlowSemantics_pipe(struct tcb *tcp) {
+void ucSemantics_pipe(struct tcb *tcp) {
 	int fds[2];
 
 	if (tcp->u_rval < 0) {
@@ -776,10 +759,10 @@ void ucDataFlowSemantics_pipe(struct tcb *tcp) {
 
 	ucPIP_addIdentifier(getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier)), getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2)));
 
-	printf("pipe(): %s %s\n", identifier, identifier2);
+	ucSemantics_log("pipe(): %s %s\n", identifier, identifier2);
 }
 
-void ucDataFlowSemantics_dup(struct tcb *tcp) {
+void ucSemantics_dup(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return;
 	}
@@ -789,10 +772,10 @@ void ucDataFlowSemantics_dup(struct tcb *tcp) {
 
 	ucPIP_addIdentifier(identifier, identifier2);
 
-	printf("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
+	ucSemantics_log("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
 }
 
-void ucDataFlowSemantics_dup2(struct tcb *tcp) {
+void ucSemantics_dup2(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return;
 	}
@@ -810,279 +793,20 @@ void ucDataFlowSemantics_dup2(struct tcb *tcp) {
 
 	ucPIP_addIdentifier(identifier, identifier2);
 
-	printf("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
+	ucSemantics_log("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
 }
 
-//void ucPIPupdate(struct tcb *tcp) {
-//	// pointer to the function to execute in order to update the PIP
-//	void (*ucDataFlowSemanticsFunc)(struct tcb *tcp) = NULL;
-//
-//	// Note: Do not(!) compare function pointer. This will not work out,
-//	// e.g. for dup() which is mapped to the internal sys_open()!
-//	if (streq(tcp->s_ent->sys_name, "write")
-//			|| streq(tcp->s_ent->sys_name, "writev")
-//			|| streq(tcp->s_ent->sys_name, "pwrite")
-//			|| streq(tcp->s_ent->sys_name, "pwritev")
-//			|| streq(tcp->s_ent->sys_name, "pwrite64")
-//			|| streq(tcp->s_ent->sys_name, "send")
-//			|| streq(tcp->s_ent->sys_name, "sendto")
-//			|| streq(tcp->s_ent->sys_name, "sendmsg")
-//			|| streq(tcp->s_ent->sys_name, "sendmmsg")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_write;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "read")
-//			|| streq(tcp->s_ent->sys_name, "readv")
-//			|| streq(tcp->s_ent->sys_name, "pread")
-//			|| streq(tcp->s_ent->sys_name, "pread64")
-//			|| streq(tcp->s_ent->sys_name, "preadv")
-//			|| streq(tcp->s_ent->sys_name, "recv")
-//			|| streq(tcp->s_ent->sys_name, "recvfrom")
-//			|| streq(tcp->s_ent->sys_name, "recvmsg")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_read;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "exit")
-//			|| streq(tcp->s_ent->sys_name, "_exit")
-//			|| streq(tcp->s_ent->sys_name, "exit_group")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_exit;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "execve")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_execve;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "close")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_close;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "open")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_open;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "openat")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_openat;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "socket")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_socket;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "socketpair")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_socketpair;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "accept")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_accept;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "connect")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_connect;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "fcntl64")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_fcntl;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "shutdown")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_shutdown;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "splice")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_splice;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "rename")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_rename;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "eventfd2")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_eventfd;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "unlink")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_unlink;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "kill")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_kill;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "munmap")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_munmap;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "clone")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_clone;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "ftruncate")
-//			|| streq(tcp->s_ent->sys_name, "ftruncate64")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_ftruncate;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "mmap")
-//			|| streq(tcp->s_ent->sys_name, "mmap2")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_mmap;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "pipe")
-//			|| streq(tcp->s_ent->sys_name, "pipe2")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_pipe;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "dup")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup;
-//	}
-//	else if (streq(tcp->s_ent->sys_name, "dup2")
-//			|| streq(tcp->s_ent->sys_name, "dup3")) {
-//		ucDataFlowSemanticsFunc = ucDataFlowSemantics_dup2;
-//	}
-//	else {
-//		ucDataFlowSemanticsFunc = NULL;
-//	}
-//
-//	// TODO: sys_fstatfs may be useful to find out information about mounted file systems
-//
-//	// finally, update the PIP
-//	if (ucDataFlowSemanticsFunc) {
-//		(*ucDataFlowSemanticsFunc)(tcp);
-//	}
-//	else {
-//		// this calls have been checked to not influence data flow.
-//		// they can be ignored
-//		if (!streq(tcp->s_ent->sys_name, "brk")
-//
-//			// stat family & file meta operations
-//			&& !streq(tcp->s_ent->sys_name, "stat64")
-//			&& !streq(tcp->s_ent->sys_name, "statfs64")
-//			&& !streq(tcp->s_ent->sys_name, "statfs")
-//			&& !streq(tcp->s_ent->sys_name, "fstatfs")
-//			&& !streq(tcp->s_ent->sys_name, "fstat64")
-//			&& !streq(tcp->s_ent->sys_name, "lstat64")
-//			&& !streq(tcp->s_ent->sys_name, "chmod")
-//			&& !streq(tcp->s_ent->sys_name, "chown32")
-//			&& !streq(tcp->s_ent->sys_name, "umask")
-//			&& !streq(tcp->s_ent->sys_name, "getxattr")
-//			&& !streq(tcp->s_ent->sys_name, "lgetxattr")
-//			&& !streq(tcp->s_ent->sys_name, "fgetxattr")
-//			&& !streq(tcp->s_ent->sys_name, "readlink")
-//			&& !streq(tcp->s_ent->sys_name, "lseek")
-//			&& !streq(tcp->s_ent->sys_name, "fsync")
-//			&& !streq(tcp->s_ent->sys_name, "utime")
-//			&& !streq(tcp->s_ent->sys_name, "flock")
-//			&& !streq(tcp->s_ent->sys_name, "symlink")
-//			&& !streq(tcp->s_ent->sys_name, "faccessat")
-//
-//			// directory meta operations
-//			&& !streq(tcp->s_ent->sys_name, "chdir")
-//			&& !streq(tcp->s_ent->sys_name, "mkdir")
-//			&& !streq(tcp->s_ent->sys_name, "rmdir")
-//			&& !streq(tcp->s_ent->sys_name, "getcwd")
-//			&& !streq(tcp->s_ent->sys_name, "getdents")
-//			&& !streq(tcp->s_ent->sys_name, "getdents64")
-//
-//			// user IDs, group IDs, ...
-//			&& !streq(tcp->s_ent->sys_name, "getuid32")
-//			&& !streq(tcp->s_ent->sys_name, "getgid32")
-//			&& !streq(tcp->s_ent->sys_name, "geteuid32")
-//			&& !streq(tcp->s_ent->sys_name, "getegid32")
-//			&& !streq(tcp->s_ent->sys_name, "getresuid32")
-//			&& !streq(tcp->s_ent->sys_name, "getresgid32")
-//			&& !streq(tcp->s_ent->sys_name, "setresuid32")
-//			&& !streq(tcp->s_ent->sys_name, "setresgid32")
-//			&& !streq(tcp->s_ent->sys_name, "setuid32")
-//			&& !streq(tcp->s_ent->sys_name, "setgid32")
-//
-//			// time
-//			&& !streq(tcp->s_ent->sys_name, "clock_getres")
-//			&& !streq(tcp->s_ent->sys_name, "clock_gettime")
-//			&& !streq(tcp->s_ent->sys_name, "clock_settime")
-//			&& !streq(tcp->s_ent->sys_name, "gettimeofday")
-//			&& !streq(tcp->s_ent->sys_name, "time")
-//			&& !streq(tcp->s_ent->sys_name, "times")
-//
-//			// socket operations & information
-//			&& !streq(tcp->s_ent->sys_name, "bind")
-//			&& !streq(tcp->s_ent->sys_name, "listen")
-//			&& !streq(tcp->s_ent->sys_name, "setsockopt")
-//			&& !streq(tcp->s_ent->sys_name, "getsockopt")
-//			&& !streq(tcp->s_ent->sys_name, "getpeername")
-//			&& !streq(tcp->s_ent->sys_name, "getsockname")
-//
-//			// system limits
-//			&& !streq(tcp->s_ent->sys_name, "getrlimit")
-//			&& !streq(tcp->s_ent->sys_name, "setrlimit")
-//			&& !streq(tcp->s_ent->sys_name, "getprlimit64")
-//
-//			// signal handling
-//			&& !streq(tcp->s_ent->sys_name, "alarm")
-//			&& !streq(tcp->s_ent->sys_name, "sigreturn")
-//			&& !streq(tcp->s_ent->sys_name, "sigaltstack")
-//			&& !streq(tcp->s_ent->sys_name, "rt_sigreturn")
-//			&& !streq(tcp->s_ent->sys_name, "rt_sigaction")
-//			&& !streq(tcp->s_ent->sys_name, "rt_sigprocmask")	// handling this call may slightly reduce overapproximations, because less signals get delivered
-//
-//			// kernel advises
-//			&& !streq(tcp->s_ent->sys_name, "fadvise64")
-//			&& !streq(tcp->s_ent->sys_name, "madvise")
-//
-//			// wait
-//			&& !streq(tcp->s_ent->sys_name, "wait4")
-//			&& // TODO: Actually, upon wait we get the return value of the child. Therefore,
-//			!streq(tcp->s_ent->sys_name, "waitpid")
-//			&& // we should handle these calls. But they will most likely kill data flow tracking due to overapproximations
-//			!streq(tcp->s_ent->sys_name, "select") && !streq(tcp->s_ent->sys_name, "poll")
-//
-//
-//			// thread management
-//			&& !streq(tcp->s_ent->sys_name, "gettid")
-//			&& !streq(tcp->s_ent->sys_name, "capset")
-//			&& !streq(tcp->s_ent->sys_name, "capget")
-//			&& !streq(tcp->s_ent->sys_name, "get_robust_list")
-//			&& !streq(tcp->s_ent->sys_name, "set_robust_list")
-//			&& !streq(tcp->s_ent->sys_name, "set_thread_area")
-//			&& !streq(tcp->s_ent->sys_name, "set_tid_address")
-//
-//			// process & system operations
-//			&& !streq(tcp->s_ent->sys_name, "getpid")
-//			&& !streq(tcp->s_ent->sys_name, "getppid")
-//			&& !streq(tcp->s_ent->sys_name, "getpgid")
-//			&& !streq(tcp->s_ent->sys_name, "getpgrp")
-//			&& !streq(tcp->s_ent->sys_name, "getrusage")
-//			&& !streq(tcp->s_ent->sys_name, "prctl")
-//			&& !streq(tcp->s_ent->sys_name, "getpriority")
-//			&& !streq(tcp->s_ent->sys_name, "setpriority")
-//			&& !streq(tcp->s_ent->sys_name, "sysinfo")
-//			&& !streq(tcp->s_ent->sys_name, "setgroups")
-//			&& !streq(tcp->s_ent->sys_name, "getgroups")
-//			&& !streq(tcp->s_ent->sys_name, "getgroups32")
-//			&& !streq(tcp->s_ent->sys_name, "setgroups32")
-//			&& !streq(tcp->s_ent->sys_name, "getsid")
-//			&& !streq(tcp->s_ent->sys_name, "setsid")
-//			&& !streq(tcp->s_ent->sys_name, "sched_getaffinity")
-//			&& !streq(tcp->s_ent->sys_name, "sched_setaffinity")
-//
-//			// shared memory
-//			&& !streq(tcp->s_ent->sys_name, "shmdt")  // TODO: we should handle them!
-//			&& !streq(tcp->s_ent->sys_name, "shmat")
-//			&& !streq(tcp->s_ent->sys_name, "shmctl")
-//			&& !streq(tcp->s_ent->sys_name, "shmget")
-//
-//			// inotify(7)
-//			&& !streq(tcp->s_ent->sys_name, "inotify_init")
-//			&& !streq(tcp->s_ent->sys_name, "inotify_init1")
-//			&& !streq(tcp->s_ent->sys_name, "inotify_rm_watch")
-//			&& !streq(tcp->s_ent->sys_name, "inotify_add_watch")
-//
-//			// epoll(7)
-//			&& !streq(tcp->s_ent->sys_name, "epoll_create")
-//			&& !streq(tcp->s_ent->sys_name, "epoll_create1")
-//			&& !streq(tcp->s_ent->sys_name, "epoll_ctl")
-//			&& !streq(tcp->s_ent->sys_name, "epoll_wait")
-//
-//			// misc.
-//			&& !streq(tcp->s_ent->sys_name, "quotactl")
-//			&& !streq(tcp->s_ent->sys_name, "readahead")
-//			&& !streq(tcp->s_ent->sys_name, "access")
-//			&& !streq(tcp->s_ent->sys_name, "fallocate")
-//			&& !streq(tcp->s_ent->sys_name, "mprotect")
-//			&& !streq(tcp->s_ent->sys_name, "futex")
-//			&& !streq(tcp->s_ent->sys_name, "uname")
-//			&& !streq(tcp->s_ent->sys_name, "_llseek")
-//			&& !streq(tcp->s_ent->sys_name, "ioctl")
-//			&& !streq(tcp->s_ent->sys_name, "nanosleep")
-//			&& !streq(tcp->s_ent->sys_name, "restart_syscall")) {
-//			printf("unhandled %s\n", tcp->s_ent->sys_name);
-//		}
-//
-//	}
-//
-//}
-
-void ucDataFlowSemantics__init() {
+void ucSemantics__init() {
 	int pid_max;
 	int i;
 	FILE *f;
+	char procfs_pidmax[FILENAME_MAX];
 
-	if (!(f = fopen("/proc/sys/kernel/pid_max", "r"))) {
+	if (snprintf(procfs_pidmax, sizeof(procfs_pidmax), "%s/sys/kernel/pid_max", PROCFS_MNT) < 0) {
+		ucSemantics_errorExit("Unable to open /proc/sys/kernel/pid_max");
+	}
+
+	if (!(f = fopen(procfs_pidmax, "r"))) {
 		ucSemantics_errorExit("Unable to open /proc/sys/kernel/pid_max");
 	}
 
@@ -1106,6 +830,13 @@ void ucDataFlowSemantics__init() {
 }
 
 
-void ucDataFlowSemantics_IGNORE(struct tcb *tcp) {
-	printf("ignoring %s (%d)\n",tcp->s_ent->sys_name, tcp->pid);
+void ucSemantics_IGNORE_impl(struct tcb *tcp) {
+	ucSemantics_log("Intentionally ignoring %s (%d)\n",tcp->s_ent->sys_name, tcp->pid);
+}
+
+void ucSemantics_log_impl(const char* format, ...) {
+	va_list argptr;
+	va_start(argptr, format);
+	vfprintf(stdout, format, argptr);
+	va_end(argptr);
 }

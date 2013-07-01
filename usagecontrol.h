@@ -8,7 +8,7 @@
 #include "ucDataFlowSemantics.h"
 #include "ucDeclass.h"
 
-#define UC_ENABLED
+#define UC_ENABLED 1
 #define UC_DEBUG_MODE 1
 #define UC_PERFORMANCE_MODE !(UC_DEBUG_MODE)
 
@@ -23,9 +23,9 @@
 #define ucPIPupdateBefore(tcp) (tcp->s_ent->sys_func == sys_execve || tcp->s_ent->sys_func == sys_exit || tcp->s_ent->sys_func == sys_write)
 #define ucPIPupdateAfter(tcp) (!(ucPIPupdateBefore(tcp)))
 
-extern void (*ucDataFlowSemanticsFunct[])(struct tcb *tcp);
+extern void (*ucSemanticsFunct[])(struct tcb *tcp);
 
-#define ucHandleSyscall(syscallno) (ucDataFlowSemanticsFunct[syscallno] != NULL)
+#define ucHandleSyscall(syscallno) (ucSemanticsFunct[syscallno] != NULL)
 
 
 void ucInit();

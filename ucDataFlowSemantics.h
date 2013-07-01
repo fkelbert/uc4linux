@@ -19,7 +19,7 @@
 #include <dirent.h>
 #include <glib.h>
 
-#define UC_SEMANTICS_DEBUG 1
+#define UC_SEMANTICS_DEBUG 0
 
 #define IDENTIFIER_MAX_LEN 512
 
@@ -27,53 +27,61 @@
 #define IS_O_WRONLY(flag)	((flag & O_WRONLY) 	== O_WRONLY)
 #define IS_O_TRUNC(flag)	((flag & O_TRUNC) 	== O_TRUNC)
 
-#define ucSemantics_errorExit(msg) \
+#define ucSemantics_errorExit(msg) { \
 			fprintf(stderr, "%s\n", msg); \
 			fprintf(stderr, "Happened in: %s:%d\n", __FILE__, __LINE__); \
 			fprintf(stderr, "Exiting.\n"); \
-			exit (1);
+			exit (1); \
+		}
+
 
 #define isAbsolute(string) *string == '/'
 
 #define streq(str1, str2) (strcmp(str1,str2) == 0)
 #define strneq(str1, str2, n) (strncmp(str1,str2,n) == 0)
 
-void ucPIPupdate(struct tcb *tcp);
+#define PROCFS_MNT "/proc"
 
-void ucDataFlowSemantics_accept(struct tcb *tcp);
-void ucDataFlowSemantics_clone(struct tcb *tcp);
-void ucDataFlowSemantics_close(struct tcb *tcp);
-void ucDataFlowSemantics_connect(struct tcb *tcp);
-void ucDataFlowSemantics_dup2(struct tcb *tcp);
-void ucDataFlowSemantics_dup(struct tcb *tcp);
-void ucDataFlowSemantics_eventfd(struct tcb *tcp);
-void ucDataFlowSemantics_execve(struct tcb *tcp);
-void ucDataFlowSemantics_exit(struct tcb *tcp);
-void ucDataFlowSemantics_exit_group(struct tcb *tcp);
-void ucDataFlowSemantics_fcntl(struct tcb *tcp);
-void ucDataFlowSemantics_ftruncate(struct tcb *tcp);
-void ucDataFlowSemantics_kill(struct tcb *tcp);
-void ucDataFlowSemantics_mmap(struct tcb *tcp);
-void ucDataFlowSemantics_munmap(struct tcb *tcp);
-void ucDataFlowSemantics_openat(struct tcb *tcp);
-void ucDataFlowSemantics_open(struct tcb *tcp);
-void ucDataFlowSemantics_pipe(struct tcb *tcp);
-void ucDataFlowSemantics_read(struct tcb *tcp);
-void ucDataFlowSemantics_rename(struct tcb *tcp);
-void ucDataFlowSemantics_shutdown(struct tcb *tcp);
-void ucDataFlowSemantics_socketpair(struct tcb *tcp);
-void ucDataFlowSemantics_socket(struct tcb *tcp);
-void ucDataFlowSemantics_splice(struct tcb *tcp);
-void ucDataFlowSemantics_unlink(struct tcb *tcp);
-void ucDataFlowSemantics_write(struct tcb *tcp);
+void ucSemantics_accept(struct tcb *tcp);
+void ucSemantics_clone(struct tcb *tcp);
+void ucSemantics_close(struct tcb *tcp);
+void ucSemantics_connect(struct tcb *tcp);
+void ucSemantics_dup2(struct tcb *tcp);
+void ucSemantics_dup(struct tcb *tcp);
+void ucSemantics_eventfd(struct tcb *tcp);
+void ucSemantics_execve(struct tcb *tcp);
+void ucSemantics_exit(struct tcb *tcp);
+void ucSemantics_exit_group(struct tcb *tcp);
+void ucSemantics_fcntl(struct tcb *tcp);
+void ucSemantics_ftruncate(struct tcb *tcp);
+void ucSemantics_kill(struct tcb *tcp);
+void ucSemantics_mmap(struct tcb *tcp);
+void ucSemantics_munmap(struct tcb *tcp);
+void ucSemantics_openat(struct tcb *tcp);
+void ucSemantics_open(struct tcb *tcp);
+void ucSemantics_pipe(struct tcb *tcp);
+void ucSemantics_read(struct tcb *tcp);
+void ucSemantics_rename(struct tcb *tcp);
+void ucSemantics_shutdown(struct tcb *tcp);
+void ucSemantics_socketpair(struct tcb *tcp);
+void ucSemantics_socket(struct tcb *tcp);
+void ucSemantics_splice(struct tcb *tcp);
+void ucSemantics_unlink(struct tcb *tcp);
+void ucSemantics_write(struct tcb *tcp);
 
-void ucDataFlowSemantics_cloneParentEnter(struct tcb *tcp);
-void ucDataFlowSemantics_cloneFirstAction(struct tcb *tcp);
+void ucSemantics_cloneFirstAction(struct tcb *tcp);
 
-#if UC_SEMANTICS_DEBUG
-void ucDataFlowSemantics_IGNORE(struct tcb *tcp);
+// Depending on whether debug mode is enabled or disabled, the
+// following code either defines functions that get executed or
+// replaces the corresponding by nothing
+#if defined(UC_SEMANTICS_DEBUG) && UC_SEMANTICS_DEBUG
+	#define ucSemantics_log(format, ...) ucSemantics_log_impl(format, ##__VA_ARGS__)
+	#define ucSemantics_IGNORE ucSemantics_IGNORE_impl
+	void ucSemantics_log_impl(const char* format, ...);
+	void ucSemantics_IGNORE_impl(struct tcb *tcp);
 #else
-#define ucDataFlowSemantics_IGNORE(tcp) NULL
+	#define ucSemantics_log(...)
+	#define ucSemantics_IGNORE NULL
 #endif
 
 #endif /* UC_SEMANTICS_H_ */

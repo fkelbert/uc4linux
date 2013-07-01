@@ -503,7 +503,4 @@ void ucPIP_init() {
 	s = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	l = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
-
-	ucPIP_printF();
-	ucPIP_printS();
 }
