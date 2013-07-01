@@ -520,7 +520,7 @@ strace_popen(const char *command)
 	return fp;
 }
 
-#ifdef UC_ENABLED
+#if defined(UC_ENABLED) && UC_ENABLED
 
 void tprintf(const char *fmt, ...) {}
 void tprints(const char *str) {}
@@ -891,8 +891,10 @@ detach(struct tcb *tcp)
 		}
 	}
 
+#if !(defined(UC_ENABLED) && UC_ENABLED)
 	if (!qflag && (tcp->flags & TCB_ATTACHED))
 		fprintf(stderr, "Process %u detached\n", tcp->pid);
+#endif
 
 	droptcb(tcp);
 }
@@ -2058,13 +2060,13 @@ trace(void)
 				tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
 				newoutf(tcp);
 
-#ifdef UC_ENABLED
-				ucDataFlowSemanticsFunct[SYS_cloneFirstAction](tcp);
-#endif
-
+#if defined(UC_ENABLED) && UC_ENABLED
+				ucSemanticsFunct[SYS_cloneFirstAction](tcp);
+#else
 				if (!qflag)
 					fprintf(stderr, "Process %d attached\n",
 						pid);
+#endif
 			} else {
 				/* This can happen if a clone call used
 				   CLONE_PTRACE itself.  */
@@ -2325,7 +2327,6 @@ trace(void)
 		 * (Or it still can be that pesky post-execve SIGTRAP!)
 		 * Handle it.
 		 */
-
 		if (trace_syscall(tcp) < 0) {
 			/* ptrace() failed in trace_syscall().
 			 * Likely a result of process disappearing mid-flight.
@@ -2343,7 +2344,7 @@ trace(void)
 		sig = 0;
  restart_tracee:
 
-#ifdef UC_ENABLED
+#if defined(UC_ENABLED) && UC_ENABLED
  /*
   * Florian Kelbert
   * TODO: Inject usage control here.
@@ -2393,7 +2394,7 @@ main(int argc, char *argv[])
 {
 	init(argc, argv);
 
-#ifdef UC_ENABLED
+#if defined(UC_ENABLED) && UC_ENABLED
 	ucInit();
 #endif
 
