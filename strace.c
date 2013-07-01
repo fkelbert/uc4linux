@@ -2057,6 +2057,11 @@ trace(void)
 				tcp = alloctcb(pid);
 				tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
 				newoutf(tcp);
+
+#ifdef UC_ENABLED
+				ucDataFlowSemanticsFunct[SYS_cloneFirstAction](tcp);
+#endif
+
 				if (!qflag)
 					fprintf(stderr, "Process %d attached\n",
 						pid);
@@ -2358,23 +2363,22 @@ trace(void)
  */
 		if (tcp
 #if UC_PERFORMANCE_MODE
-			&& ucHandleSyscall(tcp->scno)
+				&& ucHandleSyscall(tcp->scno)
 #endif
-			&& tcp->s_ent
-			&& tcp->s_ent->sys_name) {
+				&& tcp->s_ent && tcp->s_ent->sys_name) {
 			/* It is kind of weird, that we need to use exiting()
 			 * in this way here. My guess is, that execve (which is stopped
 			 * three times in the beginning) makes this necessary. 
 			 * TODO: Handle this case more seriously; maybe use syscall_fixup_on_sysenter() in syscall.c
 			 */
-			if (exiting(tcp)) {		
+			if (exiting(tcp)) {
 				ucBeforeSyscallEnter(tcp);
 			}
-			else  {
+			else {
 				ucAfterSyscallExit(tcp);
 			}
 		}
-#endif /* UC_ENABLED */
+#endif /* 	 */
 
 		if (ptrace_restart(PTRACE_SYSCALL, tcp, sig) < 0) {
 			cleanup();
