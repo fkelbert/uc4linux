@@ -44,7 +44,8 @@ strace_SOURCES =	\
 	vsprintf.c	\
 	usagecontrol.c	\
 	ucPIP.c		\
-	ucDataFlowSemantics.c
+	ucDataFlowSemantics.c \
+	ucDeclass.c
 
 noinst_HEADERS = defs.h
 # Enable this to get link map generated
