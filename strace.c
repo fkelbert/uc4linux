@@ -2352,7 +2352,24 @@ trace(void)
   *    This has not been tested.
   *
  */
- 	 notifySyscall(tcp);
+
+
+	/* This is a hotfix. strace -f did not trace all child process.
+	 * As far as I found out, this was the case if the parent process
+	 * exited before the child executed any system call.
+	 * For this reason we allocate a tcb for a cloned process as soon as
+	 * we see a clone/fork/vfork.
+	 * See my entry at the strace-devel mailing list from July 5th, 2013.
+	 */
+	if (tcp && (tcp->scno == SYS_clone || tcp->scno == SYS_fork || tcp->scno == SYS_vfork) && tcp->u_rval > 1) {
+		if (!pid2tcb(tcp->pid)) {
+			tcp = alloctcb(pid);
+			tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
+			newoutf(tcp);
+		}
+	}
+
+	notifySyscall(tcp);
 
 #endif /* 	 */
 
