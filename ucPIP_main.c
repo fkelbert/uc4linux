@@ -23,6 +23,7 @@ void ucPIP_main_init() {
 
 	ucPIP_addInitialData("/tmp/foo");
 	ucPIP_addInitialData("/tmp/foo2");
+	ucPIP_addInitialData("/home/www/nginx/html/index.html");
 }
 
 void ucPIP_update(struct tcb *tcp) {
