@@ -56,7 +56,7 @@ void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 	}
 	gettimeofday(time, NULL );
 
-	printf("data flow into proc %d @time %ld.%ld: ", pid, time->tv_sec, time->tv_usec);
+//	printf("data flow into proc %d @time %ld.%ld: ", pid, time->tv_sec, time->tv_usec);
 
 	if (INVALID_DATASET(dataSet = g_tree_lookup(times, time))) {
 		// No associated data set found. Just take the one we got.
@@ -71,8 +71,8 @@ void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 			g_hash_table_insert(dataSet, containerCopy, NULL );
 		}
 	}
-	dataSetPrint(stdout, g_tree_lookup(times, time));
-	printf("\n");
+//	dataSetPrint(stdout, g_tree_lookup(times, time));
+//	printf("\n");
 }
 
 

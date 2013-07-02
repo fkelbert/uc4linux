@@ -531,7 +531,6 @@ void ucSemantics_open(struct tcb *tcp) {
 
 	if (ignoreFile(absFilename)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier), NULL);
-		printf("%s(): ignoring %s (%s)\n", tcp->s_ent->sys_name, identifier, absFilename);
 	}
 	else {
 		ucPIP_addIdentifier(absFilename, identifier);
@@ -567,7 +566,6 @@ void ucSemantics_fcntl(struct tcb *tcp) {
 
 		if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 			g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-			printf("%s(): ignoring %s (%s)\n", tcp->s_ent->sys_name, identifier2, identifier);
 		}
 		else {
 			ucPIP_addIdentifier(identifier, identifier2);
@@ -676,7 +674,6 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 
 			if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 				g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-				printf("clone(): ignoring %s (%s)\n", identifier2, identifier);
 			}
 			else if (VALID_CONTID(ucPIP_getContainer(identifier, 0))) {
 				ucPIP_addIdentifier(identifier, identifier2);
@@ -736,7 +733,6 @@ void ucSemantics_pipe(struct tcb *tcp) {
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-		printf("%s(): ignoring %s (%s)\n", tcp->s_ent->sys_name, identifier2, identifier);
 	}
 	else {
 		ucPIP_addIdentifier(identifier, identifier2);
@@ -757,7 +753,6 @@ void ucSemantics_dup(struct tcb *tcp) {
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-		printf("%s(): ignoring %s (%s)\n", tcp->s_ent->sys_name, identifier2, identifier);
 	}
 	else {
 		ucPIP_addIdentifier(identifier, identifier2);
@@ -784,7 +779,6 @@ void ucSemantics_dup2(struct tcb *tcp) {
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-		printf("%s(): ignoring %s (%s)\n", tcp->s_ent->sys_name, identifier2, identifier);
 	}
 	else {
 		ucPIP_addIdentifier(identifier, identifier2);
