@@ -13,6 +13,8 @@
 #include "ucDeclass.h"
 #include "ucPIP.h"
 
+extern struct timeval syscalltime;
+
 
 
 #endif /* UCPIP_MAIN_H_ */

@@ -7,12 +7,15 @@
 
 #include "ucPIP_main.h"
 
+
+struct timeval syscalltime;
+
 void ucPIP_main_init() {
 #ifdef UC_SEMANTICS_H_
 	ucSemantics__init();
 #endif
 
-#ifdef UC_DECLASS_H_
+#if defined(UC_DECLASS_ENABLED) && UC_DECLASS_ENABLED
 	ucDeclass__init();
 #endif
 
@@ -33,13 +36,18 @@ void ucPIP_update(struct tcb *tcp) {
 
 	if ((exiting(tcp) && ucPIPupdateBefore(tcp))
 			|| (!exiting(tcp) && ucPIPupdateAfter(tcp))) {
+
+#if defined(UC_DECLASS_ENABLED) && UC_DECLASS_ENABLED
+		gettimeofday(&syscalltime, NULL);
+#endif
+
 		// This call will update both (s(),l(),f()) and s+() as defined
 		// for the corresponding system call in ucDataFlowSemantics.c
 		ucSemanticsFunct[tcp->scno](tcp);
 
-//		ucPIP_printF(stdout);
-//		ucPIP_printS(stdout);
-//		ucDeclass_printSPlus(stdout, tcp->pid);
+		ucPIP_printF(stdout);
+		ucPIP_printS(stdout);
+		ucDeclass_printSPlus(stdout, tcp->pid);
 	}
 }
 
