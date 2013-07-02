@@ -18,6 +18,7 @@
 #include <string.h>
 
 #define UC_PIP_PRINT_EMPTY_CONTAINERS 1
+#define UC_PIP_PRINT 1
 
 typedef guint ucDataID;
 typedef guint ucContainerID;
@@ -47,7 +48,7 @@ typedef GHashTable* ucAliasSet;
 #define VALID_ALIASSET(aliasset) ((aliasset) != UC_INVALID_ALIASSET)
 
 
-void			ucPIP_init();
+void ucPIP_init();
 
 #define dataSetNew(set) set = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
 #define dataSetAdd(set, value) g_hash_table_insert(set, value, NULL)
@@ -62,6 +63,15 @@ void dataSetPrint(FILE *f, ucDataSet set);
 ucDataID		ucPIP_newDataID();
 ucContainerID	ucPIP_newContainerID();
 
+#if UC_PIP_PRINT
+#define ucPIP_printS(out) ucPIP_printS_impl(out)
+#define ucPIP_printF(out) ucPIP_printF_impl(out)
+void ucPIP_printS_impl(FILE *out);
+void ucPIP_printF_impl(FILE *out);
+#else
+#define ucPIP_printS(out)
+#define ucPIP_printF(out)
+#endif
 
 
 void destroyKey(gpointer data);
@@ -79,4 +89,5 @@ void destroyValuePrimitive(gpointer data);
 #define ucPIP_errorExitMemory() ucPIP_errorExit("Unable to allocate enough memory")
 
 #endif /* UCPIP_H_ */
+
 

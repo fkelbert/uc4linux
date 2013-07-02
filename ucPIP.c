@@ -423,7 +423,7 @@ int ucPIP_countIdentifiers(ucIdentifier identifier) {
 }
 
 
-void ucPIP_printF(FILE *out) {
+void ucPIP_printF_impl(FILE *out) {
 	GHashTableIter iterateIdentifiers;
 	gpointer identifier, contID;
 
@@ -440,7 +440,7 @@ void ucPIP_printF(FILE *out) {
 }
 
 
-void ucPIP_printS(FILE *out) {
+void ucPIP_printS_impl(FILE *out) {
 	GHashTableIter iterateContainers;
 	GHashTableIter iterateData;
 	gpointer contID, dataSet, dataID;
