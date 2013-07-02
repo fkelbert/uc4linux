@@ -373,8 +373,7 @@ void ucSemantics_read(struct tcb *tcp) {
 
 	// FD -> PID
 #if defined(UC_DECLASS_ENABLED) && UC_DECLASS_ENABLED
-	// TODO  there should be a function/macro in ucPIP that transparently creates such a table: createDataSet()
-	ucDataSet copied = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+	ucDataSet copied = newDataSet();
 	ucPIP_copyData(identifier, identifier2, copied);
 
 	// Debug.

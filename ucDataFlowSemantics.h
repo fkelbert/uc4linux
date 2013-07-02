@@ -10,6 +10,7 @@
 
 #include "defs.h"
 #include "ucDeclass.h"
+#include "ucPIP.h"
 #include "syscall.h"
 
 #include <sys/fcntl.h>

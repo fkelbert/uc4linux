@@ -46,7 +46,7 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
 	}
 
 
-	if (VALID_CONTID(contID = (ucContainerID*) g_hash_table_lookup(f, identifier))) {
+	if (VALID_CONTID(contID = findContainer(f, identifier))) {
 		return (*contID);
 	}
 
@@ -66,7 +66,7 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
 
 
 int ucpIP_existsContainer(ucIdentifier identifier) {
-	return VALID_CONTID((ucContainerID*) g_hash_table_lookup(f, identifier));
+	return VALID_CONTID(findContainer(f, identifier));
 }
 
 
@@ -85,12 +85,12 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 		return UC_INVALID_DATASET;
 	}
 
-	if (VALID_DATASET(dataSet = g_hash_table_lookup(s, &containerID))) {
+	if (VALID_DATASET(dataSet = findDataSet(s, containerID))) {
 		return (dataSet);
 	}
 
 	if (create) {
-		dataSet = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+		dataSet = newDataSet();
 
 		if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
 			ucPIP_errorExitMemory();
@@ -119,7 +119,7 @@ ucAliasSet ucPIP_getAliasSet(ucIdentifier identifier, int create) {
 	}
 
 	if (create) {
-		aliasSet = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+		aliasSet = newAliasSet();
 
 		if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
 			ucPIP_errorExitMemory();

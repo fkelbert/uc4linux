@@ -46,6 +46,11 @@ typedef GHashTable* ucAliasSet;
 #define INVALID_ALIASSET(aliasset) ((aliasset) == UC_INVALID_ALIASSET)
 #define VALID_ALIASSET(aliasset) ((aliasset) != UC_INVALID_ALIASSET)
 
+#define newDataSet() g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
+#define newAliasSet() g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
+
+#define findContainer(f, identifier) (ucContainerID*) g_hash_table_lookup(f, identifier)
+#define findDataSet(s, containerID)	g_hash_table_lookup(s, &containerID)
 
 void			ucPIP_init();
 
