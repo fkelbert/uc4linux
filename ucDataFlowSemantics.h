@@ -52,7 +52,9 @@ extern int *procMem;
 #define ucPIPupdateBefore(tcp) (tcp->s_ent->sys_func == sys_execve || tcp->s_ent->sys_func == sys_exit || tcp->s_ent->sys_func == sys_write)
 #define ucPIPupdateAfter(tcp) (!(ucPIPupdateBefore(tcp)))
 
-void ucSemantics_do_fd_close(pid_t pid, int fd);
+#define fdDup(fdPtr, value) if (!(fdPtr = malloc(sizeof(int)))) { ucDeclass_errorExitMemory();	} *fdPtr = value
+
+void ucSemantics_do_close(pid_t pid, int fd);
 
 void ucSemantics_accept(struct tcb *tcp);
 void ucSemantics_clone(struct tcb *tcp);

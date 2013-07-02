@@ -18,17 +18,17 @@ GHashTable *ignoreFDs;
 
 
 int ignoreFile(char *absFilename) {
-	if (strstr(absFilename, "/etc/") == absFilename
-		|| strstr(absFilename, "/dev/") == absFilename
-		|| strstr(absFilename, "/usr/") == absFilename
-		|| strstr(absFilename, "/sys/") == absFilename
-		|| strstr(absFilename, "/proc/") == absFilename
-		|| strstr(absFilename, "/lib/") == absFilename
-		|| strstr(absFilename, "/var/") == absFilename
-		|| strstr(absFilename, ".viminfo") != NULL
-		) {
-		return (1);
-	}
+//	if (strstr(absFilename, "/etc/") == absFilename
+//		|| strstr(absFilename, "/dev/") == absFilename
+//		|| strstr(absFilename, "/usr/") == absFilename
+//		|| strstr(absFilename, "/sys/") == absFilename
+//		|| strstr(absFilename, "/proc/") == absFilename
+//		|| strstr(absFilename, "/lib/") == absFilename
+//		|| strstr(absFilename, "/var/") == absFilename
+//		|| strstr(absFilename, ".viminfo") != NULL
+//		) {
+//		return (1);
+//	}
 
 	return (0);
 }
@@ -325,10 +325,11 @@ void freeConditional(gpointer g) {
 }
 
 /**
- * Makes an identifier out of the specified PIDxFD and returns it in ident of size len.
- * This function always returns ident.
+ * Makes an identifier out of the specified PIDxFD and returns it in ident of size
+ * len and associates PIDxFD with the specified filename.
+ * This function returns the filename associated with PIDxFD, or NULL (if not a filename)
  */
-char *getIdentifierFD(int pid, int fd, char *ident, int len) {
+char *getIdentifierFD(int pid, int fd, char *ident, int len, char *filename) {
 	int ret = snprintf(ident, len, "FD %dx%d", pid, fd);
 
 	if (ret >= len) {
@@ -339,19 +340,27 @@ char *getIdentifierFD(int pid, int fd, char *ident, int len) {
 	}
 
 	if (!procFDs[pid]) {
-		procFDs[pid] = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+		procFDs[pid] = g_hash_table_new_full(g_int_hash, g_int_equal, free, freeConditional);
 	}
 
 	int *fdCp;
+	fdDup(fdCp, fd);
 
-	if (!(fdCp = calloc(1, sizeof(int)))) {
-		ucSemantics_errorExit("Unable to allocate enough memory");
+	char *filenameStored = (char*) g_hash_table_lookup(procFDs[pid], fdCp);
+
+	if (filenameStored) {
+		if (filename && !streq(filenameStored, filename)) {
+			ucSemantics_errorExit("Provided filenames for same PIDxFD do not match.");
+		}
+
+		return (filenameStored);
 	}
-	*fdCp = fd;
 
-	g_hash_table_insert(procFDs[pid], fdCp, NULL);
-
-	return (ident);
+	if (filename) {
+		printf("inserting %dx%d -> %s\n",pid,fd,filename);
+		g_hash_table_insert(procFDs[pid], fdCp, filename ? strdup(filename) : NULL);
+	}
+	return (filename);
 }
 
 /**
@@ -379,7 +388,7 @@ void ucSemantics_write(struct tcb *tcp) {
 	}
 
 	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
-	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2));
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier2, NULL, NULL)) {
 		return;
@@ -397,7 +406,7 @@ void ucSemantics_read(struct tcb *tcp) {
 		return;
 	}
 
-	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
 	getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2));
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
@@ -438,7 +447,7 @@ void ucSemantics_do_process_exit(int pid) {
 		gpointer fd;
 		g_hash_table_iter_init(&iter, procFDs[pid]);
 		while (g_hash_table_iter_next (&iter, &fd, NULL)) {
-			ucSemantics_do_fd_close(pid, * (int*)fd);
+			ucSemantics_do_close(pid, * (int*)fd);
 		}
 	}
 	else {
@@ -488,11 +497,12 @@ void ucSemantics_execve(struct tcb *tcp) {
 }
 
 
-void ucSemantics_do_fd_close(pid_t pid, int fd) {
-	getIdentifierFD(pid, fd, identifier, sizeof(identifier));
+void ucSemantics_do_close(pid_t pid, int fd) {
+	getIdentifierFD(pid, fd, identifier, sizeof(identifier), NULL);
 
 	ucPIP_removeIdentifier(identifier);
 	g_hash_table_remove(ignoreFDs, identifier);
+	g_hash_table_remove(procFDs[pid], &fd);
 }
 
 
@@ -502,29 +512,19 @@ void ucSemantics_close(struct tcb *tcp) {
 		return;
 	}
 
-	ucSemantics_do_fd_close(tcp->pid, tcp->u_arg[0]);
+	ucSemantics_do_close(tcp->pid, tcp->u_arg[0]);
 
 	ucSemantics_log("close(): %dx%d\n", tcp->pid, tcp->u_arg[0]);
 }
 
 
-void ucSemantics_open(struct tcb *tcp) {
-	char relFilename[FILENAME_MAX];
-	char absFilename[FILENAME_MAX];
+void ucSemantics_do_open(int pid, int fd, char *absFilename, long int flags) {
 	char *trunkstr = "";
 
-	if (tcp->u_rval < 0) {
-		return;
-	}
-
-	// retrieve the filename
-	getString(tcp, tcp->u_arg[0], relFilename, sizeof(relFilename));
-	cwdAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1);
-
-	getIdentifierFD(tcp->pid, tcp->u_rval, identifier, sizeof(identifier));
+	getIdentifierFD(pid, fd, identifier, sizeof(identifier), absFilename);
 
 	// handle truncation flag
-	if (IS_O_TRUNC(tcp->u_arg[1]) && (IS_O_RDWR(tcp->u_arg[1]) || IS_O_WRONLY(tcp->u_arg[1]))) {
+	if (IS_O_TRUNC(flags) && (IS_O_RDWR(flags) || IS_O_WRONLY(flags))) {
 		ucPIP_removeIdentifier(absFilename);
 		trunkstr = "(truncated)";
 	}
@@ -534,14 +534,39 @@ void ucSemantics_open(struct tcb *tcp) {
 	}
 	else {
 		ucPIP_addIdentifier(absFilename, identifier);
-		ucSemantics_log("%s(): %s %d: %s --> %s\n", tcp->s_ent->sys_name, trunkstr, tcp->pid, absFilename, identifier);
+		ucSemantics_log("open  (): %s %d: %s --> %s\n", trunkstr, pid, absFilename, identifier);
 	}
+}
+
+void ucSemantics_open(struct tcb *tcp) {
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
+
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+	// retrieve the filename
+	getString(tcp, tcp->u_arg[0], relFilename, sizeof(relFilename));
+	cwdAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1);
+
+	ucSemantics_do_open(tcp->pid, tcp->u_rval, absFilename, tcp->u_arg[1]);
 
 }
 
 void ucSemantics_openat(struct tcb *tcp) {
-	// TODO. man 2 openat
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	char path[FILENAME_MAX];
+	char filename[FILENAME_MAX];
+	getString(tcp, tcp->u_arg[1], filename, sizeof(filename));
+
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+
+
+//	ucSemantics_log("openat %s\n", filename);
+	ucSemantics_log("%s(): %s (%d)\n", tcp->s_ent->sys_name, filename, tcp->u_arg[0]);
 }
 
 void ucSemantics_socket(struct tcb *tcp) {
@@ -561,8 +586,8 @@ void ucSemantics_fcntl(struct tcb *tcp) {
 
 	if (tcp->u_arg[1] == F_DUPFD
 			|| tcp->u_arg[1] == F_DUPFD_CLOEXEC) {
-		getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
-		getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2));
+		char * fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+		getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
 
 		if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 			g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
@@ -669,8 +694,8 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 		gpointer fd;
 		g_hash_table_iter_init(&iter, procFDs[ppid]);
 		while (g_hash_table_iter_next (&iter, &fd, NULL)) {
-			getIdentifierFD(ppid, * (int*)fd, identifier, sizeof(identifier));
-			getIdentifierFD(pid, * (int*)fd, identifier2, sizeof(identifier2));
+			char *fn = getIdentifierFD(ppid, * (int*)fd, identifier, sizeof(identifier), NULL);
+			getIdentifierFD(pid, * (int*)fd, identifier2, sizeof(identifier2), fn);
 
 			if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 				g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
@@ -728,8 +753,8 @@ void ucSemantics_pipe(struct tcb *tcp) {
 		return;
 	}
 
-	getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier));
-	getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2));
+	char *fn = getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier), NULL);
+	getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2), fn);
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
@@ -748,8 +773,8 @@ void ucSemantics_dup(struct tcb *tcp) {
 		return;
 	}
 
-	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
-	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2));
+	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
@@ -772,10 +797,10 @@ void ucSemantics_dup2(struct tcb *tcp) {
 	}
 
 	// close the new fd first, if necessary
-	ucSemantics_do_fd_close(tcp->pid, tcp->u_rval);
+	ucSemantics_do_close(tcp->pid, tcp->u_rval);
 
-	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
-	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2));
+	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
