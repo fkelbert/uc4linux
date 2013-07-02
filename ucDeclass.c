@@ -56,7 +56,7 @@ void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 	}
 	gettimeofday(time, NULL );
 
-	printf("data flow into proc %d @time %d.%d: ", pid, time->tv_sec, time->tv_usec);
+	printf("data flow into proc %d @time %ld.%ld: ", pid, time->tv_sec, time->tv_usec);
 
 	if (INVALID_DATASET(dataSet = g_tree_lookup(times, time))) {
 		// No associated data set found. Just take the one we got.
@@ -73,4 +73,26 @@ void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 	}
 	dataSetPrint(stdout, g_tree_lookup(times, time));
 	printf("\n");
+}
+
+gboolean printElement(gpointer key, gpointer value, gpointer data) {
+	pid_t pid = * (pid_t*) data;
+	struct timeval time = *(struct timeval *) key;
+
+	printf("  %d: %ld.%ld: ", pid, time.tv_sec, time.tv_usec);
+	dataSetPrint(stdout, (ucDataSet) value);
+	printf("\n");
+	return (0);
+}
+
+
+void printSPlus(pid_t pid) {
+	GTree *times;
+
+	if (!(times = g_hash_table_lookup(processes, &pid))) {
+		return;
+	}
+
+	printf("Function s+:\n");
+	g_tree_foreach(times, printElement, &pid);
 }

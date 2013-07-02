@@ -31,6 +31,8 @@
 
 #define pidDup(pidPtr, value) if (!(pidPtr = malloc(sizeof(pid_t)))) { ucDeclass_errorExitMemory();	} *pidPtr = value
 
+gboolean printElement(gpointer key, gpointer value, gpointer data);
+void printSPlus(pid_t pid);
 
 void ucDeclass__init();
 
