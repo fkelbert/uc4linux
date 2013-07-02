@@ -373,7 +373,7 @@ void ucSemantics_read(struct tcb *tcp) {
 
 	// FD -> PID
 #if defined(UC_DECLASS_ENABLED) && UC_DECLASS_ENABLED
-	ucDataSet copied = newDataSet();
+	ucDataSet copied = dataSetNew();
 	ucPIP_copyData(identifier, identifier2, copied);
 
 	// Debug.

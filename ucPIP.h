@@ -46,37 +46,10 @@ typedef GHashTable* ucAliasSet;
 #define INVALID_ALIASSET(aliasset) ((aliasset) == UC_INVALID_ALIASSET)
 #define VALID_ALIASSET(aliasset) ((aliasset) != UC_INVALID_ALIASSET)
 
-#define newDataSet() g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
-#define newAliasSet() g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
-
-#define findContainer(f, identifier) (ucContainerID*) g_hash_table_lookup(f, identifier)
-#define findDataSet(s, containerID)	g_hash_table_lookup(s, &containerID)
-#define findAliasSet(l, containerID)	g_hash_table_lookup(l, &containerID)
-
-#define insert(map, key, value) g_hash_table_insert(map, &key, value)
-#define insertF(f, identifier, cont) g_hash_table_insert(f, strdup(identifier), cont)
-
-
-
-#define removeIdentifier(f, identifier) g_hash_table_remove(f, identifier)
-#define removeContainer(set, value) g_hash_table_remove(set, &value)
-
-#define sizeOfSet(set)	g_hash_table_size(set)
-
 
 void			ucPIP_init();
 
-void 			ucPIP_s_add(ucContainerID, ucDataID*, int count);
-ucDataID*			ucPIP_s_get(ucContainerID containerID, int *count);
-void			ucPIP_s_remove(ucContainerID);
-
-void 			ucPIP_l_add(ucContainerID, ucContainerID*, int count);
-ucContainerID*	ucPIP_l_get(ucContainerID, int *count);
-void			ucPIP_l_remove(ucContainerID);
-
-ucContainerID	ucPIP_f_add(ucIdentifier, ucContainerID);
-ucContainerID 	ucPIP_getContainer(ucIdentifier identifier, int create);
-void 			ucPIP_f_remove(ucIdentifier);
+#define dataSetNew() g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
 
 ucDataID		ucPIP_newDataID();
 ucContainerID	ucPIP_newContainerID();
