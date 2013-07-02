@@ -35,13 +35,18 @@
 			exit (1); \
 		}
 
+extern int *procMem;
 
-#define isAbsolute(string) *string == '/'
+#define isAbsolute(string) (string && *string == '/')
 
 #define streq(str1, str2) (strcmp(str1,str2) == 0)
 #define strneq(str1, str2, n) (strncmp(str1,str2,n) == 0)
 
 #define PROCFS_MNT "/proc"
+
+#define isProcessFirstCall(pid) (procMem[pid] == 0)
+
+#define ucSemanticsDefined(syscallno) (ucSemanticsFunct[syscallno] != NULL)
 
 void ucSemantics_accept(struct tcb *tcp);
 void ucSemantics_clone(struct tcb *tcp);

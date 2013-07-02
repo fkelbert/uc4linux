@@ -897,10 +897,8 @@ detach(struct tcb *tcp)
 	}
 
  drop:
-#if !(defined(UC_ENABLED) && UC_ENABLED)
 	if (!qflag && (tcp->flags & TCB_ATTACHED))
 		fprintf(stderr, "Process %u detached\n", tcp->pid);
-#endif
 
 	droptcb(tcp);
 }
@@ -2071,14 +2069,9 @@ trace(void)
 				tcp = alloctcb(pid);
 				tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
 				newoutf(tcp);
-
-#if defined(UC_ENABLED) && UC_ENABLED
-				notifyNewProcess(tcp);
-#else
 				if (!qflag)
 					fprintf(stderr, "Process %d attached\n",
 						pid);
-#endif
 			} else {
 				/* This can happen if a clone call used
 				 * CLONE_PTRACE itself.

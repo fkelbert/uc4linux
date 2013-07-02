@@ -28,30 +28,29 @@ void do_dft(struct tcb *tcp) {
 	}
 }
 
-// Kelbert
-int ucBeforeSyscallEnter(struct tcb *tcp) {
+
+int ucDesired(struct tcb *tcp) {
 	int retval = ucPDPask(tcp);
 
 	switch(retval) {
 		case UC_PDP_ALLOW:
-		case UC_PDP_MODIFY:	// modify assumes that the syscall has already been modified transparently		
 			if (ucPIPupdateBefore(tcp)) {
 				do_dft(tcp);
 			}
 			break;
+		case UC_PDP_MODIFY:
+			break;
 		case UC_PDP_INHIBIT:
-			// TODO: write code
 			break;
 		case UC_PDP_DELAY:
-			// TODO: write code
 			break;
 	}
 
 	return (retval);
 }
 
-// Kelbert
-int ucAfterSyscallExit(struct tcb *tcp) {
+
+int ucActual(struct tcb *tcp) {
 	int retval = ucPDPask(tcp);
 
 	switch(retval) {
@@ -63,7 +62,8 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 		case UC_PDP_DELAY:
 		case UC_PDP_MODIFY:
 		case UC_PDP_INHIBIT:
-			// TODO: does it make sense to modify/delay/inhibit after the call has been executed???
+			// TODO: does it make sense to modify/delay/inhibit
+			// after the call has been executed???
 			break;
 	}
 
@@ -71,27 +71,36 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 }
 
 
-void notifyNewProcess(struct tcb *tcp) {
-	ucSemanticsFunct[SYS_cloneFirstAction](tcp);
-}
-
+/**
+ * This function is used by strace to notify our
+ * usage control framework about the fact that a system call
+ * is happening. This call may be both desired or actual.
+ *
+ * If firstCall == 0, this method will invoke all
+ * corresponding usage control functionality.
+ * If firstCall == 1, then
+ *
+ *
+ */
 void notifySyscall(struct tcb *tcp) {
-	if (tcp
-#if UC_PERFORMANCE_MODE
-			&& ucHandleSyscall(tcp->scno)
-#endif
-			&& tcp->s_ent && tcp->s_ent->sys_name) {
-		/* It is kind of weird, that we need to use exiting()
-		 * in this way here. My guess is, that execve (which is stopped
-		 * three times in the beginning) makes this necessary.
-		 * TODO: Handle this case more seriously; maybe use syscall_fixup_on_sysenter() in syscall.c
-		 */
-		if (exiting(tcp)) {
-			ucBeforeSyscallEnter(tcp);
-		}
-		else {
-			ucAfterSyscallExit(tcp);
-		}
+	if (!tcp || !ucSemanticsDefined(tcp->scno) || !tcp->s_ent || !tcp->s_ent->sys_name) {
+		return;
+	}
+
+	if (isProcessFirstCall(tcp->pid)) {
+		ucSemanticsFunct[SYS_cloneFirstAction](tcp);
+	}
+
+	/* It is kind of weird, that we need to use exiting()
+	 * in this way here. My guess is, that execve (which is stopped
+	 * three times in the beginning) makes this necessary.
+	 * TODO: Handle this case more seriously; maybe use syscall_fixup_on_sysenter() in syscall.c
+	 */
+	if (exiting(tcp)) {
+		ucDesired(tcp);
+	}
+	else {
+		ucActual(tcp);
 	}
 }
 

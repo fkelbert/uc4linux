@@ -1,4 +1,4 @@
-	#ifndef USAGECONTROL_H
+#ifndef USAGECONTROL_H
 #define USAGECONTROL_H
 
 
@@ -10,7 +10,6 @@
 
 #define UC_ENABLED 1
 #define UC_DEBUG_MODE 1
-#define UC_PERFORMANCE_MODE !(UC_DEBUG_MODE)
 
 #define UC_PDP_ALLOW 1
 #define UC_PDP_INHIBIT 2
@@ -23,13 +22,11 @@
 #define ucPIPupdateBefore(tcp) (tcp->s_ent->sys_func == sys_execve || tcp->s_ent->sys_func == sys_exit || tcp->s_ent->sys_func == sys_write)
 #define ucPIPupdateAfter(tcp) (!(ucPIPupdateBefore(tcp)))
 
-#define ucHandleSyscall(syscallno) (ucSemanticsFunct[syscallno] != NULL)
-
 
 void ucInit();
 
-int ucBeforeSyscallEnter(struct tcb *tcp);
-int ucAfterSyscallExit(struct tcb *tcp);
+int ucDesired(struct tcb *tcp);
+int ucActual(struct tcb *tcp);
 
 
 
