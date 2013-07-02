@@ -72,6 +72,8 @@ void ucSemantics_write(struct tcb *tcp);
 
 void ucSemantics_cloneFirstAction(struct tcb *tcp);
 
+extern void (*ucSemanticsFunct[])(struct tcb *tcp);
+
 // Depending on whether debug mode is enabled or disabled, the
 // following code either defines functions that get executed or
 // replaces the corresponding by nothing

@@ -23,8 +23,6 @@
 #define ucPIPupdateBefore(tcp) (tcp->s_ent->sys_func == sys_execve || tcp->s_ent->sys_func == sys_exit || tcp->s_ent->sys_func == sys_write)
 #define ucPIPupdateAfter(tcp) (!(ucPIPupdateBefore(tcp)))
 
-extern void (*ucSemanticsFunct[])(struct tcb *tcp);
-
 #define ucHandleSyscall(syscallno) (ucSemanticsFunct[syscallno] != NULL)
 
 
