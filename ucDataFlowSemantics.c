@@ -199,7 +199,7 @@ char *getCwd(long pid, char *cwd, int len) {
 	}
 
 	snprintf(tmp, sizeof(tmp), "%s/%ld/cwd", PROCFS_MNT, pid);
-	if ((read = readlink(tmp, cwd, sizeof(cwd) - 1)) == -1) {
+	if ((read = readlink(tmp, cwd, len - 1)) == -1) {
 		return NULL ;
 	}
 	cwd[read] = '\0';
@@ -287,6 +287,12 @@ char *getAbsoluteFilename(char *dir, char *relFilename, char *absFilename, int a
 
 char *cwdAbsoluteFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen, int mustExist) {
 	char cwd[PATH_MAX];
+
+	if (isAbsolute(relFilename)) {
+		strncpy(absFilename, relFilename, absFilenameLen - 1);
+		absFilename[absFilenameLen - 1] = '\0';
+		return (absFilename);
+	}
 
 	if (!getCwd(pid, cwd, sizeof(cwd))) {
 		return NULL;
