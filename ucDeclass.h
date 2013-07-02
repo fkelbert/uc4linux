@@ -23,6 +23,14 @@
 			fprintf(stderr, "Exiting.\n"); \
 			exit (1);
 
+#define ucDeclass_errorExitMemory() \
+			fprintf(stderr, "Unable to allocate enough memory\n"); \
+			fprintf(stderr, "Happened in: %s:%d\n", __FILE__, __LINE__); \
+			fprintf(stderr, "Exiting.\n"); \
+			exit (1);
+
+#define pidDup(pidPtr, value) if (!(pidPtr = malloc(sizeof(pid_t)))) { ucDeclass_errorExitMemory();	} *pidPtr = value
+
 
 void ucDeclass__init();
 

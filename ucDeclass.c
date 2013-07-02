@@ -35,44 +35,42 @@ void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 	pid_t *pidCopy;
 	struct timeval *time;
 	GHashTableIter iter;
-	ucDataSet dataSetNew;
+	ucDataSet dataSet;
 	gpointer container;
 	ucContainerID *containerCopy;
 
-	if (pid <= 0 || INVALID_DATASET(dataSetToAdd)) {
+	if (pid <= 0 || INVALID_DATASET(dataSetToAdd) || ucPIP_isEmptyDataSet(dataSetToAdd)) {
 		return;
 	}
 
 	// get the set of "times" for the specified process;
 	// create a new tree if not found
 	if (!(times = g_hash_table_lookup(processes, &pid))) {
-		if (!(pidCopy = calloc(1, sizeof(pid_t)))) {
-			ucDeclass_errorExit("Unable to allocate enough memory");
-		}
-		*pidCopy = pid;
+		pidDup(pidCopy, pid);
 		times = g_tree_new_full(intCmp, NULL, free, (GDestroyNotify) g_hash_table_destroy);
-
 		g_hash_table_insert(processes, pidCopy, times);
 	}
 
 	if (!(time = calloc(1, sizeof(struct timeval)))) {
-		ucDeclass_errorExit("Unable to allocate enough memory.");
+		ucDeclass_errorExitMemory();
 	}
-	gettimeofday(time, NULL);
+	gettimeofday(time, NULL );
 
-	if (INVALID_DATASET(dataSetNew = g_tree_lookup(times, time))) {
-		dataSetNew = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
-		g_tree_insert(times, time, dataSetNew);
+	printf("data flow into proc %d @time %d.%d: ", pid, time->tv_sec, time->tv_usec);
+
+	if (INVALID_DATASET(dataSet = g_tree_lookup(times, time))) {
+		// No associated data set found. Just take the one we got.
+		g_tree_insert(times, time, dataSetToAdd);
 	}
-
-	// copy each and every entry
-	g_hash_table_iter_init(&iter, dataSetToAdd);
-	while (g_hash_table_iter_next (&iter, &container, NULL)) {
-
-		if (INVALID_CONTID(containerCopy = calloc(1, sizeof(ucContainerID)))) {
-			ucPIP_errorExit("Unable to allocate enough memory");
+	else {
+		// There was an entry. Copy each and every entry.
+		// This will usually not happen in a sequential PEP implementation
+		g_hash_table_iter_init(&iter, dataSetToAdd);
+		while (g_hash_table_iter_next(&iter, &container, NULL )) {
+			containerDup(containerCopy, * (ucContainerID*) container);
+			g_hash_table_insert(dataSet, containerCopy, NULL );
 		}
-		*containerCopy = * (ucContainerID*) container;
-		g_hash_table_insert(dataSetNew, containerCopy, NULL);
 	}
+	dataSetPrint(stdout, g_tree_lookup(times, time));
+	printf("\n");
 }
