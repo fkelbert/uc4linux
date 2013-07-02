@@ -24,7 +24,9 @@ int ignoreFile(char *absFilename) {
 		|| strstr(absFilename, "/sys/") == absFilename
 		|| strstr(absFilename, "/proc/") == absFilename
 		|| strstr(absFilename, "/lib/") == absFilename
-		|| strstr(absFilename, "/var/") == absFilename) {
+		|| strstr(absFilename, "/var/") == absFilename
+		|| strstr(absFilename, ".viminfo") != NULL
+		) {
 		return (1);
 	}
 
