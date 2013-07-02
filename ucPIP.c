@@ -110,7 +110,7 @@ ucAliasSet ucPIP_getAliasSet(ucIdentifier identifier, int create) {
 	}
 
 	if (create) {
-		aliasSet = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+		aliasSetNew(aliasSet);
 		containerDup(containerIDCopy, containerID);
 
 		g_hash_table_insert(l, containerIDCopy, aliasSet);
@@ -241,7 +241,7 @@ void ucPIP_copyAliases(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	g_hash_table_iter_init(&iter, srcAliasSet);
 	while (g_hash_table_iter_next (&iter, &aliasedContainer, NULL)) {
 		containerDup(aliasedContainerCopy, * (ucContainerID*) aliasedContainer);
-		g_hash_table_insert(dstAliasSet, aliasedContainerCopy, NULL);
+		aliasSetAdd(dstAliasSet, aliasedContainerCopy);
 	}
 }
 
@@ -270,8 +270,7 @@ void ucPIP_alsoAlias(ucIdentifier stencilIdentifier, ucIdentifier stenciledIdent
 	while (g_hash_table_iter_next (&iter, (void **)&aliasSet, NULL)) {
 		if (g_hash_table_contains(aliasSet, &stencilCont)) {
 			containerDup(stenciledContCopy, stenciledCont);
-
-			g_hash_table_insert(aliasSet, stenciledContCopy, NULL);
+			aliasSetAdd(aliasSet, stenciledContCopy);
 		}
 	}
 }
@@ -306,12 +305,12 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier, ucDa
 	g_hash_table_iter_init(&iter, srcDataSet);
 	while (g_hash_table_iter_next (&iter, &dataID, NULL)) {
 		dataDup(dataIDCopy, * (ucDataID*) dataID);
-		g_hash_table_insert(dstDataSet, dataIDCopy, NULL);
+		dataSetAdd(dstDataSet, dataIDCopy);
 
 		// also populate the return data set, if provided
 		if (VALID_DATASET(retDataSet)) {
 			dataDup(dataIDCopy2, * (ucDataID*) dataID);
-			g_hash_table_insert(retDataSet, dataIDCopy2, NULL);
+			dataSetAdd(retDataSet, dataIDCopy2);
 		}
 	}
 }
@@ -370,8 +369,7 @@ void ucPIP_addAlias(ucIdentifier identifierFrom, ucIdentifier identifierTo) {
 	}
 
 	containerDup(containerToCopy, containerTo);
-
-	g_hash_table_insert(aliasSet, containerToCopy, NULL);
+	aliasSetAdd(aliasSet, containerToCopy);
 }
 
 
@@ -389,7 +387,7 @@ ucDataID ucPIP_addInitialData(ucIdentifier identifier) {
 
 	if (VALID_DATASET(dataSet = ucPIP_getDataSet(identifier, 1))) {
 		dataDup(dataID, ucPIP_newDataID());
-		g_hash_table_insert(dataSet, dataID, NULL);
+		dataSetAdd(dataSet, dataID);
 	}
 
 	return (*dataID);

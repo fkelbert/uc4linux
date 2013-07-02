@@ -39,8 +39,6 @@ void ucPIP_update(struct tcb *tcp) {
 
 		ucPIP_printF();
 		ucPIP_printS();
-
-
 	}
 }
 
