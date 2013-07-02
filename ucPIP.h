@@ -17,7 +17,7 @@
 #include <glib.h>
 #include <string.h>
 
-#define UC_PIP_PRINT_EMPTY_CONTAINERS 0
+#define UC_PIP_PRINT_EMPTY_CONTAINERS 1
 
 typedef guint ucDataID;
 typedef guint ucContainerID;
@@ -51,6 +51,7 @@ void			ucPIP_init();
 
 #define dataSetNew(set) set = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
 #define dataSetAdd(set, value) g_hash_table_insert(set, value, NULL)
+void dataSetPrint(FILE *f, ucDataSet set);
 
 #define aliasSetNew(set) dataSetNew(set)
 #define aliasSetAdd(set, value) dataSetAdd(set, value)

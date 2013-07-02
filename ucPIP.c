@@ -423,44 +423,40 @@ int ucPIP_countIdentifiers(ucIdentifier identifier) {
 }
 
 
-void ucPIP_printF() {
+void ucPIP_printF(FILE *out) {
 	GHashTableIter iterateIdentifiers;
 	gpointer identifier, contID;
 
-	printf("Function f():\n");
+	fprintf(out, "Function f():\n");
 
 	g_hash_table_iter_init (&iterateIdentifiers, f);
 	while (g_hash_table_iter_next (&iterateIdentifiers, &identifier, &contID)) {
 		if (UC_PIP_PRINT_EMPTY_CONTAINERS || !ucPIP_isEmptyDataSet(ucPIP_getDataSet(identifier, 0))) {
-			printf("  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
+			fprintf(out, "  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
 		}
 	}
 
-	printf("\n");
+	fprintf(out, "\n");
 }
 
 
-void ucPIP_printS() {
+void ucPIP_printS(FILE *out) {
 	GHashTableIter iterateContainers;
 	GHashTableIter iterateData;
 	gpointer contID, dataSet, dataID;
 
-	printf("Function s():\n");
+	fprintf(out, "Function s():\n");
 
 	g_hash_table_iter_init (&iterateContainers, s);
 	while (g_hash_table_iter_next (&iterateContainers, &contID, &dataSet)) {
 		if (!ucPIP_isEmptyDataSet(dataSet)) {
-			printf("  %10d --> {", *(ucContainerID*) contID);
-
-			g_hash_table_iter_init (&iterateData, dataSet);
-			while (g_hash_table_iter_next (&iterateData, &dataID, NULL)) {
-				printf("%d, ", *(ucDataID*)dataID);
-			}
-			printf("}\n");
+			fprintf(out, "  %10d --> ", *(ucContainerID*) contID);
+			dataSetPrint(out, dataSet);
+			fprintf(out, "\n");
 		}
 	}
 
-	printf("\n");
+	fprintf(out, "\n");
 }
 
 
@@ -470,4 +466,28 @@ void ucPIP_init() {
 	s = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	l = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+}
+
+
+void dataSetPrint(FILE *f, ucDataSet set) {
+	GHashTableIter iter;
+	gpointer dataID;
+	int count;
+
+	if (!f || !set || INVALID_DATASET(set)) {
+		return;
+	}
+
+	fprintf(f, "{");
+
+	g_hash_table_iter_init (&iter, set);
+	for (count = 0; count < g_hash_table_size(set) - 1; count++) {
+		g_hash_table_iter_next (&iter, &dataID, NULL);
+		fprintf(f, "%d, ", *(ucDataID*)dataID);
+	}
+
+	g_hash_table_iter_next (&iter, &dataID, NULL);
+	fprintf(f, "%d", *(ucDataID*)dataID);
+
+	fprintf(f, "}");
 }
