@@ -21,7 +21,8 @@ int ignoreFile(char *absFilename) {
 	if (strstr(absFilename, "/etc/") == absFilename
 		|| strstr(absFilename, "/dev/") == absFilename
 		|| strstr(absFilename, "/usr/") == absFilename
-		|| strstr(absFilename, "/home/") == absFilename
+		|| strstr(absFilename, "/sys/") == absFilename
+		|| strstr(absFilename, "/proc/") == absFilename
 		|| strstr(absFilename, "/lib/") == absFilename
 		|| strstr(absFilename, "/var/") == absFilename) {
 		return (1);
@@ -378,7 +379,10 @@ void ucSemantics_write(struct tcb *tcp) {
 	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
 	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2));
 
-	// PID -> FD
+	if (g_hash_table_lookup_extended(ignoreFDs, identifier2, NULL, NULL)) {
+		return;
+	}
+
 	ucPIP_copyData(identifier, identifier2, NULL);
 
 	ucSemantics_log("write(): %s --> %s\n", identifier, identifier2);
@@ -393,6 +397,10 @@ void ucSemantics_read(struct tcb *tcp) {
 
 	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
 	getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2));
+
+	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
+		return;
+	}
 
 	ucSemantics_log("%s(): %d <-- %s\n", tcp->s_ent->sys_name, tcp->pid, identifier);
 
@@ -624,7 +632,11 @@ void ucSemantics_rename(struct tcb *tcp) {
 	cwdAbsoluteFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), 1);
 
 	ucPIP_removeContainer(newAbsFilename);
-	ucPIP_addIdentifier(oldAbsFilename, newAbsFilename);
+
+	if (!ignoreFile(newAbsFilename)) {
+		ucPIP_addIdentifier(oldAbsFilename, newAbsFilename);
+	}
+
 	ucPIP_removeIdentifier(oldAbsFilename);
 
 	ucSemantics_log("rename(): %s --> %s\n", oldAbsFilename, newAbsFilename);
@@ -1010,7 +1022,7 @@ void (*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_mq_open ] = ucSemantics_IGNORE,
 	[SYS_mq_timedreceive] = ucSemantics_IGNORE,
 	[SYS_mq_timedsend] = ucSemantics_IGNORE,
-	[SYS_mq_unlink] = ucSemantics_unlink,
+	[SYS_mq_unlink] = ucSemantics_IGNORE,
 	[SYS_mremap] = ucSemantics_IGNORE,
 	[SYS_msync] = ucSemantics_IGNORE,
 	[SYS_munlockall] = ucSemantics_IGNORE,
@@ -1185,7 +1197,7 @@ void (*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_umount] = ucSemantics_IGNORE,
 	[SYS_uname] = ucSemantics_IGNORE,
 	[SYS_unlinkat] = ucSemantics_IGNORE,
-	[SYS_unlink] = ucSemantics_IGNORE,
+	[SYS_unlink] = ucSemantics_unlink,
 	[SYS_unshare] = ucSemantics_IGNORE,
 	[SYS_uselib] = ucSemantics_IGNORE,
 	[SYS_ustat] = ucSemantics_IGNORE,
