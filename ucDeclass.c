@@ -75,13 +75,14 @@ void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 	printf("\n");
 }
 
+
 gboolean ucDeclass_printSPlusElement(gpointer key, gpointer value, gpointer data) {
-	struct timeval time = *(struct timeval *) key;
-	ucDataSet dataSet = (ucDataSet) value;
+	struct timeval timeStep = *(struct timeval *) key;
+	ucDataSet dataSetRead = (ucDataSet) value;
 	struct printSPlusData d = *(struct printSPlusData *) data;
 
-	fprintf(d.out, "  %d: %ld.%ld: ", d.pid, time.tv_sec, time.tv_usec);
-	dataSetPrint(d.out, dataSet);
+	fprintf(d.out, "  %d: %ld.%ld: ", d.pid, timeStep.tv_sec, timeStep.tv_usec);
+	dataSetPrint(d.out, dataSetRead);
 	fprintf(d.out, "\n");
 	return (0);
 }
@@ -90,6 +91,7 @@ gboolean ucDeclass_printSPlusElement(gpointer key, gpointer value, gpointer data
 void ucDeclass_printSPlus_impl(FILE *out, pid_t pid) {
 	GTree *processChangeTimes;
 
+	// all times at which the processes' status has changed
 	if (!(processChangeTimes = g_hash_table_lookup(processes, &pid))) {
 		return;
 	}
@@ -99,7 +101,7 @@ void ucDeclass_printSPlus_impl(FILE *out, pid_t pid) {
 	data.out = out;
 	data.pid = pid;
 
-
+	// print it!
 	fprintf(out, "Function s+:\n");
 	g_tree_foreach(processChangeTimes, ucDeclass_printSPlusElement, &data);
 	fprintf(out, "\n");
