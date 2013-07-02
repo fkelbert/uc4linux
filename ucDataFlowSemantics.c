@@ -350,7 +350,11 @@ char *getIdentifierFD(int pid, int fd, char *ident, int len, char *filename) {
 
 	if (filenameStored) {
 		if (filename && !streq(filenameStored, filename)) {
-			ucSemantics_errorExit("Provided filenames for same PIDxFD do not match.");
+//			TODO: Shall we throw an error here? Just silently ignore?
+//			These problems occured when starting libreoffice (just once). Need to check what is going on there.
+//			ucSemantics_errorExit("Provided filenames for same PIDxFD do not match ().");
+//			printf("unmatched %s %s. It seems that we have not closed %dx%d before.\n", filenameStored, filename, pid, fd);
+//			ucSemantics_do_close(pid, fd, NULL);
 		}
 
 		return (filenameStored);
@@ -877,6 +881,7 @@ void ucSemantics_log_impl(const char* format, ...) {
 	va_start(argptr, format);
 	vfprintf(stdout, format, argptr);
 	va_end(argptr);
+	fflush(stdout);
 }
 
 
