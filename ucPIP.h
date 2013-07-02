@@ -53,8 +53,16 @@ typedef GHashTable* ucAliasSet;
 #define findDataSet(s, containerID)	g_hash_table_lookup(s, &containerID)
 #define findAliasSet(l, containerID)	g_hash_table_lookup(l, &containerID)
 
-#define destroyIdentifier(f, identifier) g_hash_table_remove(f, identifier)
-#define destroyContainer(s, containerID) g_hash_table_remove(s, &containerID)
+#define insert(map, key, value) g_hash_table_insert(map, &key, value)
+#define insertF(f, identifier, cont) g_hash_table_insert(f, strdup(identifier), cont)
+
+
+
+#define removeIdentifier(f, identifier) g_hash_table_remove(f, identifier)
+#define removeContainer(set, value) g_hash_table_remove(set, &value)
+
+#define sizeOfSet(set)	g_hash_table_size(set)
+
 
 void			ucPIP_init();
 
