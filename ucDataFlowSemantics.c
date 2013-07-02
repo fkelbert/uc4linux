@@ -33,9 +33,9 @@ int ignoreFile(char *absFilename) {
 
 void addProcMem(int pid) {
 	if (procMem[pid] == 0) {
-		char foo[512];
-		snprintf(foo, 512, "%s/%d/mem", PROCFS_MNT, pid);
-		procMem[pid] = open(foo, O_RDONLY);
+		char procfsMem[512];
+		snprintf(procfsMem, 512, "%s/%d/mem", PROCFS_MNT, pid);
+		procMem[pid] = open(procfsMem, O_RDONLY);
 	}
 }
 
@@ -71,7 +71,7 @@ int ucSemantics_initProcess(int pid) {
 	}
 
 	if (ppid == -1) {
-		ucSemantics_errorExit("No mummy found! Unknown parent process");
+		ucSemantics_errorExit("Unknown parent process");
 	}
 
 	addProcMem(pid);
@@ -681,9 +681,6 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 			}
 		}
 	}
-	else {
-//		ucSemantics_errorExit("procFDs not set. This should not happen.");
-	}
 }
 
 
@@ -737,9 +734,7 @@ void ucSemantics_pipe(struct tcb *tcp) {
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-		printf("pipe3\n");
 		printf("%s(): ignoring %s (%s)\n", tcp->s_ent->sys_name, identifier2, identifier);
-		printf("pipe4\n");
 	}
 	else {
 		ucPIP_addIdentifier(identifier, identifier2);
