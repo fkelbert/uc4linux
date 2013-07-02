@@ -18,17 +18,13 @@
 #define UC_DECLASS_PRINT 1
 
 #if defined(UC_DECLASS_PRINT) && UC_DECLASS_PRINT
-	#define ucDeclass_printSPlus(out, pid) ucDeclass_printSPlus_impl(out, pid)
-	void ucDeclass_printSPlus_impl(FILE *out, pid_t pid);
+	#define ucDeclass_printSPlus(pid) ucDeclass_printSPlus_impl(pid)
+	void ucDeclass_printSPlus_impl(pid_t pid);
 #else
-	#define ucDeclass_printSPlus(out, pid)
+	#define ucDeclass_printSPlus(pid)
 #endif
 
 
-struct printSPlusData {
-		pid_t pid;
-		FILE *out;
-};
 
 #define ucDeclass_errorExit(msg) \
 			fprintf(stderr, "%s\n", msg); \

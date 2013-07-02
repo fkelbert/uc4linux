@@ -18,7 +18,7 @@
 #include <string.h>
 
 #define UC_PIP_PRINT_EMPTY_CONTAINERS 1
-#define UC_PIP_PRINT 0
+#define UC_PIP_PRINT 1
 
 typedef guint ucDataID;
 typedef guint ucContainerID;
@@ -64,13 +64,13 @@ ucDataID		ucPIP_newDataID();
 ucContainerID	ucPIP_newContainerID();
 
 #if UC_PIP_PRINT
-#define ucPIP_printS(out) ucPIP_printS_impl(out)
-#define ucPIP_printF(out) ucPIP_printF_impl(out)
-void ucPIP_printS_impl(FILE *out);
-void ucPIP_printF_impl(FILE *out);
+#define ucPIP_printS() ucPIP_printS_impl()
+#define ucPIP_printF() ucPIP_printF_impl()
+void ucPIP_printS_impl();
+void ucPIP_printF_impl();
 #else
-#define ucPIP_printS(out)
-#define ucPIP_printF(out)
+#define ucPIP_printS()
+#define ucPIP_printF()
 #endif
 
 

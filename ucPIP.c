@@ -14,6 +14,7 @@ GHashTable *s;
 GHashTable *l;
 GHashTable *f;
 
+FILE *ucPIP_outstream;
 
 ucDataID ucPIP_newDataID() {
 	if (!nextDataID) {
@@ -423,40 +424,42 @@ int ucPIP_countIdentifiers(ucIdentifier identifier) {
 }
 
 
-void ucPIP_printF_impl(FILE *out) {
+void ucPIP_printF_impl() {
 	GHashTableIter iterateIdentifiers;
 	gpointer identifier, contID;
 
-	fprintf(out, "Function f():\n");
+	fprintf(ucPIP_outstream, "Function f():\n");
 
 	g_hash_table_iter_init (&iterateIdentifiers, f);
 	while (g_hash_table_iter_next (&iterateIdentifiers, &identifier, &contID)) {
 		if (UC_PIP_PRINT_EMPTY_CONTAINERS || !ucPIP_isEmptyDataSet(ucPIP_getDataSet(identifier, 0))) {
-			fprintf(out, "  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
+			fprintf(ucPIP_outstream, "  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
 		}
 	}
 
-	fprintf(out, "\n");
+	fprintf(ucPIP_outstream, "\n");
+	fflush(ucPIP_outstream);
 }
 
 
-void ucPIP_printS_impl(FILE *out) {
+void ucPIP_printS_impl() {
 	GHashTableIter iterateContainers;
 	GHashTableIter iterateData;
 	gpointer contID, dataSet, dataID;
 
-	fprintf(out, "Function s():\n");
+	fprintf(ucPIP_outstream, "Function s():\n");
 
 	g_hash_table_iter_init (&iterateContainers, s);
 	while (g_hash_table_iter_next (&iterateContainers, &contID, &dataSet)) {
 		if (!ucPIP_isEmptyDataSet(dataSet)) {
-			fprintf(out, "  %10d --> ", *(ucContainerID*) contID);
-			dataSetPrint(out, dataSet);
-			fprintf(out, "\n");
+			fprintf(ucPIP_outstream, "  %10d --> ", *(ucContainerID*) contID);
+			dataSetPrint(ucPIP_outstream, dataSet);
+			fprintf(ucPIP_outstream, "\n");
 		}
 	}
 
-	fprintf(out, "\n");
+	fprintf(ucPIP_outstream, "\n");
+	fflush(ucPIP_outstream);
 }
 
 
@@ -466,6 +469,7 @@ void ucPIP_init() {
 	s = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	l = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_hash_table_destroy);
 	f = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+	ucPIP_outstream = stdout;
 }
 
 

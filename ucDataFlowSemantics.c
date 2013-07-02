@@ -16,7 +16,6 @@ int *procMem;
 GHashTable **procFDs;
 GHashTable *ignoreFDs;
 
-
 int ignoreFile(char *absFilename) {
 	if (strstr(absFilename, "/etc/") == absFilename
 		|| strstr(absFilename, "/dev/") == absFilename
@@ -602,6 +601,21 @@ void ucSemantics_socketpair(struct tcb *tcp) {
 	// TODO. man 2 socketpair
 }
 
+
+void ucSemantics_sendfile(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier, sizeof(identifier), NULL);
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
+
+	ucPIP_copyData(identifier, identifier2, NULL);
+
+	ucSemantics_log("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
+}
+
+
 void ucSemantics_fcntl(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return;
@@ -864,10 +878,9 @@ void ucSemantics__init() {
 	procFDs = calloc(pid_max, sizeof(GHashTable *));
 
 	ignoreFDs = g_hash_table_new_full(g_str_hash, g_str_equal, free, NULL);
-	printf("init\n");fflush(stdout);
 
 	if (!procMem || !procFDs) {
-		ucSemantics_errorExit("Unable to allocate enoug memory");
+		ucSemantics_errorExit("Unable to allocate enough memory");
 	}
 }
 
@@ -879,9 +892,9 @@ void ucSemantics_IGNORE_impl(struct tcb *tcp) {
 void ucSemantics_log_impl(const char* format, ...) {
 	va_list argptr;
 	va_start(argptr, format);
-	vfprintf(stdout, format, argptr);
+	vfprintf(outstream, format, argptr);
 	va_end(argptr);
-	fflush(stdout);
+	fflush(outstream);
 }
 
 
@@ -1142,8 +1155,8 @@ void (*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_sched_setscheduler] = ucSemantics_IGNORE,
 	[SYS_sched_yield] = ucSemantics_IGNORE,
 	[SYS_select] = ucSemantics_IGNORE,
-	[SYS_sendfile64] = ucSemantics_IGNORE,
-	[SYS_sendfile] = ucSemantics_IGNORE,
+	[SYS_sendfile64] = ucSemantics_sendfile,
+	[SYS_sendfile] = ucSemantics_sendfile,
 	[SYS_sendmmsg] = ucSemantics_write,
 	[SYS_sendmsg] = ucSemantics_write,
 	[SYS_send] = ucSemantics_write,

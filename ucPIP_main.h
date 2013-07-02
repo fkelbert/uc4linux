@@ -14,6 +14,7 @@
 #include "ucPIP.h"
 
 extern struct timeval syscalltime;
+extern FILE *outstream;
 
 
 

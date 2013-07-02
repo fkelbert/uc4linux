@@ -9,8 +9,11 @@
 
 
 struct timeval syscalltime;
+FILE *outstream;
 
 void ucPIP_main_init() {
+	outstream = stdout;
+
 #ifdef UC_SEMANTICS_H_
 	ucSemantics__init();
 #endif
@@ -46,9 +49,9 @@ void ucPIP_update(struct tcb *tcp) {
 		// for the corresponding system call in ucDataFlowSemantics.c
 		ucSemanticsFunct[tcp->scno](tcp);
 
-		ucPIP_printF(stdout);
-		ucPIP_printS(stdout);
-		ucDeclass_printSPlus(stdout, tcp->pid);
+		ucPIP_printF();
+		ucPIP_printS();
+		ucDeclass_printSPlus(tcp->pid);
 	}
 }
 
