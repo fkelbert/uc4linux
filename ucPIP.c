@@ -114,7 +114,7 @@ ucAliasSet ucPIP_getAliasSet(ucIdentifier identifier, int create) {
 		return UC_INVALID_ALIASSET;
 	}
 
-	if (VALID_ALIASSET(aliasSet = g_hash_table_lookup(l, &containerID))) {
+	if (VALID_ALIASSET(aliasSet = findAliasSet(l, containerID))) {
 		return (aliasSet);
 	}
 
@@ -204,8 +204,7 @@ void ucPIP_removeContainer(ucIdentifier identifier) {
 	ucContainerID cont;
 
 	if (VALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
-		// this will automatically destroy the hashtable associated with that container
-		g_hash_table_remove(s, &cont);
+		destroyContainer(s, cont);
 	}
 }
 
@@ -226,7 +225,7 @@ void ucPIP_removeIdentifier(ucIdentifier identifier) {
 	}
 
 	if (VALID_IDENTIFIER(identifier)) {
-		g_hash_table_remove(f, identifier);
+		destroyIdentifier(f, identifier);
 	}
 }
 
