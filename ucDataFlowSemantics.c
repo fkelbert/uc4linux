@@ -256,7 +256,7 @@ char *getAbsoluteFilename(char *dir, char *relFilename, char *absFilename, int a
 		return NULL ;
 	}
 
-	// concatenate cwd and relative filename and convert it to an absolute filename
+	// concatenate dir and relative filename and convert it to an absolute filename
 	snprintf(concatPath, sizeof(concatPath), "%s/%s", dir, relFilename);
 
 	// was resolving successful and is the provided buffer large enough?
@@ -357,7 +357,6 @@ char *getIdentifierFD(int pid, int fd, char *ident, int len, char *filename) {
 	}
 
 	if (filename) {
-		printf("inserting %dx%d -> %s\n",pid,fd,filename);
 		g_hash_table_insert(procFDs[pid], fdCp, filename ? strdup(filename) : NULL);
 	}
 	return (filename);
@@ -540,7 +539,7 @@ void ucSemantics_do_open(int pid, int fd, char *absFilename, long int flags) {
 	}
 	else {
 		ucPIP_addIdentifier(absFilename, identifier);
-		ucSemantics_log("open  (): %s %d: %s --> %s\n", trunkstr, pid, absFilename, identifier);
+		ucSemantics_log("do_open(): %s %d: %s --> %s\n", trunkstr, pid, absFilename, identifier);
 	}
 }
 
@@ -562,17 +561,36 @@ void ucSemantics_open(struct tcb *tcp) {
 
 void ucSemantics_openat(struct tcb *tcp) {
 	char path[FILENAME_MAX];
-	char filename[FILENAME_MAX];
-	getString(tcp, tcp->u_arg[1], filename, sizeof(filename));
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
 
 	if (tcp->u_rval < 0) {
 		return;
 	}
 
+	getString(tcp, tcp->u_arg[1], relFilename, sizeof(relFilename));
+
+	if (isAbsolute(relFilename)) {
+		ucSemantics_log("%s(%s) resulting in the following:\n", tcp->s_ent->sys_name, relFilename);
+		ucSemantics_do_open(tcp->pid, tcp->u_rval, relFilename, tcp->u_arg[1]);
+	}
+	else {
+		char *dir;
+		if (tcp->u_arg[0] == AT_FDCWD) {
+			cwdAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1);
+		}
+		else {
+			dir = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+			getAbsoluteFilename(dir, relFilename, absFilename, sizeof(absFilename), 1);
+		}
+		ucSemantics_log("%s(%s, %s) resulting in the following:\n", tcp->s_ent->sys_name, dir, relFilename);
+		ucSemantics_do_open(tcp->pid, tcp->u_rval, absFilename, tcp->u_arg[2]);
+	}
+
 
 
 //	ucSemantics_log("openat %s\n", filename);
-	ucSemantics_log("%s(): %s (%d)\n", tcp->s_ent->sys_name, filename, tcp->u_arg[0]);
+//	ucSemantics_log("%s(): %s (%d)\n", tcp->s_ent->sys_name, relFilename, tcp->u_arg[0]);
 }
 
 void ucSemantics_socket(struct tcb *tcp) {
