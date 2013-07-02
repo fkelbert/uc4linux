@@ -40,7 +40,7 @@ void ucPIP_update(struct tcb *tcp) {
 
 		ucPIP_printF(stdout);
 		ucPIP_printS(stdout);
-		printSPlus(tcp->pid);
+		ucDeclass_printSPlus(stdout, tcp->pid);
 	}
 }
 

@@ -75,24 +75,32 @@ void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 	printf("\n");
 }
 
-gboolean printElement(gpointer key, gpointer value, gpointer data) {
-	pid_t pid = * (pid_t*) data;
+gboolean ucDeclass_printSPlusElement(gpointer key, gpointer value, gpointer data) {
 	struct timeval time = *(struct timeval *) key;
+	ucDataSet dataSet = (ucDataSet) value;
+	struct printSPlusData d = *(struct printSPlusData *) data;
 
-	printf("  %d: %ld.%ld: ", pid, time.tv_sec, time.tv_usec);
-	dataSetPrint(stdout, (ucDataSet) value);
-	printf("\n");
+	fprintf(d.out, "  %d: %ld.%ld: ", d.pid, time.tv_sec, time.tv_usec);
+	dataSetPrint(d.out, dataSet);
+	fprintf(d.out, "\n");
 	return (0);
 }
 
 
-void printSPlus(pid_t pid) {
-	GTree *times;
+void ucDeclass_printSPlus_impl(FILE *out, pid_t pid) {
+	GTree *processChangeTimes;
 
-	if (!(times = g_hash_table_lookup(processes, &pid))) {
+	if (!(processChangeTimes = g_hash_table_lookup(processes, &pid))) {
 		return;
 	}
 
-	printf("Function s+:\n");
-	g_tree_foreach(times, printElement, &pid);
+	// data to pass to the function that handles every single entry
+	struct printSPlusData data;
+	data.out = out;
+	data.pid = pid;
+
+
+	fprintf(out, "Function s+:\n");
+	g_tree_foreach(processChangeTimes, ucDeclass_printSPlusElement, &data);
+	fprintf(out, "\n");
 }

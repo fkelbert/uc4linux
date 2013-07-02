@@ -8,14 +8,27 @@
 #ifndef UC_DECLASS_H_
 #define UC_DECLASS_H_
 
-#define UC_DECLASS_ENABLED 1
-
 #include <glib.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include "ucSyscall.h"
 #include "ucPIP.h"
 
+#define UC_DECLASS_ENABLED 1
+#define UC_DECLASS_DEBUG 1
+
+#if defined(UC_DECLASS_DEBUG) && UC_DECLASS_DEBUG
+	#define ucDeclass_printSPlus(out, pid) ucDeclass_printSPlus_impl(out, pid)
+	void ucDeclass_printSPlus_impl(FILE *out, pid_t pid);
+#else
+	#define ucDeclass_printSPlus(out, pid)
+#endif
+
+
+struct printSPlusData {
+		pid_t pid;
+		FILE *out;
+};
 
 #define ucDeclass_errorExit(msg) \
 			fprintf(stderr, "%s\n", msg); \
@@ -31,8 +44,8 @@
 
 #define pidDup(pidPtr, value) if (!(pidPtr = malloc(sizeof(pid_t)))) { ucDeclass_errorExitMemory();	} *pidPtr = value
 
-gboolean printElement(gpointer key, gpointer value, gpointer data);
-void printSPlus(pid_t pid);
+gboolean ucDeclass_printSPlusElement(gpointer key, gpointer value, gpointer data);
+
 
 void ucDeclass__init();
 
