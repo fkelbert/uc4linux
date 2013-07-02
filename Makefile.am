@@ -44,6 +44,7 @@ strace_SOURCES =	\
 	vsprintf.c	\
 	usagecontrol.c	\
 	ucPIP.c		\
+	ucPIP_main.c		\
 	ucDataFlowSemantics.c \
 	ucDeclass.c
 
