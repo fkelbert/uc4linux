@@ -539,8 +539,8 @@ void ucSemantics_do_open(int pid, int fd, char *absFilename, long int flags) {
 	}
 	else {
 		ucPIP_addIdentifier(absFilename, identifier);
-		ucSemantics_log("do_open(): %s %d: %s --> %s\n", trunkstr, pid, absFilename, identifier);
 	}
+	ucSemantics_log("do_open(): %s %d: %s --> %s\n", trunkstr, pid, absFilename, identifier);
 }
 
 void ucSemantics_open(struct tcb *tcp) {
@@ -571,8 +571,8 @@ void ucSemantics_openat(struct tcb *tcp) {
 	getString(tcp, tcp->u_arg[1], relFilename, sizeof(relFilename));
 
 	if (isAbsolute(relFilename)) {
-		ucSemantics_log("%s(%s) resulting in the following:\n", tcp->s_ent->sys_name, relFilename);
-		ucSemantics_do_open(tcp->pid, tcp->u_rval, relFilename, tcp->u_arg[1]);
+		ucSemantics_log("%s(%s) resulting in:\n", tcp->s_ent->sys_name, relFilename);
+		ucSemantics_do_open(tcp->pid, tcp->u_rval, relFilename, tcp->u_arg[2]);
 	}
 	else {
 		char *dir;
@@ -583,14 +583,9 @@ void ucSemantics_openat(struct tcb *tcp) {
 			dir = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
 			getAbsoluteFilename(dir, relFilename, absFilename, sizeof(absFilename), 1);
 		}
-		ucSemantics_log("%s(%s, %s) resulting in the following:\n", tcp->s_ent->sys_name, dir, relFilename);
+		ucSemantics_log("%s(%s, %s) resulting in:\n", tcp->s_ent->sys_name, dir, relFilename);
 		ucSemantics_do_open(tcp->pid, tcp->u_rval, absFilename, tcp->u_arg[2]);
 	}
-
-
-
-//	ucSemantics_log("openat %s\n", filename);
-//	ucSemantics_log("%s(): %s (%d)\n", tcp->s_ent->sys_name, relFilename, tcp->u_arg[0]);
 }
 
 void ucSemantics_socket(struct tcb *tcp) {
