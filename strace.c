@@ -2361,7 +2361,7 @@ trace(void)
 	 * we see a clone/fork/vfork.
 	 * See my entry at the strace-devel mailing list from July 5th, 2013.
 	 */
-	if (tcp && (tcp->scno == SYS_clone || tcp->scno == SYS_fork || tcp->scno == SYS_vfork) && tcp->u_rval > 1) {
+	if (tcp && (tcp->scno == SYS_clone || tcp->scno == SYS_fork || tcp->scno == SYS_vfork) && tcp->u_rval > 1 && followfork) {
 		if (!pid2tcb(tcp->pid)) {
 			tcp = alloctcb(pid);
 			tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
