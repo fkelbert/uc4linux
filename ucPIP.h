@@ -51,8 +51,8 @@ void			ucPIP_init();
 
 #define dataSetNew(dataset) dataset = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
 
-#define containerNew(contPtr, value) if (!(contPtr = (ucContainerID*) malloc(sizeof(ucContainerID)))) { ucPIP_errorExitMemory(); } *contPtr = value
-#define dataNew(dataPtr, value) if (!(dataPtr = (ucDataID*) malloc(sizeof(ucDataID)))) { ucPIP_errorExitMemory(); } *dataPtr = value
+#define containerDup(contPtr, value) if (!(contPtr = (ucContainerID*) malloc(sizeof(ucContainerID)))) { ucPIP_errorExitMemory(); } *contPtr = value
+#define dataDup(dataPtr, value) if (!(dataPtr = (ucDataID*) malloc(sizeof(ucDataID)))) { ucPIP_errorExitMemory(); } *dataPtr = value
 
 ucDataID		ucPIP_newDataID();
 ucContainerID	ucPIP_newContainerID();
