@@ -177,6 +177,19 @@ extern long ptrace(int, int, char *, long);
 # include <asm/ptrace.h>  /* struct pt_regs */
 #endif
 
+#ifndef ERESTARTSYS
+# define ERESTARTSYS    512
+#endif
+#ifndef ERESTARTNOINTR
+# define ERESTARTNOINTR 513
+#endif
+#ifndef ERESTARTNOHAND
+# define ERESTARTNOHAND 514
+#endif
+#ifndef ERESTART_RESTARTBLOCK
+# define ERESTART_RESTARTBLOCK 516
+#endif
+
 #if !HAVE_DECL_PTRACE_SETOPTIONS
 # define PTRACE_SETOPTIONS	0x4200
 #endif
@@ -371,13 +384,15 @@ struct arm_pt_regs {
 #if defined(I386)
 extern struct user_regs_struct i386_regs;
 #elif defined(IA64)
-extern long ia32;
+extern bool ia64_ia32mode;
 #elif defined(SPARC) || defined(SPARC64)
 extern struct pt_regs sparc_regs;
 #elif defined(ARM)
 extern struct pt_regs arm_regs;
 #elif defined(TILE)
 extern struct pt_regs tile_regs;
+#elif defined(POWERPC)
+extern struct pt_regs ppc_regs;
 #endif
 
 typedef struct sysent {
@@ -396,7 +411,7 @@ typedef struct ioctlent {
 /* Trace Control Block */
 struct tcb {
 	int flags;		/* See below for TCB_ values */
-	int pid;		/* Process Id of this entry */
+	int pid;		/* If 0, this tcb is free */
 	int qual_flg;		/* qual_flags[scno] or DEFAULT_QUAL_FLAGS + RAW */
 	int u_error;		/* Error code */
 	long scno;		/* System call number */
@@ -421,10 +436,9 @@ struct tcb {
 };
 
 /* TCB flags */
-#define TCB_INUSE		00001	/* This table entry is in use */
 /* We have attached to this process, but did not see it stopping yet */
-#define TCB_STARTUP		00002
-#define TCB_IGNORE_ONE_SIGSTOP	00004	/* Next SIGSTOP is to be ignored */
+#define TCB_STARTUP		0x01
+#define TCB_IGNORE_ONE_SIGSTOP	0x02	/* Next SIGSTOP is to be ignored */
 /*
  * Are we in system call entry or in syscall exit?
  *
@@ -443,14 +457,13 @@ struct tcb {
  *
  * Use entering(tcp) / exiting(tcp) to check this bit to make code more readable.
  */
-#define TCB_INSYSCALL	00010
-#define TCB_ATTACHED	00020   /* It is attached already */
-/* Are we PROG from "strace PROG [ARGS]" invocation? */
-#define TCB_STRACE_CHILD 0040
-#define TCB_BPTSET	00100	/* "Breakpoint" set after fork(2) */
-#define TCB_REPRINT	00200	/* We should reprint this syscall on exit */
-#define TCB_FILTERED	00400	/* This system call has been filtered out */
-/* x86 does not need TCB_WAITEXECVE.
+#define TCB_INSYSCALL	0x04
+#define TCB_ATTACHED	0x08	/* We attached to it already */
+#define TCB_BPTSET	0x10	/* "Breakpoint" set after fork(2) */
+#define TCB_REPRINT	0x20	/* We should reprint this syscall on exit */
+#define TCB_FILTERED	0x40	/* This system call has been filtered out */
+/*
+ * x86 does not need TCB_WAITEXECVE.
  * It can detect post-execve SIGTRAP by looking at eax/rax.
  * See "not a syscall entry (eax = %ld)\n" message.
  *
@@ -471,7 +484,7 @@ struct tcb {
 /* This tracee has entered into execve syscall. Expect post-execve SIGTRAP
  * to happen. (When it is detected, tracee is continued and this bit is cleared.)
  */
-# define TCB_WAITEXECVE	01000
+# define TCB_WAITEXECVE	0x80
 #endif
 
 /* qualifier flags */
@@ -584,6 +597,7 @@ int strace_vfprintf(FILE *fp, const char *fmt, va_list args);
 extern void set_sortby(const char *);
 extern void set_overhead(int);
 extern void qualify(const char *);
+extern void print_pc(struct tcb *);
 extern int trace_syscall(struct tcb *);
 extern void count_syscall(struct tcb *, struct timeval *);
 extern void call_summary(FILE *);
@@ -596,7 +610,8 @@ extern void call_summary(FILE *);
  || defined(SPARC) || defined(SPARC64) \
  || defined(TILE) \
  || defined(OR1K) \
- || defined(METAG)
+ || defined(METAG) \
+ || defined(POWERPC)
 extern long get_regs_error;
 # define clear_regs()  (get_regs_error = -1)
 extern void get_regs(pid_t pid);
@@ -609,7 +624,7 @@ extern int umoven(struct tcb *, long, int, char *);
 #define umove(pid, addr, objp)	\
 	umoven((pid), (addr), sizeof(*(objp)), (char *) (objp))
 extern int umovestr(struct tcb *, long, int, char *);
-extern int upeek(struct tcb *, long, long *);
+extern int upeek(int pid, long, long *);
 #if defined(SPARC) || defined(SPARC64) || defined(IA64) || defined(SH)
 extern long getrval2(struct tcb *);
 #endif
@@ -623,7 +638,6 @@ extern int setbpt(struct tcb *);
 extern int clearbpt(struct tcb *);
 
 extern const char *signame(int);
-extern int is_restart_error(struct tcb *);
 extern void pathtrace_select(const char *);
 extern int pathtrace_match(struct tcb *);
 extern int getfdpath(struct tcb *, int, char *, unsigned);
@@ -681,7 +695,6 @@ extern void printrusage(struct tcb *, long);
 extern void printrusage32(struct tcb *, long);
 #endif
 extern void printuid(const char *, unsigned long);
-extern void printcall(struct tcb *);
 extern void print_sigset(struct tcb *, long, int);
 extern void printsignal(int);
 extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);

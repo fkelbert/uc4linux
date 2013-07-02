@@ -80,19 +80,6 @@
 # include <asm/ptrace.h>
 #endif
 
-#ifndef ERESTARTSYS
-# define ERESTARTSYS	512
-#endif
-#ifndef ERESTARTNOINTR
-# define ERESTARTNOINTR	513
-#endif
-#ifndef ERESTARTNOHAND
-# define ERESTARTNOHAND	514	/* restart if no handler */
-#endif
-#ifndef ERESTART_RESTARTBLOCK
-# define ERESTART_RESTARTBLOCK 516	/* restart by calling sys_restart_syscall */
-#endif
-
 #ifndef NSIG
 # warning: NSIG is not defined, using 32
 # define NSIG 32
@@ -683,31 +670,16 @@ getrval2(struct tcb *tcp)
 # if defined(SPARC) || defined(SPARC64)
 	val = sparc_regs.u_regs[U_REG_O1];
 # elif defined(SH)
-	if (upeek(tcp, 4*(REG_REG0+1), &val) < 0)
+	if (upeek(tcp->pid, 4*(REG_REG0+1), &val) < 0)
 		return -1;
 # elif defined(IA64)
-	if (upeek(tcp, PT_R9, &val) < 0)
+	if (upeek(tcp->pid, PT_R9, &val) < 0)
 		return -1;
 # endif
 
 	return val;
 }
 #endif
-
-int
-is_restart_error(struct tcb *tcp)
-{
-	switch (tcp->u_error) {
-		case ERESTARTSYS:
-		case ERESTARTNOINTR:
-		case ERESTARTNOHAND:
-		case ERESTART_RESTARTBLOCK:
-			return 1;
-		default:
-			break;
-	}
-	return 0;
-}
 
 #if defined(I386)
 struct user_regs_struct i386_regs;
@@ -748,10 +720,10 @@ static struct iovec x86_io = {
 	.iov_base = &x86_regs_union
 };
 #elif defined(IA64)
-long ia32 = 0; /* not static */
+bool ia64_ia32mode = 0; /* not static */
 static long ia64_r8, ia64_r10;
 #elif defined(POWERPC)
-static long ppc_result;
+struct pt_regs ppc_regs;
 #elif defined(M68K)
 static long m68k_d0;
 #elif defined(BFIN)
@@ -808,7 +780,7 @@ static long xtensa_a2;
 #endif
 
 void
-printcall(struct tcb *tcp)
+print_pc(struct tcb *tcp)
 {
 #define PRINTBADPC tprintf(sizeof(long) == 4 ? "[????????] " : \
 			   sizeof(long) == 8 ? "[????????????????] " : \
@@ -821,7 +793,7 @@ printcall(struct tcb *tcp)
 	tprintf("[%08lx] ", i386_regs.eip);
 #elif defined(S390) || defined(S390X)
 	long psw;
-	if (upeek(tcp, PT_PSWADDR, &psw) < 0) {
+	if (upeek(tcp->pid, PT_PSWADDR, &psw) < 0) {
 		PRINTBADPC;
 		return;
 	}
@@ -843,17 +815,13 @@ printcall(struct tcb *tcp)
 	}
 #elif defined(IA64)
 	long ip;
-	if (upeek(tcp, PT_B0, &ip) < 0) {
+	if (upeek(tcp->pid, PT_B0, &ip) < 0) {
 		PRINTBADPC;
 		return;
 	}
 	tprintf("[%08lx] ", ip);
 #elif defined(POWERPC)
-	long pc;
-	if (upeek(tcp, sizeof(unsigned long)*PT_NIP, &pc) < 0) {
-		PRINTBADPC;
-		return;
-	}
+	long pc = ppc_regs.nip;
 # ifdef POWERPC64
 	tprintf("[%016lx] ", pc);
 # else
@@ -861,14 +829,14 @@ printcall(struct tcb *tcp)
 # endif
 #elif defined(M68K)
 	long pc;
-	if (upeek(tcp, 4*PT_PC, &pc) < 0) {
+	if (upeek(tcp->pid, 4*PT_PC, &pc) < 0) {
 		tprints("[????????] ");
 		return;
 	}
 	tprintf("[%08lx] ", pc);
 #elif defined(ALPHA)
 	long pc;
-	if (upeek(tcp, REG_PC, &pc) < 0) {
+	if (upeek(tcp->pid, REG_PC, &pc) < 0) {
 		tprints("[????????????????] ");
 		return;
 	}
@@ -879,28 +847,28 @@ printcall(struct tcb *tcp)
 	tprintf("[%08lx] ", sparc_regs.tpc);
 #elif defined(HPPA)
 	long pc;
-	if (upeek(tcp, PT_IAOQ0, &pc) < 0) {
+	if (upeek(tcp->pid, PT_IAOQ0, &pc) < 0) {
 		tprints("[????????] ");
 		return;
 	}
 	tprintf("[%08lx] ", pc);
 #elif defined(MIPS)
 	long pc;
-	if (upeek(tcp, REG_EPC, &pc) < 0) {
+	if (upeek(tcp->pid, REG_EPC, &pc) < 0) {
 		tprints("[????????] ");
 		return;
 	}
 	tprintf("[%08lx] ", pc);
 #elif defined(SH)
 	long pc;
-	if (upeek(tcp, 4*REG_PC, &pc) < 0) {
+	if (upeek(tcp->pid, 4*REG_PC, &pc) < 0) {
 		tprints("[????????] ");
 		return;
 	}
 	tprintf("[%08lx] ", pc);
 #elif defined(SH64)
 	long pc;
-	if (upeek(tcp, REG_PC, &pc) < 0) {
+	if (upeek(tcp->pid, REG_PC, &pc) < 0) {
 		tprints("[????????????????] ");
 		return;
 	}
@@ -913,21 +881,21 @@ printcall(struct tcb *tcp)
 	tprintf("[%08lx] ", avr32_regs.pc);
 #elif defined(BFIN)
 	long pc;
-	if (upeek(tcp, PT_PC, &pc) < 0) {
+	if (upeek(tcp->pid, PT_PC, &pc) < 0) {
 		PRINTBADPC;
 		return;
 	}
 	tprintf("[%08lx] ", pc);
 #elif defined(CRISV10)
 	long pc;
-	if (upeek(tcp, 4*PT_IRP, &pc) < 0) {
+	if (upeek(tcp->pid, 4*PT_IRP, &pc) < 0) {
 		PRINTBADPC;
 		return;
 	}
 	tprintf("[%08lx] ", pc);
 #elif defined(CRISV32)
 	long pc;
-	if (upeek(tcp, 4*PT_ERP, &pc) < 0) {
+	if (upeek(tcp->pid, 4*PT_ERP, &pc) < 0) {
 		PRINTBADPC;
 		return;
 	}
@@ -944,7 +912,7 @@ printcall(struct tcb *tcp)
 	tprintf("[%08lx] ", metag_regs.pc);
 #elif defined(XTENSA)
 	long pc;
-	if (upeek(tcp, REG_PC, &pc) < 0) {
+	if (upeek(tcp->pid, REG_PC, &pc) < 0) {
 		PRINTBADPC;
 		return;
 	}
@@ -997,6 +965,42 @@ undefined_scno_name(struct tcb *tcp)
 	return buf;
 }
 
+#ifdef POWERPC
+/*
+ * PTRACE_GETREGS was added to the PowerPC kernel in v2.6.23,
+ * we provide a slow fallback for old kernels.
+ */
+static int powerpc_getregs_old(pid_t pid)
+{
+	int i;
+	long r;
+
+	if (iflag) {
+		r = upeek(pid, sizeof(long) * PT_NIP, &ppc_regs.nip);
+		if (r)
+			goto out;
+	}
+#ifdef POWERPC64 /* else we never use it */
+	r = upeek(pid, sizeof(long) * PT_MSR, &ppc_regs.msr);
+	if (r)
+		goto out;
+#endif
+	r = upeek(pid, sizeof(long) * PT_CCR, &ppc_regs.ccr);
+	if (r)
+		goto out;
+	r = upeek(pid, sizeof(long) * PT_ORIG_R3, &ppc_regs.orig_gpr3);
+	if (r)
+		goto out;
+	for (i = 0; i <= 8; i++) {
+		r = upeek(pid, sizeof(long) * (PT_R0 + i), &ppc_regs.gpr[i]);
+		if (r)
+			goto out;
+	}
+ out:
+	return r;
+}
+#endif
+
 #ifndef get_regs
 long get_regs_error;
 
@@ -1043,6 +1047,16 @@ get_regs(pid_t pid)
 	get_regs_error = ptrace(PTRACE_GETREGS, pid, NULL, &tile_regs);
 # elif defined(SPARC) || defined(SPARC64)
 	get_regs_error = ptrace(PTRACE_GETREGS, pid, (char *)&sparc_regs, 0);
+# elif defined(POWERPC)
+	static bool old_kernel = 0;
+	if (old_kernel)
+		goto old;
+	get_regs_error = ptrace(PTRACE_GETREGS, pid, NULL, (long) &ppc_regs);
+	if (get_regs_error && errno == EIO) {
+		old_kernel = 1;
+ old:
+		get_regs_error = powerpc_getregs_old(pid);
+	}
 
 /* try PTRACE_GETREGSET first, fallback to PTRACE_GETREGS */
 # else
@@ -1113,7 +1127,7 @@ get_scno(struct tcb *tcp)
 	long scno = 0;
 
 #if defined(S390) || defined(S390X)
-	if (upeek(tcp, PT_GPR2, &syscall_mode) < 0)
+	if (upeek(tcp->pid, PT_GPR2, &syscall_mode) < 0)
 		return -1;
 
 	if (syscall_mode != -ENOSYS) {
@@ -1135,7 +1149,7 @@ get_scno(struct tcb *tcp)
 				PT_GPR12, PT_GPR13, PT_GPR14,    PT_GPR15
 		};
 
-		if (upeek(tcp, PT_PSWADDR, &psw) < 0)
+		if (upeek(tcp->pid, PT_PSWADDR, &psw) < 0)
 			return -1;
 		errno = 0;
 		opcode = ptrace(PTRACE_PEEKTEXT, tcp->pid, (char *)(psw - sizeof(long)), 0);
@@ -1168,13 +1182,13 @@ get_scno(struct tcb *tcp)
 
 			tmp = 0;
 			offset_reg = (opcode & 0x000f0000) >> 16;
-			if (offset_reg && (upeek(tcp, gpr_offset[offset_reg], &tmp) < 0))
+			if (offset_reg && (upeek(tcp->pid, gpr_offset[offset_reg], &tmp) < 0))
 				return -1;
 			svc_addr += tmp;
 
 			tmp = 0;
 			offset_reg = (opcode & 0x0000f000) >> 12;
-			if (offset_reg && (upeek(tcp, gpr_offset[offset_reg], &tmp) < 0))
+			if (offset_reg && (upeek(tcp->pid, gpr_offset[offset_reg], &tmp) < 0))
 				return -1;
 			svc_addr += tmp;
 
@@ -1188,27 +1202,20 @@ get_scno(struct tcb *tcp)
 # endif
 			tmp = 0;
 			offset_reg = (opcode & 0x00f00000) >> 20;
-			if (offset_reg && (upeek(tcp, gpr_offset[offset_reg], &tmp) < 0))
+			if (offset_reg && (upeek(tcp->pid, gpr_offset[offset_reg], &tmp) < 0))
 				return -1;
 
 			scno = (scno | tmp) & 0xff;
 		}
 	}
 #elif defined(POWERPC)
-	if (upeek(tcp, sizeof(unsigned long)*PT_R0, &scno) < 0)
-		return -1;
+	scno = ppc_regs.gpr[0];
 # ifdef POWERPC64
-	/* TODO: speed up strace by not doing this at every syscall.
-	 * We only need to do it after execve.
-	 */
 	int currpers;
-	long val;
 
 	/* Check for 64/32 bit mode. */
-	if (upeek(tcp, sizeof(unsigned long)*PT_MSR, &val) < 0)
-		return -1;
 	/* SF is bit 0 of MSR */
-	if (val < 0)
+	if ((ppc_regs.msr >> 63) & 1)
 		currpers = 0;
 	else
 		currpers = 1;
@@ -1217,7 +1224,7 @@ get_scno(struct tcb *tcp)
 #elif defined(AVR32)
 	scno = avr32_regs.r8;
 #elif defined(BFIN)
-	if (upeek(tcp, PT_ORIG_P0, &scno))
+	if (upeek(tcp->pid, PT_ORIG_P0, &scno))
 		return -1;
 #elif defined(I386)
 	scno = i386_regs.orig_eax;
@@ -1314,13 +1321,13 @@ get_scno(struct tcb *tcp)
 #elif defined(IA64)
 #	define IA64_PSR_IS	((long)1 << 34)
 	long psr;
-	if (upeek(tcp, PT_CR_IPSR, &psr) >= 0)
-		ia32 = (psr & IA64_PSR_IS) != 0;
-	if (ia32) {
-		if (upeek(tcp, PT_R1, &scno) < 0)
+	if (upeek(tcp->pid, PT_CR_IPSR, &psr) >= 0)
+		ia64_ia32mode = ((psr & IA64_PSR_IS) != 0);
+	if (ia64_ia32mode) {
+		if (upeek(tcp->pid, PT_R1, &scno) < 0)
 			return -1;
 	} else {
-		if (upeek(tcp, PT_R15, &scno) < 0)
+		if (upeek(tcp->pid, PT_R15, &scno) < 0)
 			return -1;
 	}
 #elif defined(AARCH64)
@@ -1371,7 +1378,7 @@ get_scno(struct tcb *tcp)
 
 	scno = shuffle_scno(scno);
 #elif defined(M68K)
-	if (upeek(tcp, 4*PT_ORIG_D0, &scno) < 0)
+	if (upeek(tcp->pid, 4*PT_ORIG_D0, &scno) < 0)
 		return -1;
 #elif defined(LINUX_MIPSN32)
 	unsigned long long regs[38];
@@ -1390,9 +1397,9 @@ get_scno(struct tcb *tcp)
 		}
 	}
 #elif defined(MIPS)
-	if (upeek(tcp, REG_A3, &mips_a3) < 0)
+	if (upeek(tcp->pid, REG_A3, &mips_a3) < 0)
 		return -1;
-	if (upeek(tcp, REG_V0, &scno) < 0)
+	if (upeek(tcp->pid, REG_V0, &scno) < 0)
 		return -1;
 
 	if (!SCNO_IN_RANGE(scno)) {
@@ -1403,9 +1410,9 @@ get_scno(struct tcb *tcp)
 		}
 	}
 #elif defined(ALPHA)
-	if (upeek(tcp, REG_A3, &alpha_a3) < 0)
+	if (upeek(tcp->pid, REG_A3, &alpha_a3) < 0)
 		return -1;
-	if (upeek(tcp, REG_R0, &scno) < 0)
+	if (upeek(tcp->pid, REG_R0, &scno) < 0)
 		return -1;
 
 	/*
@@ -1478,13 +1485,13 @@ get_scno(struct tcb *tcp)
 		memmove(&sparc_regs.u_regs[U_REG_O0], &sparc_regs.u_regs[U_REG_O1], 7*sizeof(sparc_regs.u_regs[0]));
 	}
 #elif defined(HPPA)
-	if (upeek(tcp, PT_GR20, &scno) < 0)
+	if (upeek(tcp->pid, PT_GR20, &scno) < 0)
 		return -1;
 #elif defined(SH)
 	/*
 	 * In the new syscall ABI, the system call number is in R3.
 	 */
-	if (upeek(tcp, 4*(REG_REG0+3), &scno) < 0)
+	if (upeek(tcp->pid, 4*(REG_REG0+3), &scno) < 0)
 		return -1;
 
 	if (scno < 0) {
@@ -1501,11 +1508,11 @@ get_scno(struct tcb *tcp)
 		scno = correct_scno;
 	}
 #elif defined(SH64)
-	if (upeek(tcp, REG_SYSCALL, &scno) < 0)
+	if (upeek(tcp->pid, REG_SYSCALL, &scno) < 0)
 		return -1;
 	scno &= 0xFFFF;
 #elif defined(CRISV10) || defined(CRISV32)
-	if (upeek(tcp, 4*PT_R9, &scno) < 0)
+	if (upeek(tcp->pid, 4*PT_R9, &scno) < 0)
 		return -1;
 #elif defined(TILE)
 	int currpers;
@@ -1523,14 +1530,14 @@ get_scno(struct tcb *tcp)
 # endif
 	update_personality(tcp, currpers);
 #elif defined(MICROBLAZE)
-	if (upeek(tcp, 0, &scno) < 0)
+	if (upeek(tcp->pid, 0, &scno) < 0)
 		return -1;
 #elif defined(OR1K)
 	scno = or1k_regs.gpr[11];
 #elif defined(METAG)
 	scno = metag_regs.dx[0][1];	/* syscall number in D1Re0 (D1.0) */
 #elif defined(XTENSA)
-	if (upeek(tcp, SYSCALL_NR, &scno) < 0)
+	if (upeek(tcp->pid, SYSCALL_NR, &scno) < 0)
 		return -1;
 #endif
 
@@ -1589,7 +1596,7 @@ syscall_fixup_on_sysenter(struct tcb *tcp)
 	 * and stored it in syscall_mode, reuse it here
 	 * instead of re-fetching?
 	 */
-	if (upeek(tcp, PT_GPR2, &gpr2) < 0)
+	if (upeek(tcp->pid, PT_GPR2, &gpr2) < 0)
 		return -1;
 	if (syscall_mode != -ENOSYS)
 		syscall_mode = tcp->scno;
@@ -1600,7 +1607,7 @@ syscall_fixup_on_sysenter(struct tcb *tcp)
 	}
 #elif defined(M68K)
 	/* TODO? Eliminate upeek's in arches below like we did in x86 */
-	if (upeek(tcp, 4*PT_D0, &m68k_d0) < 0)
+	if (upeek(tcp->pid, 4*PT_D0, &m68k_d0) < 0)
 		return -1;
 	if (m68k_d0 != -ENOSYS) {
 		if (debug_flag)
@@ -1608,17 +1615,17 @@ syscall_fixup_on_sysenter(struct tcb *tcp)
 		return 0;
 	}
 #elif defined(IA64)
-	if (upeek(tcp, PT_R10, &ia64_r10) < 0)
+	if (upeek(tcp->pid, PT_R10, &ia64_r10) < 0)
 		return -1;
-	if (upeek(tcp, PT_R8, &ia64_r8) < 0)
+	if (upeek(tcp->pid, PT_R8, &ia64_r8) < 0)
 		return -1;
-	if (ia32 && ia64_r8 != -ENOSYS) {
+	if (ia64_ia32mode && ia64_r8 != -ENOSYS) {
 		if (debug_flag)
 			fprintf(stderr, "not a syscall entry (r8 = %ld)\n", ia64_r8);
 		return 0;
 	}
 #elif defined(CRISV10) || defined(CRISV32)
-	if (upeek(tcp, 4*PT_R10, &cris_r10) < 0)
+	if (upeek(tcp->pid, 4*PT_R10, &cris_r10) < 0)
 		return -1;
 	if (cris_r10 != -ENOSYS) {
 		if (debug_flag)
@@ -1626,7 +1633,7 @@ syscall_fixup_on_sysenter(struct tcb *tcp)
 		return 0;
 	}
 #elif defined(MICROBLAZE)
-	if (upeek(tcp, 3 * 4, &microblaze_r3) < 0)
+	if (upeek(tcp->pid, 3 * 4, &microblaze_r3) < 0)
 		return -1;
 	if (microblaze_r3 != -ENOSYS) {
 		if (debug_flag)
@@ -1731,14 +1738,14 @@ get_syscall_args(struct tcb *tcp)
 
 #if defined(S390) || defined(S390X)
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, i==0 ? PT_ORIGGPR2 : PT_GPR2 + i*sizeof(long), &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, i==0 ? PT_ORIGGPR2 : PT_GPR2 + i*sizeof(long), &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(ALPHA)
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, REG_A0+i, &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, REG_A0+i, &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(IA64)
-	if (!ia32) {
+	if (!ia64_ia32mode) {
 		unsigned long *out0, cfm, sof, sol;
 		long rbs_end;
 		/* be backwards compatible with kernel < 2.4.4... */
@@ -1746,9 +1753,9 @@ get_syscall_args(struct tcb *tcp)
 #		  define PT_RBS_END	PT_AR_BSP
 #		endif
 
-		if (upeek(tcp, PT_RBS_END, &rbs_end) < 0)
+		if (upeek(tcp->pid, PT_RBS_END, &rbs_end) < 0)
 			return -1;
-		if (upeek(tcp, PT_CFM, (long *) &cfm) < 0)
+		if (upeek(tcp->pid, PT_CFM, (long *) &cfm) < 0)
 			return -1;
 
 		sof = (cfm >> 0) & 0x7f;
@@ -1769,7 +1776,7 @@ get_syscall_args(struct tcb *tcp)
 						      PT_R13 /* EBP = out5 */};
 
 		for (i = 0; i < nargs; ++i) {
-			if (upeek(tcp, argreg[i], &tcp->u_arg[i]) < 0)
+			if (upeek(tcp->pid, argreg[i], &tcp->u_arg[i]) < 0)
 				return -1;
 			/* truncate away IVE sign-extension */
 			tcp->u_arg[i] &= 0xffffffff;
@@ -1792,35 +1799,33 @@ get_syscall_args(struct tcb *tcp)
 	if (nargs > 4) {
 		long sp;
 
-		if (upeek(tcp, REG_SP, &sp) < 0)
+		if (upeek(tcp->pid, REG_SP, &sp) < 0)
 			return -1;
 		for (i = 0; i < 4; ++i)
-			if (upeek(tcp, REG_A0 + i, &tcp->u_arg[i]) < 0)
+			if (upeek(tcp->pid, REG_A0 + i, &tcp->u_arg[i]) < 0)
 				return -1;
 		umoven(tcp, sp + 16, (nargs - 4) * sizeof(tcp->u_arg[0]),
 		       (char *)(tcp->u_arg + 4));
 	} else {
 		for (i = 0; i < nargs; ++i)
-			if (upeek(tcp, REG_A0 + i, &tcp->u_arg[i]) < 0)
+			if (upeek(tcp->pid, REG_A0 + i, &tcp->u_arg[i]) < 0)
 				return -1;
 	}
 #elif defined(POWERPC)
-# ifndef PT_ORIG_R3
-#  define PT_ORIG_R3 34
-# endif
-	for (i = 0; i < nargs; ++i) {
-		if (upeek(tcp, (i==0) ?
-			(sizeof(unsigned long) * PT_ORIG_R3) :
-			((i+PT_R3) * sizeof(unsigned long)),
-				&tcp->u_arg[i]) < 0)
-			return -1;
-	}
+	(void)i;
+	(void)nargs;
+	tcp->u_arg[0] = ppc_regs.orig_gpr3;
+	tcp->u_arg[1] = ppc_regs.gpr[4];
+	tcp->u_arg[2] = ppc_regs.gpr[5];
+	tcp->u_arg[3] = ppc_regs.gpr[6];
+	tcp->u_arg[4] = ppc_regs.gpr[7];
+	tcp->u_arg[5] = ppc_regs.gpr[8];
 #elif defined(SPARC) || defined(SPARC64)
 	for (i = 0; i < nargs; ++i)
 		tcp->u_arg[i] = sparc_regs.u_regs[U_REG_O0 + i];
 #elif defined(HPPA)
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, PT_GR26-4*i, &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, PT_GR26-4*i, &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(ARM) || defined(AARCH64)
 # if defined(AARCH64)
@@ -1844,7 +1849,7 @@ get_syscall_args(struct tcb *tcp)
 	static const int argreg[MAX_ARGS] = { PT_R0, PT_R1, PT_R2, PT_R3, PT_R4, PT_R5 };
 
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, argreg[i], &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, argreg[i], &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(SH)
 	static const int syscall_regs[MAX_ARGS] = {
@@ -1853,7 +1858,7 @@ get_syscall_args(struct tcb *tcp)
 	};
 
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, syscall_regs[i], &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, syscall_regs[i], &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(SH64)
 	int i;
@@ -1861,7 +1866,7 @@ get_syscall_args(struct tcb *tcp)
 	static const int syscall_regs[MAX_ARGS] = { 2, 3, 4, 5, 6, 7 };
 
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, REG_GENERAL(syscall_regs[i]), &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, REG_GENERAL(syscall_regs[i]), &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(I386)
 	(void)i;
@@ -1906,7 +1911,7 @@ get_syscall_args(struct tcb *tcp)
 	}
 #elif defined(MICROBLAZE)
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, (5 + i) * 4, &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, (5 + i) * 4, &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(CRISV10) || defined(CRISV32)
 	static const int crisregs[MAX_ARGS] = {
@@ -1915,14 +1920,14 @@ get_syscall_args(struct tcb *tcp)
 	};
 
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, crisregs[i], &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, crisregs[i], &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(TILE)
 	for (i = 0; i < nargs; ++i)
 		tcp->u_arg[i] = tile_regs.regs[i];
 #elif defined(M68K)
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, (i < 5 ? i : i + 2)*4, &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, (i < 5 ? i : i + 2)*4, &tcp->u_arg[i]) < 0)
 			return -1;
 #elif defined(OR1K)
 	(void)nargs;
@@ -1936,11 +1941,11 @@ get_syscall_args(struct tcb *tcp)
 	/* arg0: a6, arg1: a3, arg2: a4, arg3: a5, arg4: a8, arg5: a9 */
 	static const int xtensaregs[MAX_ARGS] = { 6, 3, 4, 5, 8, 9 };
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, REG_A_BASE + xtensaregs[i], &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, REG_A_BASE + xtensaregs[i], &tcp->u_arg[i]) < 0)
 			return -1;
 #else /* Other architecture (32bits specific) */
 	for (i = 0; i < nargs; ++i)
-		if (upeek(tcp, i*4, &tcp->u_arg[i]) < 0)
+		if (upeek(tcp->pid, i*4, &tcp->u_arg[i]) < 0)
 			return -1;
 #endif
 	return 1;
@@ -2056,23 +2061,14 @@ static int
 get_syscall_result(struct tcb *tcp)
 {
 #if defined(S390) || defined(S390X)
-	if (upeek(tcp, PT_GPR2, &gpr2) < 0)
+	if (upeek(tcp->pid, PT_GPR2, &gpr2) < 0)
 		return -1;
 #elif defined(POWERPC)
-# define SO_MASK 0x10000000
-	{
-		long flags;
-		if (upeek(tcp, sizeof(unsigned long)*PT_CCR, &flags) < 0)
-			return -1;
-		if (upeek(tcp, sizeof(unsigned long)*PT_R3, &ppc_result) < 0)
-			return -1;
-		if (flags & SO_MASK)
-			ppc_result = -ppc_result;
-	}
+	/* already done by get_regs */
 #elif defined(AVR32)
 	/* already done by get_regs */
 #elif defined(BFIN)
-	if (upeek(tcp, PT_R0, &bfin_r0) < 0)
+	if (upeek(tcp->pid, PT_R0, &bfin_r0) < 0)
 		return -1;
 #elif defined(I386)
 	/* already done by get_regs */
@@ -2081,11 +2077,11 @@ get_syscall_result(struct tcb *tcp)
 #elif defined(IA64)
 #	define IA64_PSR_IS	((long)1 << 34)
 	long psr;
-	if (upeek(tcp, PT_CR_IPSR, &psr) >= 0)
-		ia32 = (psr & IA64_PSR_IS) != 0;
-	if (upeek(tcp, PT_R8, &ia64_r8) < 0)
+	if (upeek(tcp->pid, PT_CR_IPSR, &psr) >= 0)
+		ia64_ia32mode = ((psr & IA64_PSR_IS) != 0);
+	if (upeek(tcp->pid, PT_R8, &ia64_r8) < 0)
 		return -1;
-	if (upeek(tcp, PT_R10, &ia64_r10) < 0)
+	if (upeek(tcp->pid, PT_R10, &ia64_r10) < 0)
 		return -1;
 #elif defined(ARM)
 	/* already done by get_regs */
@@ -2098,7 +2094,7 @@ get_syscall_result(struct tcb *tcp)
 	 */
 	/*update_personality(tcp, aarch64_io.iov_len == sizeof(aarch64_regs));*/
 #elif defined(M68K)
-	if (upeek(tcp, 4*PT_D0, &m68k_d0) < 0)
+	if (upeek(tcp->pid, 4*PT_D0, &m68k_d0) < 0)
 		return -1;
 #elif defined(LINUX_MIPSN32)
 	unsigned long long regs[38];
@@ -2108,42 +2104,42 @@ get_syscall_result(struct tcb *tcp)
 	mips_a3 = regs[REG_A3];
 	mips_r2 = regs[REG_V0];
 #elif defined(MIPS)
-	if (upeek(tcp, REG_A3, &mips_a3) < 0)
+	if (upeek(tcp->pid, REG_A3, &mips_a3) < 0)
 		return -1;
-	if (upeek(tcp, REG_V0, &mips_r2) < 0)
+	if (upeek(tcp->pid, REG_V0, &mips_r2) < 0)
 		return -1;
 #elif defined(ALPHA)
-	if (upeek(tcp, REG_A3, &alpha_a3) < 0)
+	if (upeek(tcp->pid, REG_A3, &alpha_a3) < 0)
 		return -1;
-	if (upeek(tcp, REG_R0, &alpha_r0) < 0)
+	if (upeek(tcp->pid, REG_R0, &alpha_r0) < 0)
 		return -1;
 #elif defined(SPARC) || defined(SPARC64)
 	/* already done by get_regs */
 #elif defined(HPPA)
-	if (upeek(tcp, PT_GR28, &hppa_r28) < 0)
+	if (upeek(tcp->pid, PT_GR28, &hppa_r28) < 0)
 		return -1;
 #elif defined(SH)
 	/* new syscall ABI returns result in R0 */
-	if (upeek(tcp, 4*REG_REG0, (long *)&sh_r0) < 0)
+	if (upeek(tcp->pid, 4*REG_REG0, (long *)&sh_r0) < 0)
 		return -1;
 #elif defined(SH64)
 	/* ABI defines result returned in r9 */
-	if (upeek(tcp, REG_GENERAL(9), (long *)&sh64_r9) < 0)
+	if (upeek(tcp->pid, REG_GENERAL(9), (long *)&sh64_r9) < 0)
 		return -1;
 #elif defined(CRISV10) || defined(CRISV32)
-	if (upeek(tcp, 4*PT_R10, &cris_r10) < 0)
+	if (upeek(tcp->pid, 4*PT_R10, &cris_r10) < 0)
 		return -1;
 #elif defined(TILE)
 	/* already done by get_regs */
 #elif defined(MICROBLAZE)
-	if (upeek(tcp, 3 * 4, &microblaze_r3) < 0)
+	if (upeek(tcp->pid, 3 * 4, &microblaze_r3) < 0)
 		return -1;
 #elif defined(OR1K)
 	/* already done by get_regs */
 #elif defined(METAG)
 	/* already done by get_regs */
 #elif defined(XTENSA)
-	if (upeek(tcp, REG_A_BASE + 2, &xtensa_a2) < 0)
+	if (upeek(tcp->pid, REG_A_BASE + 2, &xtensa_a2) < 0)
 		return -1;
 #endif
 	return 1;
@@ -2268,7 +2264,7 @@ get_error(struct tcb *tcp)
 		tcp->u_lrval = rax;
 	}
 #elif defined(IA64)
-	if (ia32) {
+	if (ia64_ia32mode) {
 		int err;
 
 		err = (int)ia64_r8;
@@ -2298,12 +2294,12 @@ get_error(struct tcb *tcp)
 # endif
 	}
 #elif defined(POWERPC)
-	if (check_errno && is_negated_errno(ppc_result)) {
+	if (check_errno && (ppc_regs.ccr & 0x10000000)) {
 		tcp->u_rval = -1;
-		u_error = -ppc_result;
+		u_error = ppc_regs.gpr[3];
 	}
 	else {
-		tcp->u_rval = ppc_result;
+		tcp->u_rval = ppc_regs.gpr[3];
 	}
 #elif defined(M68K)
 	if (check_errno && is_negated_errno(m68k_d0)) {
