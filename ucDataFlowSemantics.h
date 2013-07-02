@@ -54,7 +54,7 @@ extern int *procMem;
 
 #define fdDup(fdPtr, value) if (!(fdPtr = malloc(sizeof(int)))) { ucDeclass_errorExitMemory();	} *fdPtr = value
 
-void ucSemantics_do_close(pid_t pid, int fd);
+void ucSemantics_do_close(pid_t pid, int fd, GHashTableIter *iter);
 
 void ucSemantics_accept(struct tcb *tcp);
 void ucSemantics_clone(struct tcb *tcp);

@@ -18,17 +18,17 @@ GHashTable *ignoreFDs;
 
 
 int ignoreFile(char *absFilename) {
-//	if (strstr(absFilename, "/etc/") == absFilename
-//		|| strstr(absFilename, "/dev/") == absFilename
-//		|| strstr(absFilename, "/usr/") == absFilename
-//		|| strstr(absFilename, "/sys/") == absFilename
-//		|| strstr(absFilename, "/proc/") == absFilename
-//		|| strstr(absFilename, "/lib/") == absFilename
-//		|| strstr(absFilename, "/var/") == absFilename
-//		|| strstr(absFilename, ".viminfo") != NULL
-//		) {
-//		return (1);
-//	}
+	if (strstr(absFilename, "/etc/") == absFilename
+		|| strstr(absFilename, "/dev/") == absFilename
+		|| strstr(absFilename, "/usr/") == absFilename
+		|| strstr(absFilename, "/sys/") == absFilename
+		|| strstr(absFilename, "/proc/") == absFilename
+		|| strstr(absFilename, "/lib/") == absFilename
+		|| strstr(absFilename, "/var/") == absFilename
+		|| strstr(absFilename, ".viminfo") != NULL
+		) {
+		return (1);
+	}
 
 	return (0);
 }
@@ -447,7 +447,7 @@ void ucSemantics_do_process_exit(int pid) {
 		gpointer fd;
 		g_hash_table_iter_init(&iter, procFDs[pid]);
 		while (g_hash_table_iter_next (&iter, &fd, NULL)) {
-			ucSemantics_do_close(pid, * (int*)fd);
+			ucSemantics_do_close(pid, * (int*)fd, &iter);
 		}
 	}
 	else {
@@ -497,12 +497,18 @@ void ucSemantics_execve(struct tcb *tcp) {
 }
 
 
-void ucSemantics_do_close(pid_t pid, int fd) {
+void ucSemantics_do_close(pid_t pid, int fd, GHashTableIter *iter) {
 	getIdentifierFD(pid, fd, identifier, sizeof(identifier), NULL);
 
 	ucPIP_removeIdentifier(identifier);
 	g_hash_table_remove(ignoreFDs, identifier);
-	g_hash_table_remove(procFDs[pid], &fd);
+
+	if (iter) {
+		g_hash_table_iter_remove(iter);
+	}
+	else {
+		g_hash_table_remove(procFDs[pid], &fd);
+	}
 }
 
 
@@ -512,7 +518,7 @@ void ucSemantics_close(struct tcb *tcp) {
 		return;
 	}
 
-	ucSemantics_do_close(tcp->pid, tcp->u_arg[0]);
+	ucSemantics_do_close(tcp->pid, tcp->u_arg[0], NULL);
 
 	ucSemantics_log("close(): %dx%d\n", tcp->pid, tcp->u_arg[0]);
 }
@@ -797,7 +803,7 @@ void ucSemantics_dup2(struct tcb *tcp) {
 	}
 
 	// close the new fd first, if necessary
-	ucSemantics_do_close(tcp->pid, tcp->u_rval);
+	ucSemantics_do_close(tcp->pid, tcp->u_rval, NULL);
 
 	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
 	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
