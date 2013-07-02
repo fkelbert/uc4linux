@@ -177,16 +177,6 @@ int *getProcessTasks(long pid, int *count) {
 }
 
 
-///**
-// * Returns a list of open filedescriptors for the process identified with the specified process ID.
-// * Memory for the result will be allocated by this function and needs to be freed by the caller.
-// * @param pid the process id
-// * @param count a pointer that will return the number of entries in the returned int*
-// * @return an int-Array containing all open file descriptors of that process. The size of this array is returned in count.
-// */
-//int *getListOfOpenFileDescriptors(long pid, int *count) {
-//	return (getIntDirEntries(pid, count, "fd"));
-//}
 
 
 
@@ -362,7 +352,11 @@ void ucSemantics_write(struct tcb *tcp) {
 		return;
 	}
 
-	ucPIP_copyData(getIdentifierPID(tcp->pid, identifier, sizeof(identifier)), getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2)));
+	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2));
+
+	// PID -> FD
+	ucPIP_copyData(identifier, identifier2);
 
 	ucSemantics_log("write(): %s --> %s\n", identifier, identifier2);
 }
@@ -374,7 +368,11 @@ void ucSemantics_read(struct tcb *tcp) {
 		return;
 	}
 
-	ucPIP_copyData(getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier)), getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2)));
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier));
+	getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2));
+
+	// FD -> PID
+	ucPIP_copyData(identifier, identifier2);
 
 	ucSemantics_log("read(): %d <-- %s\n", tcp->pid, identifier);
 }
@@ -540,7 +538,11 @@ void ucSemantics_kill(struct tcb *tcp) {
 		return;
 	}
 
-	ucPIP_copyData(getIdentifierPID(tcp->pid, identifier, sizeof(identifier)), getIdentifierPID(tcp->u_arg[0], identifier2, sizeof(identifier2)));
+	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+	getIdentifierPID(tcp->u_arg[0], identifier2, sizeof(identifier2));
+
+	// PID -> PID
+	ucPIP_copyData(identifier, identifier2);
 
 	ucSemantics_log("kill(): %s --> %s\n", identifier, identifier2);
 }
@@ -592,7 +594,7 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 
 	ucSemantics_log("clone(): %s %s\n", identifier, identifier2);
 
-	// copy all the data to the new process
+	// PID -> PID
 	ucPIP_copyData(identifier, identifier2);
 
 	// clone all the aliases
@@ -618,99 +620,6 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 	}
 }
 
-//void ucSemantics_clone(struct tcb *tcp) {
-//	int count;
-//	int *fds;
-//
-//	if (cloningProcess == -1) {
-//		ucSemantics_errorExit("Cloning process already set.");
-//	}
-//
-//	cloningProcess = tcp->pid;
-//	printf("set cloning process: %d\n", tcp->pid);
-
-//	int pid = tcp->
-//	int ppid;
-//
-//	char procpath[FILENAME_MAX];
-//	snprintf(procpath, sizeof(procpath), "/proc/%d/status", pid);
-//	FILE *procfs = fopen(procpath, "r");
-//
-//	printf("procfs %s\n", procfs);
-//
-//	int found = 0;
-//	char *line;
-//	int r = 0;
-//
-//	while (!found && r >= 0) {
-//		line = NULL;
-//		r = getline(&line, 0, procfs);
-//		printf("getline: %s", line);
-//	}
-//
-//	addProcMem(pid);
-//
-//	getIdentifierPID(ppid, identifier, sizeof(identifier));
-//	getIdentifierPID(pid, identifier2, sizeof(identifier2));
-//
-//	ucPIP_addIdentifier(identifier2, NULL);
-//
-//	// copy all the data to the new process
-//	ucPIP_copyData(identifier, identifier2);
-//
-//	// clone all the aliases
-//	ucPIP_copyAliases(identifier, identifier2);
-//	ucPIP_alsoAlias(identifier, identifier2);
-//
-//	// copy all file descriptors
-//	fds = getListOfOpenFileDescriptors(ppid, &count);
-//	while (--count >= 0) {
-//		getIdentifierFD(ppid, fds[count], identifier, sizeof(identifier));
-//		getIdentifierFD(pid, fds[count], identifier2, sizeof(identifier2));
-//
-//		if (ucpIP_existsContainer(identifier)) {
-//			ucPIP_addIdentifier(identifier, identifier2);
-//		}
-//	}
-//	free(fds);
-//
-//
-//	printf("clone(): %d : %d\n", ppid, pid);
-
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//
-//	addProcMem(tcp->u_rval);
-//
-//	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
-//	getIdentifierPID(tcp->u_rval, identifier2, sizeof(identifier2));
-//
-//	ucPIP_addIdentifier(identifier2, NULL);
-//
-//	// copy all the data to the new process
-//	ucPIP_copyData(identifier, identifier2);
-//
-//	// clone all the aliases
-//	ucPIP_copyAliases(identifier, identifier2);
-//	ucPIP_alsoAlias(identifier, identifier2);
-//
-//	// copy all file descriptors
-//	fds = getListOfOpenFileDescriptors(tcp->pid, &count);
-//	while (--count >= 0) {
-//		getIdentifierFD(tcp->pid, fds[count], identifier, sizeof(identifier));
-//		getIdentifierFD(tcp->u_rval, fds[count], identifier2, sizeof(identifier2));
-//
-//		if (ucpIP_existsContainer(identifier)) {
-//			ucPIP_addIdentifier(identifier, identifier2);
-//		}
-//	}
-//	free(fds);
-//
-//
-//	printf("clone(): %d : %ld\n", tcp->pid, tcp->u_rval);
-//}
 
 void ucSemantics_ftruncate(struct tcb *tcp) {
 	// TODO. man 2 ftruncate; do sth if length == 0

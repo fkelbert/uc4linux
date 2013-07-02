@@ -15,6 +15,18 @@ void ucInit() {
 	ucPIP_addInitialData("/tmp/foo");
 }
 
+void do_dft(struct tcb *tcp) {
+	if (ucSemanticsFunct[tcp->scno]) {
+		ucSemanticsFunct[tcp->scno](tcp);
+//					ucPIP_printF();
+//					ucPIP_printS();
+
+	}
+	else {
+//					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
+	}
+}
+
 // Kelbert
 int ucBeforeSyscallEnter(struct tcb *tcp) {
 	int retval = ucPDPask(tcp);
@@ -23,17 +35,7 @@ int ucBeforeSyscallEnter(struct tcb *tcp) {
 		case UC_PDP_ALLOW:
 		case UC_PDP_MODIFY:	// modify assumes that the syscall has already been modified transparently		
 			if (ucPIPupdateBefore(tcp)) {
-				if (ucSemanticsFunct[tcp->scno]) {
-					ucSemanticsFunct[tcp->scno](tcp);
-#if UC_DECLASS_ENABLED
-//					ucDeclassEvent(tcp);
-#endif
-//					ucPIP_printF();
-//					ucPIP_printS();
-				}
-				else {
-//					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
-				}
+				do_dft(tcp);
 			}
 			break;
 		case UC_PDP_INHIBIT:
@@ -54,17 +56,7 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 	switch(retval) {
 		case UC_PDP_ALLOW:		
 			if (ucPIPupdateAfter(tcp)) {
-				if (ucSemanticsFunct[tcp->scno]) {
-					ucSemanticsFunct[tcp->scno](tcp);
-#if UC_DECLASS_ENABLED
-//					ucDeclassEvent(tcp);
-#endif
-//					ucPIP_printF();
-//					ucPIP_printS();
-				}
-				else {
-//					fprintf(stderr, "Unhandled %s (%ld)\n", tcp->s_ent->sys_name, tcp->scno);
-				}
+				do_dft(tcp);
 			}
 			break;
 		case UC_PDP_DELAY:

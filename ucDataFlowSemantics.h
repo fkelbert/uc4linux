@@ -9,6 +9,7 @@
 #define UC_SEMANTICS_H_
 
 #include "defs.h"
+#include "ucDeclass.h"
 #include "syscall.h"
 
 #include <sys/fcntl.h>

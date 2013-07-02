@@ -309,12 +309,13 @@ void ucPIP_alsoAlias(ucIdentifier stencilIdentifier, ucIdentifier stenciledIdent
  * with srcIdentifier, then nothing will happen. If there is no container
  * that is identified by dstIdentifier, then one is transparently created.
  */
-void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
+void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier, ucDataSet retDataSet) {
 	ucDataSet srcDataSet;
 	ucDataSet dstDataSet;
 	GHashTableIter iter;
 	gpointer dataID;
 	ucDataID *dataIDCopy;
+	ucDataID *dataIDCopy2;
 
 	// No sensitive data in source container. Nothing to do.
 	if (INVALID_DATASET(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || ucPIP_isEmptyDataSet(srcDataSet)) {
@@ -330,12 +331,22 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	// copy each and every entry from source container to destination container
 	g_hash_table_iter_init(&iter, srcDataSet);
 	while (g_hash_table_iter_next (&iter, &dataID, NULL)) {
-
 		if (!(dataIDCopy = calloc(1, sizeof(ucDataID)))) {
 			ucPIP_errorExit("Unable to allocate enough memory");
 		}
 		*dataIDCopy = * (ucDataID*) dataID;
+
 		g_hash_table_insert(dstDataSet, dataIDCopy, NULL);
+
+		// also populate the return data set, if provided
+		if (VALID_DATASET(retDataSet)) {
+			if (!(dataIDCopy2 = calloc(1, sizeof(ucDataID)))) {
+				ucPIP_errorExit("Unable to allocate enough memory");
+			}
+			*dataIDCopy2 = * (ucDataID*) dataID;
+
+			g_hash_table_insert(retDataSet, dataIDCopy2, NULL);
+		}
 	}
 }
 
