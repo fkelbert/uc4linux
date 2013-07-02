@@ -485,10 +485,6 @@ void ucSemantics_do_fd_close(pid_t pid, int fd) {
 	g_hash_table_remove(ignoreFDs, identifier);
 }
 
-void ucSemantics_do_fd_open(pid_t pid, int fd) {
-
-}
-
 
 // done
 void ucSemantics_close(struct tcb *tcp) {

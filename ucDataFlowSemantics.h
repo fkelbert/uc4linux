@@ -53,7 +53,6 @@ extern int *procMem;
 #define ucPIPupdateAfter(tcp) (!(ucPIPupdateBefore(tcp)))
 
 void ucSemantics_do_fd_close(pid_t pid, int fd);
-void ucSemantics_do_fd_open(pid_t pid, int fd);
 
 void ucSemantics_accept(struct tcb *tcp);
 void ucSemantics_clone(struct tcb *tcp);
