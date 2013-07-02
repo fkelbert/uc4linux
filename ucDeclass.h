@@ -8,16 +8,16 @@
 #ifndef UC_DECLASS_H_
 #define UC_DECLASS_H_
 
-#include <glib.h>
+#include "ucSyscall.h"
+#include "ucPIP_main.h"
+#include <glib.h>		// include this library _after_ defs.h, because of macro redefinition
 #include <stdlib.h>
 #include <sys/time.h>
-#include "ucSyscall.h"
-#include "ucPIP.h"
 
 #define UC_DECLASS_ENABLED 1
-#define UC_DECLASS_DEBUG 1
+#define UC_DECLASS_PRINT 1
 
-#if defined(UC_DECLASS_DEBUG) && UC_DECLASS_DEBUG
+#if defined(UC_DECLASS_PRINT) && UC_DECLASS_PRINT
 	#define ucDeclass_printSPlus(out, pid) ucDeclass_printSPlus_impl(out, pid)
 	void ucDeclass_printSPlus_impl(FILE *out, pid_t pid);
 #else
@@ -43,6 +43,7 @@ struct printSPlusData {
 			exit (1);
 
 #define pidDup(pidPtr, value) if (!(pidPtr = malloc(sizeof(pid_t)))) { ucDeclass_errorExitMemory();	} *pidPtr = value
+#define timevalDup(timevalPtr, value) if (!(timevalPtr = malloc(sizeof(struct timeval)))) { ucDeclass_errorExitMemory();} memcpy(timevalPtr, &value, sizeof(struct timeval))
 
 gboolean ucDeclass_printSPlusElement(gpointer key, gpointer value, gpointer data);
 
