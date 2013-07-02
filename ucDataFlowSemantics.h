@@ -20,7 +20,7 @@
 #include <dirent.h>
 #include <glib.h>
 
-#define UC_SEMANTICS_DEBUG 0
+#define UC_SEMANTICS_DEBUG 1
 
 #define IDENTIFIER_MAX_LEN 512
 

@@ -2073,7 +2073,7 @@ trace(void)
 				newoutf(tcp);
 
 #if defined(UC_ENABLED) && UC_ENABLED
-				ucSemanticsFunct[SYS_cloneFirstAction](tcp);
+				notifyNewProcess(tcp);
 #else
 				if (!qflag)
 					fprintf(stderr, "Process %d attached\n",
@@ -2359,23 +2359,8 @@ trace(void)
   *    This has not been tested.
   *
  */
-		if (tcp
-#if UC_PERFORMANCE_MODE
-				&& ucHandleSyscall(tcp->scno)
-#endif
-				&& tcp->s_ent && tcp->s_ent->sys_name) {
-			/* It is kind of weird, that we need to use exiting()
-			 * in this way here. My guess is, that execve (which is stopped
-			 * three times in the beginning) makes this necessary. 
-			 * TODO: Handle this case more seriously; maybe use syscall_fixup_on_sysenter() in syscall.c
-			 */
-			if (exiting(tcp)) {
-				ucBeforeSyscallEnter(tcp);
-			}
-			else {
-				ucAfterSyscallExit(tcp);
-			}
-		}
+ 	 notifySyscall(tcp);
+
 #endif /* 	 */
 
 		if (ptrace_restart(PTRACE_SYSCALL, tcp, sig) < 0) {

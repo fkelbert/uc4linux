@@ -18,8 +18,8 @@ void ucInit() {
 void do_dft(struct tcb *tcp) {
 	if (ucSemanticsFunct[tcp->scno]) {
 		ucSemanticsFunct[tcp->scno](tcp);
-//					ucPIP_printF();
-//					ucPIP_printS();
+		ucPIP_printF();
+		ucPIP_printS();
 
 	}
 	else {
@@ -70,7 +70,29 @@ int ucAfterSyscallExit(struct tcb *tcp) {
 }
 
 
+void notifyNewProcess(struct tcb *tcp) {
+	ucSemanticsFunct[SYS_cloneFirstAction](tcp);
+}
 
+void notifySyscall(struct tcb *tcp) {
+	if (tcp
+#if UC_PERFORMANCE_MODE
+			&& ucHandleSyscall(tcp->scno)
+#endif
+			&& tcp->s_ent && tcp->s_ent->sys_name) {
+		/* It is kind of weird, that we need to use exiting()
+		 * in this way here. My guess is, that execve (which is stopped
+		 * three times in the beginning) makes this necessary.
+		 * TODO: Handle this case more seriously; maybe use syscall_fixup_on_sysenter() in syscall.c
+		 */
+		if (exiting(tcp)) {
+			ucBeforeSyscallEnter(tcp);
+		}
+		else {
+			ucAfterSyscallExit(tcp);
+		}
+	}
+}
 
 
 void (*ucSemanticsFunct[])(struct tcb *tcp) = {
