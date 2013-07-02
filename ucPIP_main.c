@@ -35,7 +35,6 @@ void ucPIP_update(struct tcb *tcp) {
 			|| (!exiting(tcp) && ucPIPupdateAfter(tcp))) {
 		// This call will update both (s(),l(),f()) and s+() as defined
 		// for the corresponding system call in ucDataFlowSemantics.c
-		// Bammmm. Magic.
 		ucSemanticsFunct[tcp->scno](tcp);
 
 		ucPIP_printF();

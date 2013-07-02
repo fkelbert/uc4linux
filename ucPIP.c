@@ -45,17 +45,14 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
 		return (UC_INVALID_CONTID);
 	}
 
-
-	if (VALID_CONTID(contID = (ucContainerID*) g_hash_table_lookup(f, identifier))) {
+	contID = (ucContainerID*) g_hash_table_lookup(f, identifier);
+	if (contID && VALID_CONTID(*contID)) {
 		return (*contID);
 	}
 
 
 	if (create) {
-		if (!(contID = (ucContainerID*) calloc(1, sizeof(ucContainerID)))) {
-			ucPIP_errorExitMemory();
-		}
-		*contID = ucPIP_newContainerID();
+		containerNew(contID, ucPIP_newContainerID());
 		g_hash_table_insert(f, strdup(identifier), contID);
 
 		return (*contID);
@@ -65,9 +62,7 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
 }
 
 
-int ucpIP_existsContainer(ucIdentifier identifier) {
-	return VALID_CONTID((ucContainerID*) g_hash_table_lookup(f, identifier));
-}
+
 
 
 /**
@@ -91,11 +86,7 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 
 	if (create) {
 		dataSet = dataSetNew();
-
-		if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
-			ucPIP_errorExitMemory();
-		}
-		*containerIDCopy = containerID;
+		containerNew(containerIDCopy, containerID);
 
 		g_hash_table_insert(s, containerIDCopy, dataSet);
 
@@ -120,11 +111,7 @@ ucAliasSet ucPIP_getAliasSet(ucIdentifier identifier, int create) {
 
 	if (create) {
 		aliasSet = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
-
-		if (!(containerIDCopy = calloc(1, sizeof(ucContainerID)))) {
-			ucPIP_errorExitMemory();
-		}
-		*containerIDCopy = containerID;
+		containerNew(containerIDCopy, containerID);
 
 		g_hash_table_insert(l, containerIDCopy, aliasSet);
 
@@ -172,11 +159,7 @@ ucContainerID ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newId
 		return (UC_INVALID_CONTID);
 	}
 
-	if (!(contIDCopy = calloc(1, sizeof(ucContainerID)))) {
-		ucPIP_errorExitMemory();
-	}
-
-	*contIDCopy = contID;
+	containerNew(contIDCopy, contID);
 
 	g_hash_table_insert(f, strdup(newIdentifier), contIDCopy);
 
@@ -257,11 +240,7 @@ void ucPIP_copyAliases(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	// copy each and every entry from source container to destination container
 	g_hash_table_iter_init(&iter, srcAliasSet);
 	while (g_hash_table_iter_next (&iter, &aliasedContainer, NULL)) {
-
-		if (!(aliasedContainerCopy = calloc(1, sizeof(ucContainerID)))) {
-			ucPIP_errorExit("Unable to allocate enough memory");
-		}
-		*aliasedContainerCopy = * (ucContainerID*) aliasedContainer;
+		containerNew(aliasedContainerCopy, * (ucContainerID*) aliasedContainer);
 		g_hash_table_insert(dstAliasSet, aliasedContainerCopy, NULL);
 	}
 }
@@ -290,12 +269,7 @@ void ucPIP_alsoAlias(ucIdentifier stencilIdentifier, ucIdentifier stenciledIdent
 	g_hash_table_iter_init(&iter, l);
 	while (g_hash_table_iter_next (&iter, (void **)&aliasSet, NULL)) {
 		if (g_hash_table_contains(aliasSet, &stencilCont)) {
-
-			if (!(stenciledContCopy = calloc(1, sizeof(ucContainerID)))) {
-				ucPIP_errorExit("Unable to allocate enough memory.");
-			}
-
-			*stenciledContCopy = stenciledCont;
+			containerNew(stenciledContCopy, stenciledCont);
 
 			g_hash_table_insert(aliasSet, stenciledContCopy, NULL);
 		}
@@ -331,20 +305,12 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier, ucDa
 	// copy each and every entry from source container to destination container
 	g_hash_table_iter_init(&iter, srcDataSet);
 	while (g_hash_table_iter_next (&iter, &dataID, NULL)) {
-		if (!(dataIDCopy = calloc(1, sizeof(ucDataID)))) {
-			ucPIP_errorExit("Unable to allocate enough memory");
-		}
-		*dataIDCopy = * (ucDataID*) dataID;
-
+		dataNew(dataIDCopy, * (ucDataID*) dataID);
 		g_hash_table_insert(dstDataSet, dataIDCopy, NULL);
 
 		// also populate the return data set, if provided
 		if (VALID_DATASET(retDataSet)) {
-			if (!(dataIDCopy2 = calloc(1, sizeof(ucDataID)))) {
-				ucPIP_errorExit("Unable to allocate enough memory");
-			}
-			*dataIDCopy2 = * (ucDataID*) dataID;
-
+			dataNew(dataIDCopy2, * (ucDataID*) dataID);
 			g_hash_table_insert(retDataSet, dataIDCopy2, NULL);
 		}
 	}
@@ -403,11 +369,7 @@ void ucPIP_addAlias(ucIdentifier identifierFrom, ucIdentifier identifierTo) {
 		return;
 	}
 
-	if (!(containerToCopy = calloc(1, sizeof(ucContainerID)))) {
-		ucPIP_errorExit("Unable to allocate enough memory");
-	}
-
-	*containerToCopy = containerTo;
+	containerNew(containerToCopy, containerTo);
 
 	g_hash_table_insert(aliasSet, containerToCopy, NULL);
 }
@@ -426,11 +388,7 @@ ucDataID ucPIP_addInitialData(ucIdentifier identifier) {
 	ucDataID *dataID = UC_INVALID_DATAID;
 
 	if (VALID_DATASET(dataSet = ucPIP_getDataSet(identifier, 1))) {
-		if (!(dataID = calloc(1, sizeof(ucDataID)))) {
-			ucPIP_errorExitMemory();
-		}
-		*dataID = ucPIP_newDataID();
-
+		dataNew(dataID, ucPIP_newDataID());
 		g_hash_table_insert(dataSet, dataID, NULL);
 	}
 

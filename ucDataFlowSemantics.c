@@ -381,7 +381,7 @@ void ucSemantics_read(struct tcb *tcp) {
 		GHashTableIter iter;
 		gpointer cont;
 		g_hash_table_iter_init(&iter, copied);
-		printf("data just flowed (%s --> %s): ", identifier, identifier2);
+		printf("data flowed (%s --> %s): ", identifier, identifier2);
 		while (g_hash_table_iter_next (&iter, &cont, NULL)) {
 			printf("%d, ", *(ucContainerID*) cont);
 		}
@@ -627,7 +627,7 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 			getIdentifierFD(ppid, * (int*)fd, identifier, sizeof(identifier));
 			getIdentifierFD(pid, * (int*)fd, identifier2, sizeof(identifier2));
 
-			if (ucpIP_existsContainer(identifier)) {
+			if (VALID_CONTID(ucPIP_getContainer(identifier, 0))) {
 				ucPIP_addIdentifier(identifier, identifier2);
 			}
 		}
