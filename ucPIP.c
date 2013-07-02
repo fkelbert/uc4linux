@@ -85,7 +85,7 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 	}
 
 	if (create) {
-		dataSet = dataSetNew();
+		dataSetNew(dataSet);
 		containerNew(containerIDCopy, containerID);
 
 		g_hash_table_insert(s, containerIDCopy, dataSet);
