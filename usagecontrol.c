@@ -13,6 +13,7 @@ void ucInit() {
 	ucPIP_init();
 
 	ucPIP_addInitialData("/tmp/foo");
+	ucPIP_addInitialData("/tmp/foo2");
 }
 
 void do_dft(struct tcb *tcp) {

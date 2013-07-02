@@ -372,7 +372,25 @@ void ucSemantics_read(struct tcb *tcp) {
 	getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2));
 
 	// FD -> PID
+#if defined(UC_DECLASS_ENABLED) && UC_DECLASS_ENABLED
+	// TODO  there should be a function/macro in ucPIP that transparently creates such a table: createDataSet()
+	ucDataSet copied = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
+	ucPIP_copyData(identifier, identifier2, copied);
+
+	// Debug.
+	if (!ucPIP_isEmptyDataSet(copied)) {
+		GHashTableIter iter;
+		gpointer cont;
+		g_hash_table_iter_init(&iter, copied);
+		printf("data just flowed (%s --> %s): ", identifier, identifier2);
+		while (g_hash_table_iter_next (&iter, &cont, NULL)) {
+			printf("%d, ", *(ucContainerID*) cont);
+		}
+		printf("\n");
+	}
+#else
 	ucPIP_copyData(identifier, identifier2, NULL);
+#endif
 
 	ucSemantics_log("read(): %d <-- %s\n", tcp->pid, identifier);
 }

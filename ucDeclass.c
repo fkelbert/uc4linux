@@ -26,6 +26,10 @@ void ucDeclass__init() {
 	processes = g_hash_table_new_full(g_int_hash, g_int_equal, free, (GDestroyNotify) g_tree_destroy);
 }
 
+// TODO: need a method to remove a process. that one deletes the corresponding has table. it gets called if a process exits.
+
+// TODO: for convenience also have a method in case a process gets started( clone()). In this case we do the administrative part to insret the hash table, etc.
+
 void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 	GTree *times;
 	pid_t *pidCopy;
