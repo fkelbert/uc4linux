@@ -556,7 +556,7 @@ void ucSemantics_close(struct tcb *tcp) {
 	// will set identifier as a side effect
 	ucSemantics_do_close(tcp->pid, tcp->u_arg[0], NULL);
 
-	ucSemantics_log("%5d: close(): %dx%d (%s)\n", tcp->pid, tcp->pid, tcp->u_arg[0], identifier);
+	ucSemantics_log("%5d: close(): %s\n", tcp->pid, identifier);
 }
 
 
@@ -980,7 +980,7 @@ void ucSemantics__init() {
 
 
 void ucSemantics_IGNORE_impl(struct tcb *tcp) {
-	ucSemantics_log("%5d: Intentionally ignoring %s (%d)\n",tcp->pid, tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: %s(): ---IGNORED---\n",tcp->pid, tcp->s_ent->sys_name);
 }
 
 void ucSemantics_log_impl(const char* format, ...) {
