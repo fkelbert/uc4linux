@@ -16,6 +16,38 @@ int *procMem;
 GHashTable **procFDs;
 GHashTable *ignoreFDs;
 
+
+struct sockInfo {
+		int domain;
+		int type;
+		int inode;
+		struct sockaddr localAddr;
+		struct sockaddr remoteAddr;
+};
+
+int getSocketInode(pid_t pid, int fd) {
+	ssize_t read;
+	char link[256];
+	char inodestr[256];
+	int inode;
+
+	if (pid < 0 || fd < 0) {
+		return (-1);
+	}
+
+	snprintf(link, sizeof(link), "%s/%d/fd/%d", PROCFS_MNT, pid, fd);
+	if ((read = readlink(link, inodestr, sizeof(inodestr) - 1)) == -1) {
+		return (-1);
+	}
+	inodestr[read] = '\0';
+
+	if (sscanf(inodestr, "socket:[%d]", &inode) == 1) {
+		return (inode);
+	}
+
+	return (-1);
+}
+
 int ignoreFile(char *absFilename) {
 	if (strstr(absFilename, "/etc/") == absFilename
 		|| strstr(absFilename, "/dev/") == absFilename

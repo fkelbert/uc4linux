@@ -5,7 +5,7 @@
 #include "defs.h"
 #include "ucPIP_main.h"
 
-#define UC_ENABLED 1
+#define UC_ENABLED 0
 #define UC_DEBUG_MODE 1
 
 #define UC_PDP_ALLOW 1
