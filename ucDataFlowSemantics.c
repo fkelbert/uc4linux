@@ -205,7 +205,7 @@ int *getProcessTasks(long pid, int *count) {
  * @param len the length of the buffer
  * @result address of cwd on success, NULL on error
  */
-char *getCwd(long pid, char *cwd, int len) {
+char *getCwd(pid_t pid, char *cwd, int len) {
 	ssize_t read;
 	char tmp[PATH_MAX];
 
@@ -213,13 +213,32 @@ char *getCwd(long pid, char *cwd, int len) {
 		return NULL;
 	}
 
-	snprintf(tmp, sizeof(tmp), "%s/%ld/cwd", PROCFS_MNT, pid);
+	snprintf(tmp, sizeof(tmp), "%s/%d/cwd", PROCFS_MNT, pid);
 	if ((read = readlink(tmp, cwd, len - 1)) == -1) {
 		return NULL ;
 	}
 	cwd[read] = '\0';
 
 	return (cwd);
+}
+
+
+
+char *getSpecialFilename(pid_t pid, int fd, char *name, int len) {
+	ssize_t read;
+	char tmp[PATH_MAX];
+
+	if (len <= 1) {
+		return NULL;
+	}
+
+	snprintf(tmp, sizeof(tmp), "%s/%d/fd/%d", PROCFS_MNT, pid, fd);
+	if ((read = readlink(tmp, name, len - 1)) == -1) {
+		return NULL ;
+	}
+	name[read] = '\0';
+
+	return (name);
 }
 
 
@@ -326,43 +345,57 @@ void freeConditional(gpointer g) {
 /**
  * Makes an identifier out of the specified PIDxFD and returns it in ident of size
  * len and associates PIDxFD with the specified filename.
- * This function returns the filename associated with PIDxFD, or NULL (if not a filename)
+ * This function returns the filename associated with PIDxFD, or NULL (if not a filename).
+ * The returned filename ought not to be changed or freed by the caller.
  */
 char *getIdentifierFD(int pid, int fd, char *ident, int len, char *filename) {
-	int ret = snprintf(ident, len, "FD %dx%d", pid, fd);
-
-	if (ret >= len) {
-		ucSemantics_errorExit("Buffer overflowed.");
-	}
-	else if (ret < 0) {
-		ucSemantics_errorExit("Error while writing to buffer.");
-	}
+	int printd;
+	char *retFilename = NULL;
+	int *fdCp;
 
 	if (!procFDs[pid]) {
 		procFDs[pid] = g_hash_table_new_full(g_int_hash, g_int_equal, free, freeConditional);
 	}
 
-	int *fdCp;
-	fdDup(fdCp, fd);
-
-	char *filenameStored = (char*) g_hash_table_lookup(procFDs[pid], fdCp);
+	char *filenameStored = (char*) g_hash_table_lookup(procFDs[pid], &fd);
 
 	if (filenameStored) {
-		if (filename && !streq(filenameStored, filename)) {
+//		if (filename && !streq(filenameStored, filename)) {
 //			TODO: Shall we throw an error here? Just silently ignore?
 //			These problems occured when starting libreoffice (just once). Need to check what is going on there.
+//			Most likely, the problem is that a file descriptor did not get closed by us before.
 //			ucSemantics_errorExit("Provided filenames for same PIDxFD do not match ().");
 //			printf("unmatched %s %s. It seems that we have not closed %dx%d before.\n", filenameStored, filename, pid, fd);
 //			ucSemantics_do_close(pid, fd, NULL);
-		}
+//		}
 
-		return (filenameStored);
+		retFilename = filenameStored;
+	}
+	else if (filename) {
+		fdDup(fdCp, fd);
+		g_hash_table_insert(procFDs[pid], fdCp, strdup(filename));
+		retFilename = filename;
+	}
+	else {
+		fdDup(fdCp, fd);
+		g_hash_table_insert(procFDs[pid], fdCp, NULL);
 	}
 
-	if (filename) {
-		g_hash_table_insert(procFDs[pid], fdCp, filename ? strdup(filename) : NULL);
+	if (retFilename) {
+		printd = snprintf(ident, len, "FD %dx%d (%s)", pid, fd, retFilename);
 	}
-	return (filename);
+	else {
+		printd = snprintf(ident, len, "FD %dx%d", pid, fd);
+	}
+
+	if (printd >= len) {
+		ucSemantics_errorExit("Buffer overflowed.");
+	}
+	else if (printd < 0) {
+		ucSemantics_errorExit("Error while writing to buffer.");
+	}
+
+	return (retFilename);
 }
 
 /**
@@ -495,7 +528,7 @@ void ucSemantics_execve(struct tcb *tcp) {
 	// TODO: man 2 execve
 	// Remember that execve returns 3 times!
 	// Also consider man 2 open and fcntl: some file descriptors close automatically on exeve()
-	ucSemantics_log("execve missing semantics for %s (pid: %d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 }
 
 
@@ -592,12 +625,12 @@ void ucSemantics_openat(struct tcb *tcp) {
 }
 
 void ucSemantics_socket(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 socket
 }
 
 void ucSemantics_socketpair(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 socketpair
 }
 
@@ -637,17 +670,17 @@ void ucSemantics_fcntl(struct tcb *tcp) {
 }
 
 void ucSemantics_shutdown(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 shutdown
 }
 
 void ucSemantics_eventfd(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 eventfd
 }
 
 void ucSemantics_mmap(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 mmap
 }
 
@@ -668,12 +701,13 @@ void ucSemantics_kill(struct tcb *tcp) {
 }
 
 void ucSemantics_accept(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 accept
+	// consider SOCK_CLOEXEC flag
 }
 
 void ucSemantics_connect(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 connect
 }
 
@@ -747,7 +781,7 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 
 void ucSemantics_ftruncate(struct tcb *tcp) {
 	// TODO. man 2 ftruncate; do sth if length == 0
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 }
 
 void ucSemantics_unlink(struct tcb *tcp) {
@@ -769,18 +803,19 @@ void ucSemantics_splice(struct tcb *tcp) {
 
 
 
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 splice
 }
 
 void ucSemantics_munmap(struct tcb *tcp) {
 	// TODO. man 2 munmap
 	// is it possible to do something useful here?
-	ucSemantics_log("missing semantics for %s\n", tcp->s_ent->sys_name);
+	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
 }
 
 void ucSemantics_pipe(struct tcb *tcp) {
 	int fds[2];
+	char pipename[FILENAME_MAX];
 
 	if (tcp->u_rval < 0) {
 		return;
@@ -790,8 +825,12 @@ void ucSemantics_pipe(struct tcb *tcp) {
 		return;
 	}
 
-	char *fn = getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier), NULL);
-	getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2), fn);
+	if (!getSpecialFilename(tcp->pid, fds[0], pipename, sizeof(pipename))) {
+		strncpy(pipename, "<undef>", sizeof(pipename));
+	}
+
+	getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier), pipename);
+	getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2), pipename);
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
@@ -904,6 +943,7 @@ void ucSemantics_log_impl(const char* format, ...) {
 
 void (*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_accept] = ucSemantics_accept,
+	[SYS_accept4] = ucSemantics_accept,
 	[SYS_access] = ucSemantics_IGNORE,
 	[SYS_acct] = ucSemantics_IGNORE,
 	[SYS_add_key] = ucSemantics_IGNORE,
