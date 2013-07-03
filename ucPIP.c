@@ -282,6 +282,10 @@ void ucPIP_alsoAlias(ucIdentifier stencilIdentifier, ucIdentifier stenciledIdent
  * the container identified by dstIdentifier. If no container is identified
  * with srcIdentifier, then nothing will happen. If there is no container
  * that is identified by dstIdentifier, then one is transparently created.
+ *
+ * If retDataSet != NULL, then this data set will be populated with all data
+ * that has been copied, i.e. with all data that is/was in the container identified
+ * by srcIdentifier.
  */
 void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier, ucDataSet retDataSet) {
 	ucDataSet srcDataSet;
