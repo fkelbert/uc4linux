@@ -626,13 +626,25 @@ void ucSemantics_openat(struct tcb *tcp) {
 }
 
 void ucSemantics_socket(struct tcb *tcp) {
-	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
-	// TODO. man 2 socket
+	char socketname1[FILENAME_MAX];
+	int sfd = tcp->u_rval;
+
+	if (sfd < 0) {
+		return;
+	}
+
+	if (!getSpecialFilename(tcp->pid, sfd, socketname1, sizeof(socketname1))) {
+		strncpy(socketname1, "<undef>", sizeof(socketname1));
+	}
+
+	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), socketname1);
+
+	ucPIP_addIdentifier(identifier, NULL);
+
+	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier);
 }
 
 void ucSemantics_socketpair(struct tcb *tcp) {
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
-
 	int sockets[2];
 	char socketname1[FILENAME_MAX];
 	char socketname2[FILENAME_MAX];
