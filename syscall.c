@@ -755,8 +755,7 @@ static long long mips_r2;
 static long mips_a3;
 static long mips_r2;
 #elif defined(S390) || defined(S390X)
-static long gpr2;
-static long syscall_mode;
+static long s390_gpr2;
 #elif defined(HPPA)
 static long hppa_r28;
 #elif defined(SH)
@@ -1127,14 +1126,14 @@ get_scno(struct tcb *tcp)
 	long scno = 0;
 
 #if defined(S390) || defined(S390X)
-	if (upeek(tcp->pid, PT_GPR2, &syscall_mode) < 0)
+	if (upeek(tcp->pid, PT_GPR2, &s390_gpr2) < 0)
 		return -1;
 
-	if (syscall_mode != -ENOSYS) {
+	if (s390_gpr2 != -ENOSYS) {
 		/*
 		 * Since kernel version 2.5.44 the scno gets passed in gpr2.
 		 */
-		scno = syscall_mode;
+		scno = s390_gpr2;
 	} else {
 		/*
 		 * Old style of "passing" the scno via the SVC instruction.
@@ -1339,6 +1338,7 @@ get_scno(struct tcb *tcp)
 			break;
 		case sizeof(arm_regs):
 			/* We are in 32-bit mode */
+			/* Note: we don't support OABI, unlike 32-bit ARM build */
 			scno = arm_regs.ARM_r7;
 			update_personality(tcp, 0);
 			break;
@@ -1352,30 +1352,34 @@ get_scno(struct tcb *tcp)
 	}
 	/* Note: we support only 32-bit CPUs, not 26-bit */
 
-	if (arm_regs.ARM_cpsr & 0x20) {
+# ifndef STRACE_KNOWS_ONLY_EABI
+# warning STRACE_KNOWS_ONLY_EABI not set, will PTRACE_PEEKTEXT on every syscall (slower tracing)
+	if (arm_regs.ARM_cpsr & 0x20)
 		/* Thumb mode */
-		scno = arm_regs.ARM_r7;
-	} else {
-		/* ARM mode */
-		errno = 0;
-		scno = ptrace(PTRACE_PEEKTEXT, tcp->pid, (void *)(arm_regs.ARM_pc - 4), NULL);
-		if (errno)
+		goto scno_in_r7;
+	/* ARM mode */
+	/* Check EABI/OABI by examining SVC insn's low 24 bits */
+	errno = 0;
+	scno = ptrace(PTRACE_PEEKTEXT, tcp->pid, (void *)(arm_regs.ARM_pc - 4), NULL);
+	if (errno)
+		return -1;
+	/* EABI syscall convention? */
+	if (scno != 0xef000000) {
+		/* No, it's OABI */
+		if ((scno & 0x0ff00000) != 0x0f900000) {
+			fprintf(stderr, "pid %d unknown syscall trap 0x%08lx\n",
+				tcp->pid, scno);
 			return -1;
-
-		/* EABI syscall convention? */
-		if (scno == 0xef000000) {
-			scno = arm_regs.ARM_r7; /* yes */
-		} else {
-			if ((scno & 0x0ff00000) != 0x0f900000) {
-				fprintf(stderr, "pid %d unknown syscall trap 0x%08lx\n",
-					tcp->pid, scno);
-				return -1;
-			}
-			/* Fixup the syscall number */
-			scno &= 0x000fffff;
 		}
+		/* Fixup the syscall number */
+		scno &= 0x000fffff;
+	} else {
+ scno_in_r7:
+		scno = arm_regs.ARM_r7;
 	}
-
+# else
+	scno = arm_regs.ARM_r7;
+# endif
 	scno = shuffle_scno(scno);
 #elif defined(M68K)
 	if (upeek(tcp->pid, 4*PT_ORIG_D0, &scno) < 0)
@@ -1590,20 +1594,6 @@ syscall_fixup_on_sysenter(struct tcb *tcp)
 				fprintf(stderr, "not a syscall entry (rax = %ld)\n", rax);
 			return 0;
 		}
-	}
-#elif defined(S390) || defined(S390X)
-	/* TODO: we already fetched PT_GPR2 in get_scno
-	 * and stored it in syscall_mode, reuse it here
-	 * instead of re-fetching?
-	 */
-	if (upeek(tcp->pid, PT_GPR2, &gpr2) < 0)
-		return -1;
-	if (syscall_mode != -ENOSYS)
-		syscall_mode = tcp->scno;
-	if (gpr2 != syscall_mode) {
-		if (debug_flag)
-			fprintf(stderr, "not a syscall entry (gpr2 = %ld)\n", gpr2);
-		return 0;
 	}
 #elif defined(M68K)
 	/* TODO? Eliminate upeek's in arches below like we did in x86 */
@@ -2061,7 +2051,7 @@ static int
 get_syscall_result(struct tcb *tcp)
 {
 #if defined(S390) || defined(S390X)
-	if (upeek(tcp->pid, PT_GPR2, &gpr2) < 0)
+	if (upeek(tcp->pid, PT_GPR2, &s390_gpr2) < 0)
 		return -1;
 #elif defined(POWERPC)
 	/* already done by get_regs */
@@ -2150,16 +2140,14 @@ static void
 syscall_fixup_on_sysexit(struct tcb *tcp)
 {
 #if defined(S390) || defined(S390X)
-	if (syscall_mode != -ENOSYS)
-		syscall_mode = tcp->scno;
 	if ((tcp->flags & TCB_WAITEXECVE)
-		 && (gpr2 == -ENOSYS || gpr2 == tcp->scno)) {
+		 && (s390_gpr2 == -ENOSYS || s390_gpr2 == tcp->scno)) {
 		/*
 		 * Return from execve.
 		 * Fake a return value of zero.  We leave the TCB_WAITEXECVE
 		 * flag set for the post-execve SIGTRAP to see and reset.
 		 */
-		gpr2 = 0;
+		s390_gpr2 = 0;
 	}
 #endif
 }
@@ -2213,12 +2201,12 @@ get_error(struct tcb *tcp)
 		check_errno = 0;
 	}
 #if defined(S390) || defined(S390X)
-	if (check_errno && is_negated_errno(gpr2)) {
+	if (check_errno && is_negated_errno(s390_gpr2)) {
 		tcp->u_rval = -1;
-		u_error = -gpr2;
+		u_error = -s390_gpr2;
 	}
 	else {
-		tcp->u_rval = gpr2;
+		tcp->u_rval = s390_gpr2;
 	}
 #elif defined(I386)
 	if (check_errno && is_negated_errno(i386_regs.eax)) {

@@ -336,11 +336,11 @@ ptrace_attach_or_seize(int pid)
 {
 	int r;
 	if (!use_seize)
-		return ptrace(PTRACE_ATTACH, pid, 0, 0);
-	r = ptrace(PTRACE_SEIZE, pid, 0, 0);
+		return ptrace(PTRACE_ATTACH, pid, 0L, 0L);
+	r = ptrace(PTRACE_SEIZE, pid, 0L, (unsigned long)ptrace_setoptions);
 	if (r)
 		return r;
-	r = ptrace(PTRACE_INTERRUPT, pid, 0, 0);
+	r = ptrace(PTRACE_INTERRUPT, pid, 0L, 0L);
 	return r;
 }
 #else
@@ -520,6 +520,7 @@ strace_popen(const char *command)
 		die_out_of_memory();
 	return fp;
 }
+
 
 #if defined(UC_ENABLED) && UC_ENABLED
 
@@ -1974,7 +1975,20 @@ trace(void)
 {
 	struct rusage ru;
 
-//	while (nprocs != 0) {
+	/* Used to be "while (nprocs != 0)", but in this testcase:
+	 *  int main() { _exit(!!fork()); }
+	 * under strace -f, parent sometimes (rarely) manages
+	 * to exit before we see the first stop of the child,
+	 * and we are losing track of it:
+	 *  19923 clone(...) = 19924
+	 *  19923 exit_group(1)     = ?
+	 *  19923 +++ exited with 1 +++
+	 * Waiting for ECHILD works better.
+	 * (However, if -o|logger is in use, we can't do that.
+	 * Can work around that by double-forking the logger,
+	 * but that loses the ability to wait for its completion on exit.
+	 * Oh well...)
+	 */
 	while (1) {
 		int pid;
 		int wait_errno;
@@ -1984,6 +1998,9 @@ trace(void)
 		unsigned event;
 
 		if (interrupted)
+			return;
+
+		if (popen_pid != 0 && nprocs == 0)
 			return;
 
 		if (interactive)
@@ -1996,9 +2013,11 @@ trace(void)
 		if (pid < 0) {
 			if (wait_errno == EINTR)
 				continue;
-			if (wait_errno == ECHILD)
-				/* Should not happen since nprocs > 0 */
+			if (nprocs == 0 && wait_errno == ECHILD)
 				return;
+			/* If nprocs > 0, ECHILD is not expected,
+			 * treat it as any other error here:
+			 */
 			errno = wait_errno;
 			perror_msg_and_die("wait4(__WALL)");
 		}
@@ -2108,6 +2127,9 @@ trace(void)
 
 			if (ptrace(PTRACE_GETEVENTMSG, pid, NULL, (long) &old_pid) < 0)
 				goto dont_switch_tcbs;
+			/* Avoid truncation in pid2tcb() param passing */
+			if (old_pid > UINT_MAX)
+				goto dont_switch_tcbs;
 			if (old_pid <= 0 || old_pid == pid)
 				goto dont_switch_tcbs;
 			execve_thread = pid2tcb(old_pid);
@@ -2213,9 +2235,9 @@ trace(void)
 					return;
 				}
 			}
-			if (ptrace_setoptions) {
+			if (!use_seize && ptrace_setoptions) {
 				if (debug_flag)
-					fprintf(stderr, "setting opts %x on pid %d\n", ptrace_setoptions, tcp->pid);
+					fprintf(stderr, "setting opts 0x%x on pid %d\n", ptrace_setoptions, tcp->pid);
 				if (ptrace(PTRACE_SETOPTIONS, tcp->pid, NULL, ptrace_setoptions) < 0) {
 					if (errno != ESRCH) {
 						/* Should never happen, really */
@@ -2373,13 +2395,12 @@ trace(void)
 	notifySyscall(tcp);
 
 #endif /* 	 */
-
 		if (ptrace_restart(PTRACE_SYSCALL, tcp, sig) < 0) {
 			/* Note: ptrace_restart emitted error message */
 			exit_code = 1;
 			return;
 		}
-	} /* while (nprocs != 0) */
+	} /* while (1) */
 }
 
 int
