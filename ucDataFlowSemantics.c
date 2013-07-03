@@ -431,7 +431,7 @@ void ucSemantics_write(struct tcb *tcp) {
 
 	ucPIP_copyData(identifier, identifier2, NULL);
 
-	ucSemantics_log("write(): %s --> %s\n", identifier, identifier2);
+	ucSemantics_log("%5d: write(): %s --> %s\n", tcp->pid, identifier, identifier2);
 }
 
 // todo: write into aliases
@@ -448,7 +448,7 @@ void ucSemantics_read(struct tcb *tcp) {
 		return;
 	}
 
-	ucSemantics_log("%s(): %d <-- %s\n", tcp->s_ent->sys_name, tcp->pid, identifier);
+	ucSemantics_log("%5d: %s(): %d <-- %s\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid, identifier);
 
 	// FD -> PID
 #if defined(UC_DECLASS_ENABLED) && UC_DECLASS_ENABLED
@@ -491,7 +491,7 @@ void ucSemantics_do_process_exit(int pid) {
 
 	ucSemantics_destroyProcess(pid);
 
-	ucSemantics_log("exit(): %d\n", pid);
+	ucSemantics_log("%5d: exit(): %d\n", pid, pid);
 }
 
 void ucSemantics_exit(struct tcb *tcp) {
@@ -512,7 +512,7 @@ void ucSemantics_exit_group(struct tcb *tcp) {
 		free(tasks);
 	}
 
-	ucSemantics_log("exit_group(): %d\n", tcp->pid);
+	ucSemantics_log("%5d: exit_group(): %d\n", tcp->pid, tcp->pid);
 }
 
 void ucSemantics_execve(struct tcb *tcp) {
@@ -528,7 +528,7 @@ void ucSemantics_execve(struct tcb *tcp) {
 	// TODO: man 2 execve
 	// Remember that execve returns 3 times!
 	// Also consider man 2 open and fcntl: some file descriptors close automatically on exeve()
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
 
@@ -553,9 +553,10 @@ void ucSemantics_close(struct tcb *tcp) {
 		return;
 	}
 
+	// will set identifier as a side effect
 	ucSemantics_do_close(tcp->pid, tcp->u_arg[0], NULL);
 
-	ucSemantics_log("close(): %dx%d\n", tcp->pid, tcp->u_arg[0]);
+	ucSemantics_log("%5d: close(): %dx%d (%s)\n", tcp->pid, tcp->pid, tcp->u_arg[0], identifier);
 }
 
 
@@ -576,7 +577,7 @@ void ucSemantics_do_open(int pid, int fd, char *absFilename, long int flags) {
 	else {
 		ucPIP_addIdentifier(absFilename, identifier);
 	}
-	ucSemantics_log("do_open(): %s %d: %s --> %s\n", trunkstr, pid, absFilename, identifier);
+	ucSemantics_log("%5d: do_open(): %s %d: %s --> %s\n", pid, trunkstr, pid, absFilename, identifier);
 }
 
 void ucSemantics_open(struct tcb *tcp) {
@@ -607,7 +608,7 @@ void ucSemantics_openat(struct tcb *tcp) {
 	getString(tcp, tcp->u_arg[1], relFilename, sizeof(relFilename));
 
 	if (isAbsolute(relFilename)) {
-		ucSemantics_log("%s(%s) resulting in:\n", tcp->s_ent->sys_name, relFilename);
+		ucSemantics_log("%5d: %s(%s) resulting in:\n", tcp->pid, tcp->s_ent->sys_name, relFilename);
 		ucSemantics_do_open(tcp->pid, tcp->u_rval, relFilename, tcp->u_arg[2]);
 	}
 	else {
@@ -619,19 +620,43 @@ void ucSemantics_openat(struct tcb *tcp) {
 			dir = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
 			getAbsoluteFilename(dir, relFilename, absFilename, sizeof(absFilename), 1);
 		}
-		ucSemantics_log("%s(%s, %s) resulting in:\n", tcp->s_ent->sys_name, dir, relFilename);
+		ucSemantics_log("%5d: %s(%s, %s) resulting in:\n", tcp->pid, tcp->s_ent->sys_name, dir, relFilename);
 		ucSemantics_do_open(tcp->pid, tcp->u_rval, absFilename, tcp->u_arg[2]);
 	}
 }
 
 void ucSemantics_socket(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 socket
 }
 
 void ucSemantics_socketpair(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
-	// TODO. man 2 socketpair
+//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
+
+	int sockets[2];
+	char socketname1[FILENAME_MAX];
+	char socketname2[FILENAME_MAX];
+
+	if (tcp->u_rval < 0) {
+		return;
+	}
+
+	if (umoven(tcp, tcp->u_arg[3], sizeof(sockets), (char *) sockets) < 0) {
+		return;
+	}
+
+	if (!getSpecialFilename(tcp->pid, sockets[0], socketname1, sizeof(socketname1))) {
+		strncpy(socketname1, "<undef>", sizeof(socketname1));
+	}
+
+	if (!getSpecialFilename(tcp->pid, sockets[1], socketname2, sizeof(socketname2))) {
+		strncpy(socketname2, "<undef>", sizeof(socketname2));
+	}
+
+	getIdentifierFD(tcp->pid, sockets[0], identifier, sizeof(identifier), socketname1);
+	getIdentifierFD(tcp->pid, sockets[1], identifier2, sizeof(identifier2), socketname2);
+
+	ucSemantics_log("%5d: %s(): %s, %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
 }
 
 
@@ -645,7 +670,7 @@ void ucSemantics_sendfile(struct tcb *tcp) {
 
 	ucPIP_copyData(identifier, identifier2, NULL);
 
-	ucSemantics_log("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
+	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
 }
 
 
@@ -664,23 +689,23 @@ void ucSemantics_fcntl(struct tcb *tcp) {
 		}
 		else {
 			ucPIP_addIdentifier(identifier, identifier2);
-			ucSemantics_log("fcntl(): %s --> %s\n", identifier, identifier2);
+			ucSemantics_log("%5d: fcntl(): %s --> %s\n", tcp->pid, identifier, identifier2);
 		}
 	}
 }
 
 void ucSemantics_shutdown(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 shutdown
 }
 
 void ucSemantics_eventfd(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 eventfd
 }
 
 void ucSemantics_mmap(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 mmap
 }
 
@@ -695,19 +720,19 @@ void ucSemantics_kill(struct tcb *tcp) {
 	// PID -> PID
 	ucPIP_copyData(identifier, identifier2, NULL);
 
-	ucSemantics_log("kill(): %s --> %s\n", identifier, identifier2);
+	ucSemantics_log("%5d: kill(): %s --> %s\n", tcp->pid, identifier, identifier2);
 
 	// todo: kill may imply exit (do CTRL+F4 while the monitored gnome-terminal is booting up)
 }
 
 void ucSemantics_accept(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 accept
 	// consider SOCK_CLOEXEC flag
 }
 
 void ucSemantics_connect(struct tcb *tcp) {
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 connect
 }
 
@@ -735,7 +760,7 @@ void ucSemantics_rename(struct tcb *tcp) {
 
 	ucPIP_removeIdentifier(oldAbsFilename);
 
-	ucSemantics_log("rename(): %s --> %s\n", oldAbsFilename, newAbsFilename);
+	ucSemantics_log("%5d: rename(): %s --> %s\n", tcp->pid, oldAbsFilename, newAbsFilename);
 }
 
 
@@ -750,7 +775,7 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 
 	ucPIP_addIdentifier(identifier2, NULL);
 
-	ucSemantics_log("clone(): %s %s\n", identifier, identifier2);
+	ucSemantics_log("%5d: clone(): %s %s\n", tcp->pid, identifier, identifier2);
 
 	// PID -> PID
 	ucPIP_copyData(identifier, identifier2, NULL);
@@ -781,7 +806,7 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 
 void ucSemantics_ftruncate(struct tcb *tcp) {
 	// TODO. man 2 ftruncate; do sth if length == 0
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
 void ucSemantics_unlink(struct tcb *tcp) {
@@ -793,7 +818,7 @@ void ucSemantics_unlink(struct tcb *tcp) {
 
 	ucPIP_removeIdentifier(identifier);
 
-	ucSemantics_log("unlink(): %s\n", identifier);
+	ucSemantics_log("%5d: unlink(): %s\n", tcp->pid, identifier);
 }
 
 void ucSemantics_splice(struct tcb *tcp) {
@@ -803,14 +828,14 @@ void ucSemantics_splice(struct tcb *tcp) {
 
 
 
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 splice
 }
 
 void ucSemantics_munmap(struct tcb *tcp) {
 	// TODO. man 2 munmap
 	// is it possible to do something useful here?
-	ucSemantics_log("missing semantics for %s (%d)\n", tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
 void ucSemantics_pipe(struct tcb *tcp) {
@@ -837,7 +862,7 @@ void ucSemantics_pipe(struct tcb *tcp) {
 	}
 	else {
 		ucPIP_addIdentifier(identifier, identifier2);
-		ucSemantics_log("pipe(): %s %s\n", identifier, identifier2);
+		ucSemantics_log("%5d: pipe(): %s %s\n", tcp->pid, identifier, identifier2);
 	}
 
 
@@ -857,7 +882,7 @@ void ucSemantics_dup(struct tcb *tcp) {
 	}
 	else {
 		ucPIP_addIdentifier(identifier, identifier2);
-		ucSemantics_log("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
+		ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
 	}
 
 }
@@ -883,7 +908,7 @@ void ucSemantics_dup2(struct tcb *tcp) {
 	}
 	else {
 		ucPIP_addIdentifier(identifier, identifier2);
-		ucSemantics_log("%s(): %s --> %s\n", tcp->s_ent->sys_name, identifier, identifier2);
+		ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
 	}
 
 }
@@ -925,7 +950,7 @@ void ucSemantics__init() {
 
 
 void ucSemantics_IGNORE_impl(struct tcb *tcp) {
-	ucSemantics_log("Intentionally ignoring %s (%d)\n",tcp->s_ent->sys_name, tcp->pid);
+	ucSemantics_log("%5d: Intentionally ignoring %s (%d)\n",tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
 void ucSemantics_log_impl(const char* format, ...) {
