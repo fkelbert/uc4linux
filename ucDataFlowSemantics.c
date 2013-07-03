@@ -668,6 +668,11 @@ void ucSemantics_socketpair(struct tcb *tcp) {
 	getIdentifierFD(tcp->pid, sockets[0], identifier, sizeof(identifier), socketname1);
 	getIdentifierFD(tcp->pid, sockets[1], identifier2, sizeof(identifier2), socketname2);
 
+	ucPIP_addIdentifier(identifier, NULL);
+	ucPIP_addIdentifier(identifier2, NULL);
+
+	// TODO: add alias between the two
+
 	ucSemantics_log("%5d: %s(): %s, %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
 }
 
@@ -738,9 +743,22 @@ void ucSemantics_kill(struct tcb *tcp) {
 }
 
 void ucSemantics_accept(struct tcb *tcp) {
-	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
-	// TODO. man 2 accept
-	// consider SOCK_CLOEXEC flag
+	char socketname1[FILENAME_MAX];
+	int sfd = tcp->u_rval;
+
+	if (sfd < 0) {
+		return;
+	}
+
+	if (!getSpecialFilename(tcp->pid, sfd, socketname1, sizeof(socketname1))) {
+		strncpy(socketname1, "<undef>", sizeof(socketname1));
+	}
+
+	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), socketname1);
+
+	ucPIP_addIdentifier(identifier, NULL);
+
+	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier);
 }
 
 void ucSemantics_connect(struct tcb *tcp) {
