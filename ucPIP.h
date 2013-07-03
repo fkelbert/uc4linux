@@ -17,8 +17,8 @@
 #include <glib.h>
 #include <string.h>
 
-#define UC_PIP_PRINT_EMPTY_CONTAINERS 0
-#define UC_PIP_PRINT 0
+#define UC_PIP_PRINT_EMPTY_CONTAINERS 1
+#define UC_PIP_PRINT 1
 
 typedef guint ucDataID;
 typedef guint ucContainerID;

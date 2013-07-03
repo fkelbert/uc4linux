@@ -415,6 +415,58 @@ char *getIdentifierPID(int pid, char *ident, int len) {
 	return (ident);
 }
 
+
+
+char *getIdentifierSocket(struct tcb *tcp, long addressAddr, int addressLenAddr, char *ident, int identLen, char *socketname) {
+	int len;
+	int ret = -1;
+
+	union {
+		char pad[128];
+		struct sockaddr sa;
+		struct sockaddr_in sin;
+		struct sockaddr_un sun;
+	} addrbuf;
+	memset(&addrbuf, 0, sizeof(addrbuf));
+
+	if (addressAddr == 0
+			|| umove(tcp, addressLenAddr, &len) < 0
+			|| len > sizeof(addrbuf)
+			|| umoven(tcp, addressAddr, len, addrbuf.pad) < 0) {
+		ucSemantics_errorExit("Unable to get remote socket address.");
+	}
+
+	switch (addrbuf.sa.sa_family) {
+		case AF_INET:
+			if (socketname) {
+				ret = snprintf(ident, identLen, "SOCK %s:%u (%s)", inet_ntoa(addrbuf.sin.sin_addr), ntohs(addrbuf.sin.sin_port), socketname);
+			}
+			else {
+				ret = snprintf(ident, identLen, "SOCK %s:%u", inet_ntoa(addrbuf.sin.sin_addr), ntohs(addrbuf.sin.sin_port));
+			}
+			break;
+//		case AF_UNIX:
+//			break;
+//		case AF_INET6:
+//			break;
+		default:
+			ucSemantics_errorExit("Unable to get remote socket address (AF_UNIX and AF_INET6 is still unsupported).");
+			break;
+	}
+
+
+	if (ret >= identLen) {
+		ucSemantics_errorExit("Buffer overflowed.");
+	}
+	else if (ret < 0) {
+		ucSemantics_errorExit("Error while writing to buffer.");
+	}
+
+	return (ident);
+}
+
+
+
 // todo: write into aliases
 void ucSemantics_write(struct tcb *tcp) {
 	if (tcp->u_arg[0] <= 0) {
@@ -755,8 +807,9 @@ void ucSemantics_accept(struct tcb *tcp) {
 	}
 
 	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), socketname1);
+	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), socketname1);
 
-	ucPIP_addIdentifier(identifier, NULL);
+	ucPIP_addIdentifier(identifier, identifier2);
 
 	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier);
 }
