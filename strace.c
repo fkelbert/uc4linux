@@ -522,7 +522,7 @@ strace_popen(const char *command)
 }
 
 
-#if defined(UC_ENABLED) && UC_ENABLED
+#if UC_ENABLED
 
 void tprintf(const char *fmt, ...) {}
 void tprints(const char *str) {}
@@ -2357,7 +2357,7 @@ trace(void)
 		sig = 0;
  restart_tracee:
 
-#if defined(UC_ENABLED) && UC_ENABLED
+#if UC_ENABLED
  /*
   * Florian Kelbert
   * TODO: Inject usage control here.
@@ -2408,7 +2408,7 @@ main(int argc, char *argv[])
 {
 	init(argc, argv);
 
-#if defined(UC_ENABLED) && UC_ENABLED
+#if UC_ENABLED
 	ucInit();
 #endif
 
