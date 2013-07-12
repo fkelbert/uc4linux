@@ -499,7 +499,6 @@ char *getIdentifierSocket(struct tcb *tcp, long addressAddr, int addressLenAddr,
 
 
 
-// todo: write into aliases
 void ucSemantics_write(struct tcb *tcp) {
 	if (tcp->u_arg[0] <= 0) {
 		// if return value is 0, nothing was written.
@@ -507,18 +506,25 @@ void ucSemantics_write(struct tcb *tcp) {
 	}
 
 	getIdentifierPID(tcp->pid, identifier1, sizeof(identifier1));
-	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
+	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier2, NULL, NULL)) {
 		return;
 	}
 
-	ucPIP_copyData(identifier1, identifier2, NULL);
+	if (strstarts(fn, "socket:")) {
+		// For sockets, we won't be able to read the same data again using the same container.
+		// Thus, copy data to all aliases but not to the container into which we are writing itself.
+		ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL_ALIASES, NULL);
+	}
+	else {
+		ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
+	}
 
 	ucSemantics_log("%5d: write(): %s --> %s\n", tcp->pid, identifier1, identifier2);
 }
 
-// todo: write into aliases
+
 void ucSemantics_read(struct tcb *tcp) {
 	if (tcp->u_arg[0] <= 0) {
 		// if return value is 0, nothing was written.
@@ -539,10 +545,10 @@ void ucSemantics_read(struct tcb *tcp) {
 	ucDataSet copied;
 
 	dataSetNew(copied);
-	ucPIP_copyData(identifier1, identifier2, copied);
+	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, copied);
 	ucDeclass_splus_add(tcp->pid, copied);
 #else
-	ucPIP_copyData(identifier1, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
 #endif
 }
 
@@ -767,7 +773,7 @@ void ucSemantics_sendfile(struct tcb *tcp) {
 	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier1, sizeof(identifier1), NULL);
 	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
 
-	ucPIP_copyData(identifier1, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
 
 	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
 }
@@ -817,7 +823,7 @@ void ucSemantics_kill(struct tcb *tcp) {
 	getIdentifierPID(tcp->u_arg[0], identifier2, sizeof(identifier2));
 
 	// PID -> PID
-	ucPIP_copyData(identifier1, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
 
 	ucSemantics_log("%5d: kill(): %s --> %s\n", tcp->pid, identifier1, identifier2);
 
@@ -891,7 +897,7 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 	ucSemantics_log("%5d: clone(): %s %s\n", tcp->pid, identifier1, identifier2);
 
 	// PID -> PID
-	ucPIP_copyData(identifier1, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
 
 	// clone all the aliases
 	ucPIP_copyAliases(identifier1, identifier2);

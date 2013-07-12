@@ -72,12 +72,11 @@ ucContainerID ucPIP_getContainer(ucIdentifier identifier, int create) {
  * @param create whether to create a new (empty) data set, in case none is associated. 1 = create, 0 = do not create
  * @return the data set associated with containerID, UC_INVALID_DATASET on error
  */
-ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
+ucDataSet ucPIP_getDataSetByContainer(ucContainerID containerID, int create) {
 	ucDataSet dataSet;
-	ucContainerID containerID;
 	ucContainerID *containerIDCopy;
 
-	if (INVALID_CONTID(containerID = ucPIP_getContainer(identifier, create))) {
+	if (INVALID_CONTID(containerID)) {
 		return UC_INVALID_DATASET;
 	}
 
@@ -95,6 +94,40 @@ ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
 	}
 
 	return UC_INVALID_DATASET;
+}
+
+
+/**
+ * Retrieves the data set associated with the specified container ID, i.e. s(containerID)
+ * @param containerID the container of which the data set is retrieved
+ * @param create whether to create a new (empty) data set, in case none is associated. 1 = create, 0 = do not create
+ * @return the data set associated with containerID, UC_INVALID_DATASET on error
+ */
+ucDataSet ucPIP_getDataSet(ucIdentifier identifier, int create) {
+	return (ucPIP_getDataSetByContainer(ucPIP_getContainer(identifier, create), create));
+
+//	ucDataSet dataSet;
+//	ucContainerID containerID;
+//	ucContainerID *containerIDCopy;
+//
+//	if (INVALID_CONTID(containerID = ucPIP_getContainer(identifier, create))) {
+//		return UC_INVALID_DATASET;
+//	}
+//
+//	if (VALID_DATASET(dataSet = g_hash_table_lookup(s, &containerID))) {
+//		return (dataSet);
+//	}
+//
+//	if (create) {
+//		dataSetNew(dataSet);
+//		containerDup(containerIDCopy, containerID);
+//
+//		g_hash_table_insert(s, containerIDCopy, dataSet);
+//
+//		return (dataSet);
+//	}
+//
+//	return UC_INVALID_DATASET;
 }
 
 ucAliasSet ucPIP_getAliasSet(ucIdentifier identifier, int create) {
@@ -263,7 +296,7 @@ void ucPIP_alsoAlias(ucIdentifier stencilIdentifier, ucIdentifier stenciledIdent
 	}
 
 	g_hash_table_iter_init(&iter, l);
-	while (g_hash_table_iter_next (&iter, (void **)&aliasSet, NULL)) {
+	while (g_hash_table_iter_next (&iter, NULL, (void **) &aliasSet)) {
 		if (g_hash_table_contains(aliasSet, &stencilCont)) {
 			containerDup(stenciledContCopy, stenciledCont);
 			aliasSetAdd(aliasSet, stenciledContCopy);
@@ -272,52 +305,127 @@ void ucPIP_alsoAlias(ucIdentifier stencilIdentifier, ucIdentifier stenciledIdent
 }
 
 
+
 /**
  * Copy all data in the container identified by srcIdentifier to
  * the container identified by dstIdentifier. If no container is identified
  * with srcIdentifier, then nothing will happen. If there is no container
  * that is identified by dstIdentifier, then one is transparently created.
  *
+ * The parameter intoAliases may be one of
+ * UC_COPY_INTO_CONT, UC_COPY_INTO_DIRECT_ALIASES,
+ * UC_COPY_INTO_ALL_ALIASES, UC_COPY_INTO_ALL or an OR-ed combination thereof.
+ *
  * If retDataSet != NULL, then this data set will be populated with all data
  * that has been copied, i.e. with all data that is/was in the container identified
  * by srcIdentifier.
  */
-void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier, ucDataSet retDataSet) {
+void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier, int intoAliases, ucDataSet retDataSet) {
 	ucDataSet srcDataSet;
 	ucDataSet dstDataSet;
+	ucDataSet *aliasedDataSets = NULL;
+	int aliasedDataSetsCount = 0;
 	GHashTableIter iter;
 	gpointer dataID;
 	ucDataID *dataIDCopy;
-	ucDataID *dataIDCopy2;
+	ucDataSet delta;
 
 	// No sensitive data in source container. Nothing to do.
 	if (INVALID_DATASET(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || dataSetIsEmpty(srcDataSet)) {
 		return;
 	}
 
-	// Get the destination data set
-	if (INVALID_DATASET(dstDataSet = ucPIP_getDataSet(dstIdentifier, 1))) {
-		return;
+	dstDataSet = ucPIP_getDataSet(dstIdentifier, 1);
+
+	if (intoAliases & UC_COPY_INTO_ALL_ALIASES) {
+		aliasedDataSets = ucPIP_getAllReflexivelyAliasedDataSets(dstIdentifier, &aliasedDataSetsCount);
+	}
+	else if (intoAliases & UC_COPY_INTO_DIRECT_ALIASES) {
+		aliasedDataSets = ucPIP_getDirectlyAliasedDataSets(dstIdentifier, &aliasedDataSetsCount);
 	}
 
+	dataSetNew(delta);
 
-	// copy each and every entry from source container to destination container
+	// copy each and every entry from source container
 	g_hash_table_iter_init(&iter, srcDataSet);
 	while (g_hash_table_iter_next (&iter, &dataID, NULL)) {
-		dataDup(dataIDCopy, * (ucDataID*) dataID);
-		dataSetAdd(dstDataSet, dataIDCopy);
+		if (VALID_DATASET(dstDataSet) && (intoAliases & UC_COPY_INTO_CONTAINER)) {
+			// copy into destination container
+			dataDup(dataIDCopy, * (ucDataID*) dataID);
+			dataSetAdd(dstDataSet, dataIDCopy);
+		}
+		else if (VALID_DATASET(dstDataSet) && !dataSetContains(dstDataSet, * (ucDataID*) dataID)) {
+			// we don't want to copy into that container and the data item we are
+			// seeing has not yet been in that container. We record that fact
+			// because that data may be copied to that container anyway due to
+			// reflexive aliases. We'll compensate for this later.
+			dataDup(dataIDCopy, * (ucDataID*) dataID);
+			dataSetAdd(delta, dataIDCopy);
+		}
 
 		// also populate the return data set, if provided
-		if (VALID_DATASET(retDataSet)) {
-			dataDup(dataIDCopy2, * (ucDataID*) dataID);
-			dataSetAdd(retDataSet, dataIDCopy2);
+		if (VALID_DATASET(retDataSet) && * (ucDataID*) dataID ) {
+			dataDup(dataIDCopy, * (ucDataID*) dataID);
+			dataSetAdd(retDataSet, dataIDCopy);
+		}
+
+		// write into aliases (where it may happen that we write to
+		// the destination container although we do not want to)
+		int i;
+		for (i = 0; i < aliasedDataSetsCount; i++) {
+			dataDup(dataIDCopy, * (ucDataID*) dataID);
+			dataSetAdd(aliasedDataSets[i], dataIDCopy);
 		}
 	}
+
+	if (aliasedDataSets) {
+		free(aliasedDataSets);
+	}
+
+	if (VALID_DATASET(dstDataSet)) {
+		// compensate for the fact that we may have copied data
+		// that we did not mean to copy
+		g_hash_table_iter_init(&iter, delta);
+		while (g_hash_table_iter_next (&iter, &dataID, NULL)) {
+//			dataSetRemove(dstDataSet, * (ucDataID*) dataID);
+		}
+	}
+
+	dataSetDestroy(delta);
 }
 
+ucDataSet *ucPIP_getDirectlyAliasedDataSets(ucIdentifier identifier, int *count) {
+	ucAliasSet aliasset;
+	ucDataSet *datasets;
+	ucDataSet ds;
+	GHashTableIter iter;
+	gpointer aliasedContainer;
 
+	if (INVALID_ALIASSET(aliasset = ucPIP_getAliasSet(identifier, 0))) {
+		*count = 0;
+		return NULL;
+	}
 
-void ucPIP_getAllReflexivelyAliasedDataSets_rec(ucContainerID contID, ucDataSet *datasets, ucContainerID *collectedContainers, int *count) {
+	if ((*count = aliasSetSize(aliasset)) <= 0) {
+		*count = 0;
+		return NULL;
+	}
+
+	if (!(datasets = calloc(*count, sizeof(ucDataSet)))) {
+		ucPIP_errorExitMemory();
+	}
+
+	g_hash_table_iter_init(&iter, aliasset);
+	int i = 0;
+	while (g_hash_table_iter_next (&iter, &aliasedContainer, NULL)) {
+		datasets[i] = ucPIP_getDataSetByContainer(*(ucContainerID*)aliasedContainer, 1);
+		i++;
+	}
+
+	return (datasets);
+}
+
+void ucPIP_getAllReflexivelyAliasedDataSets_rec(ucContainerID contID, ucDataSet **datasets, ucContainerID **collectedContainers, int *count) {
 	ucDataSet ds;
 	ucAliasSet as;
 	int i;
@@ -328,21 +436,19 @@ void ucPIP_getAllReflexivelyAliasedDataSets_rec(ucContainerID contID, ucDataSet 
 
 	// return if that container was already added
 	for (i = 0; i < *count; i++) {
-		if (EQUAL_CONTID(collectedContainers[i], contID)) {
+		if (EQUAL_CONTID((*collectedContainers)[i], contID)) {
 			return;
 		}
 	}
 
-	if (INVALID_DATAID(ds = g_hash_table_lookup(s, &contID))) {
-		return;
-	}
+	ds = ucPIP_getDataSetByContainer(contID, 1);
 
 	// add this container's data set
 	(*count)++;
-	datasets = realloc(datasets, *count * sizeof(ucDataSet));
-	collectedContainers = realloc(collectedContainers, *count * sizeof(ucContainerID));
-	datasets[*count - 1] = ds;
-	collectedContainers[*count - 1] = contID;
+	*datasets = realloc(*datasets, *count * sizeof(ucDataSet));
+	*collectedContainers = realloc(*collectedContainers, *count * sizeof(ucContainerID));
+	(*datasets)[*count - 1] = ds;
+	(*collectedContainers)[*count - 1] = contID;
 
 	if (INVALID_ALIASSET(as = g_hash_table_lookup(l, &contID))) {
 		return;
@@ -380,14 +486,24 @@ void ucPIP_getAllReflexivelyAliasedDataSets_rec(ucContainerID contID, ucDataSet 
 ucDataSet *ucPIP_getAllReflexivelyAliasedDataSets(ucIdentifier identifier, int *count) {
 	ucContainerID cont;
 	*count = 0;
+	ucDataSet *datasets = NULL;
+	ucAliasSet as;
+	GHashTableIter iter;
+	gpointer aliasedContainer;
+	ucContainerID *collectedContainers = NULL;
 
-
-	if (INVALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
-		return NULL;
+	if (INVALID_ALIASSET(as = ucPIP_getAliasSet(identifier, 0))) {
+		return (NULL);
 	}
 
-	ucDataSet *datasets = NULL;
-	ucPIP_getAllReflexivelyAliasedDataSets_rec(cont, datasets, NULL, count);
+	g_hash_table_iter_init(&iter, as);
+	while (g_hash_table_iter_next (&iter, &aliasedContainer, NULL)) {
+		ucPIP_getAllReflexivelyAliasedDataSets_rec( *(ucContainerID*) aliasedContainer, &datasets, &collectedContainers, count);
+	}
+
+	if (collectedContainers) {
+		free (collectedContainers);
+	}
 
 	if (datasets == NULL && *count == 0) {
 		return NULL;
@@ -396,6 +512,7 @@ ucDataSet *ucPIP_getAllReflexivelyAliasedDataSets(ucIdentifier identifier, int *
 	if (datasets != NULL && *count > 0) {
 		return (datasets);
 	}
+
 
 	ucPIP_errorExit("Something went wrong when trying to get reflexively aliased data sets.");
 	return NULL;

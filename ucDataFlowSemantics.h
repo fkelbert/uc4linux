@@ -45,6 +45,7 @@ extern int *procMem;
 
 #define streq(str1, str2) (strcmp(str1,str2) == 0)
 #define strneq(str1, str2, n) (strncmp(str1,str2,n) == 0)
+#define strstarts(str1, start) (str1 && start && strstr(str1, start) == str1)
 
 #define PROCFS_MNT "/proc"
 

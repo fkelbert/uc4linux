@@ -55,12 +55,17 @@ void ucPIP_init();
 
 #define dataSetNew(set) set = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
 #define dataSetAdd(set, value) g_hash_table_insert(set, value, NULL)
+#define dataSetDestroy(set) g_hash_table_destroy(set);
+#define dataSetRemove(set, value) g_hash_table_remove(set, &value)
+#define dataSetContains(set, value) (g_hash_table_lookup(set, &value) != NULL)
 #define dataSetIsEmpty(set) (INVALID_DATASET(set) || !g_hash_table_size(set))
+#define dataSetSize(set) g_hash_table_size(set)
 void dataSetPrint(FILE *f, ucDataSet set);
 
 #define aliasSetNew(set) dataSetNew(set)
 #define aliasSetAdd(set, value) dataSetAdd(set, value)
 #define aliasSetIsEmpty(set) (INVALID_ALIASSET(set) || !g_hash_table_size(set))
+#define aliasSetSize(set) g_hash_table_size(set)
 void aliasSetPrint(FILE *f, ucDataSet set);
 
 #define containerDup(contPtr, value) if (!(contPtr = (ucContainerID*) malloc(sizeof(ucContainerID)))) { ucPIP_errorExitMemory(); } *contPtr = value
@@ -96,6 +101,17 @@ void destroyValuePrimitive(gpointer data);
 			exit (1);
 
 #define ucPIP_errorExitMemory() ucPIP_errorExit("Unable to allocate enough memory")
+
+#define UC_COPY_INTO_CONTAINER		0x01
+#define UC_COPY_INTO_DIRECT_ALIASES	0x02
+#define UC_COPY_INTO_ALL_ALIASES	0x04
+
+#define UC_COPY_INTO_ALL	UC_COPY_INTO_CONTAINER | UC_COPY_INTO_DIRECT_ALIASES | UC_COPY_INTO_ALL_ALIASES
+
+ucDataSet *ucPIP_getAllReflexivelyAliasedDataSets(ucIdentifier identifier, int *count);
+void ucPIP_removeAllAliasesFrom(ucIdentifier identifier);
+void ucPIP_removeAllAliasesTo(ucIdentifier identifier);
+ucDataSet *ucPIP_getDirectlyAliasedDataSets(ucIdentifier identifier, int *count);
 
 #endif /* UCPIP_H_ */
 
