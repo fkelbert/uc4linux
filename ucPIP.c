@@ -317,6 +317,91 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier, ucDa
 
 
 
+void ucPIP_getAllReflexivelyAliasedDataSets_rec(ucContainerID contID, ucDataSet *datasets, ucContainerID *collectedContainers, int *count) {
+	ucDataSet ds;
+	ucAliasSet as;
+	int i;
+
+	if (INVALID_CONTID(contID)) {
+		return;
+	}
+
+	// return if that container was already added
+	for (i = 0; i < *count; i++) {
+		if (EQUAL_CONTID(collectedContainers[i], contID)) {
+			return;
+		}
+	}
+
+	if (INVALID_DATAID(ds = g_hash_table_lookup(s, &contID))) {
+		return;
+	}
+
+	// add this container's data set
+	(*count)++;
+	datasets = realloc(datasets, *count * sizeof(ucDataSet));
+	collectedContainers = realloc(collectedContainers, *count * sizeof(ucContainerID));
+	datasets[*count - 1] = ds;
+	collectedContainers[*count - 1] = contID;
+
+	if (INVALID_ALIASSET(as = g_hash_table_lookup(l, &contID))) {
+		return;
+	}
+
+	// go over all its aliases and add them recursively
+	GHashTableIter iter;
+	gpointer aliasedContainer;
+	g_hash_table_iter_init(&iter, as);
+	while (g_hash_table_iter_next (&iter, &aliasedContainer, NULL)) {
+		ucPIP_getAllReflexivelyAliasedDataSets_rec( *(ucContainerID*) aliasedContainer, datasets, collectedContainers, count);
+	}
+}
+
+
+/**
+ * Returns all data sets that are reflexively aliased by the identified container.
+ * The data sets are returned and the corresponding memory needs to be freed by the caller using free().
+ * count specified how many entries there are.
+ *
+ * This functions returns NULL if no data sets were returned (i.e. if count == 0),
+ * or a pointer to that dataset.
+ *
+ * Recommended usage:
+ * int c;
+ * ucIdentifier ident;
+ * ucDataSet *dataset = ucPIP_getAllReflexivelyAliasedDataSets(ident, &c);
+ *
+ * for (int i = 0; i < c; i++) {
+ *   doSth();
+ * }
+ * free(dataset);
+ *
+ */
+ucDataSet *ucPIP_getAllReflexivelyAliasedDataSets(ucIdentifier identifier, int *count) {
+	ucContainerID cont;
+	*count = 0;
+
+
+	if (INVALID_CONTID(cont = ucPIP_getContainer(identifier, 0))) {
+		return NULL;
+	}
+
+	ucDataSet *datasets = NULL;
+	ucPIP_getAllReflexivelyAliasedDataSets_rec(cont, datasets, NULL, count);
+
+	if (datasets == NULL && *count == 0) {
+		return NULL;
+	}
+
+	if (datasets != NULL && *count > 0) {
+		return (datasets);
+	}
+
+	ucPIP_errorExit("Something went wrong when trying to get reflexively aliased data sets.");
+	return NULL;
+}
+
+
 /**
  * Delete all aliases _from_ the container specified by identifier.
  */
