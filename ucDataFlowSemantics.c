@@ -8,7 +8,7 @@
 #include "ucDataFlowSemantics.h"
 
 
-char identifier[IDENTIFIER_MAX_LEN];
+char identifier1[IDENTIFIER_MAX_LEN];
 char identifier2[IDENTIFIER_MAX_LEN];
 
 int initialProcess = 1;
@@ -506,16 +506,16 @@ void ucSemantics_write(struct tcb *tcp) {
 		return;
 	}
 
-	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+	getIdentifierPID(tcp->pid, identifier1, sizeof(identifier1));
 	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
 
 	if (g_hash_table_lookup_extended(ignoreFDs, identifier2, NULL, NULL)) {
 		return;
 	}
 
-	ucPIP_copyData(identifier, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, NULL);
 
-	ucSemantics_log("%5d: write(): %s --> %s\n", tcp->pid, identifier, identifier2);
+	ucSemantics_log("%5d: write(): %s --> %s\n", tcp->pid, identifier1, identifier2);
 }
 
 // todo: write into aliases
@@ -525,24 +525,24 @@ void ucSemantics_read(struct tcb *tcp) {
 		return;
 	}
 
-	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
 	getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2));
 
-	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
+	if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
 		return;
 	}
 
-	ucSemantics_log("%5d: %s(): %d <-- %s\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid, identifier);
+	ucSemantics_log("%5d: %s(): %d <-- %s\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid, identifier1);
 
 	// FD -> PID
 #if defined(UC_DECLASS_ENABLED) && UC_DECLASS_ENABLED
 	ucDataSet copied;
 
 	dataSetNew(copied);
-	ucPIP_copyData(identifier, identifier2, copied);
+	ucPIP_copyData(identifier1, identifier2, copied);
 	ucDeclass_splus_add(tcp->pid, copied);
 #else
-	ucPIP_copyData(identifier, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, NULL);
 #endif
 }
 
@@ -553,9 +553,9 @@ void ucSemantics_do_process_exit(int pid) {
 	int count;
 	int *openfds;
 
-	getIdentifierPID(pid, identifier, sizeof(identifier));
+	getIdentifierPID(pid, identifier1, sizeof(identifier1));
 
-	ucPIP_removeIdentifier(identifier);
+	ucPIP_removeIdentifier(identifier1);
 
 	// delete all of the processes' open file descriptors
 	if (procFDs[pid]) {
@@ -600,9 +600,9 @@ void ucSemantics_execve(struct tcb *tcp) {
 	if (initialProcess) {
 		addProcMem(tcp->pid);
 
-		getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+		getIdentifierPID(tcp->pid, identifier1, sizeof(identifier1));
 
-		ucPIP_addIdentifier(identifier, NULL);
+		ucPIP_addIdentifier(identifier1, NULL);
 
 		initialProcess = 0;
 	}
@@ -614,10 +614,10 @@ void ucSemantics_execve(struct tcb *tcp) {
 
 
 void ucSemantics_do_close(pid_t pid, int fd, GHashTableIter *iter) {
-	getIdentifierFD(pid, fd, identifier, sizeof(identifier), NULL);
+	getIdentifierFD(pid, fd, identifier1, sizeof(identifier1), NULL);
 
-	ucPIP_removeIdentifier(identifier);
-	g_hash_table_remove(ignoreFDs, identifier);
+	ucPIP_removeIdentifier(identifier1);
+	g_hash_table_remove(ignoreFDs, identifier1);
 
 	if (iter) {
 		g_hash_table_iter_remove(iter);
@@ -637,14 +637,14 @@ void ucSemantics_close(struct tcb *tcp) {
 	// will set identifier as a side effect
 	ucSemantics_do_close(tcp->pid, tcp->u_arg[0], NULL);
 
-	ucSemantics_log("%5d: close(): %s\n", tcp->pid, identifier);
+	ucSemantics_log("%5d: close(): %s\n", tcp->pid, identifier1);
 }
 
 
 void ucSemantics_do_open(int pid, int fd, char *absFilename, long int flags) {
 	char *trunkstr = "";
 
-	getIdentifierFD(pid, fd, identifier, sizeof(identifier), absFilename);
+	getIdentifierFD(pid, fd, identifier1, sizeof(identifier1), absFilename);
 
 	// handle truncation flag
 	if (IS_O_TRUNC(flags) && (IS_O_RDWR(flags) || IS_O_WRONLY(flags))) {
@@ -653,12 +653,12 @@ void ucSemantics_do_open(int pid, int fd, char *absFilename, long int flags) {
 	}
 
 	if (ignoreFile(absFilename)) {
-		g_hash_table_insert(ignoreFDs, strdup(identifier), NULL);
+		g_hash_table_insert(ignoreFDs, strdup(identifier1), NULL);
 	}
 	else {
-		ucPIP_addIdentifier(absFilename, identifier);
+		ucPIP_addIdentifier(absFilename, identifier1);
 	}
-	ucSemantics_log("%5d: do_open(): %s %d: %s --> %s\n", pid, trunkstr, pid, absFilename, identifier);
+	ucSemantics_log("%5d: do_open(): %s %d: %s --> %s\n", pid, trunkstr, pid, absFilename, identifier1);
 }
 
 void ucSemantics_open(struct tcb *tcp) {
@@ -698,7 +698,7 @@ void ucSemantics_openat(struct tcb *tcp) {
 			cwdAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1);
 		}
 		else {
-			dir = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+			dir = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
 			getAbsoluteFilename(dir, relFilename, absFilename, sizeof(absFilename), 1);
 		}
 		ucSemantics_log("%5d: %s(%s, %s) resulting in:\n", tcp->pid, tcp->s_ent->sys_name, dir, relFilename);
@@ -718,11 +718,11 @@ void ucSemantics_socket(struct tcb *tcp) {
 		ucSemantics_errorExit("Unable to get socket name.");
 	}
 
-	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), sockname);
+	getIdentifierFD(tcp->pid, sfd, identifier1, sizeof(identifier1), sockname);
 
-	ucPIP_addIdentifier(identifier, NULL);
+	ucPIP_addIdentifier(identifier1, NULL);
 
-	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier);
+	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
 }
 
 void ucSemantics_socketpair(struct tcb *tcp) {
@@ -746,16 +746,16 @@ void ucSemantics_socketpair(struct tcb *tcp) {
 		ucSemantics_errorExit("Unable to get socket name.");
 	}
 
-	getIdentifierFD(tcp->pid, sockets[0], identifier, sizeof(identifier), sockname1);
+	getIdentifierFD(tcp->pid, sockets[0], identifier1, sizeof(identifier1), sockname1);
 	getIdentifierFD(tcp->pid, sockets[1], identifier2, sizeof(identifier2), sockname2);
 
-	ucPIP_addIdentifier(identifier, NULL);
+	ucPIP_addIdentifier(identifier1, NULL);
 	ucPIP_addIdentifier(identifier2, NULL);
 
-	ucPIP_addAlias(identifier, identifier2);
-	ucPIP_addAlias(identifier2, identifier);
+	ucPIP_addAlias(identifier1, identifier2);
+	ucPIP_addAlias(identifier2, identifier1);
 
-	ucSemantics_log("%5d: %s(): %s, %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
+	ucSemantics_log("%5d: %s(): %s, %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
 }
 
 
@@ -764,12 +764,12 @@ void ucSemantics_sendfile(struct tcb *tcp) {
 		return;
 	}
 
-	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier, sizeof(identifier), NULL);
+	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier1, sizeof(identifier1), NULL);
 	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
 
-	ucPIP_copyData(identifier, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, NULL);
 
-	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
+	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
 }
 
 
@@ -780,15 +780,15 @@ void ucSemantics_fcntl(struct tcb *tcp) {
 
 	if (tcp->u_arg[1] == F_DUPFD
 			|| tcp->u_arg[1] == F_DUPFD_CLOEXEC) {
-		char * fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+		char * fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
 		getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
 
-		if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
+		if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
 			g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
 		}
 		else {
-			ucPIP_addIdentifier(identifier, identifier2);
-			ucSemantics_log("%5d: fcntl(): %s --> %s\n", tcp->pid, identifier, identifier2);
+			ucPIP_addIdentifier(identifier1, identifier2);
+			ucSemantics_log("%5d: fcntl(): %s --> %s\n", tcp->pid, identifier1, identifier2);
 		}
 	}
 }
@@ -813,13 +813,13 @@ void ucSemantics_kill(struct tcb *tcp) {
 		return;
 	}
 
-	getIdentifierPID(tcp->pid, identifier, sizeof(identifier));
+	getIdentifierPID(tcp->pid, identifier1, sizeof(identifier1));
 	getIdentifierPID(tcp->u_arg[0], identifier2, sizeof(identifier2));
 
 	// PID -> PID
-	ucPIP_copyData(identifier, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, NULL);
 
-	ucSemantics_log("%5d: kill(): %s --> %s\n", tcp->pid, identifier, identifier2);
+	ucSemantics_log("%5d: kill(): %s --> %s\n", tcp->pid, identifier1, identifier2);
 
 	// todo: kill may imply exit (do CTRL+F4 while the monitored gnome-terminal is booting up)
 }
@@ -836,12 +836,12 @@ void ucSemantics_accept(struct tcb *tcp) {
 		ucSemantics_errorExit("Unable to get socket name.");
 	}
 
-	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), sockname1);
+	getIdentifierFD(tcp->pid, sfd, identifier1, sizeof(identifier1), sockname1);
 //	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), sockname1);
 
-	ucPIP_addIdentifier(identifier, identifier2);
+	ucPIP_addIdentifier(identifier1, identifier2);
 
-	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier);
+	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
 }
 
 void ucSemantics_connect(struct tcb *tcp) {
@@ -883,19 +883,19 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 
 	int ppid = ucSemantics_initProcess(pid);
 
-	getIdentifierPID(ppid, identifier, sizeof(identifier));
+	getIdentifierPID(ppid, identifier1, sizeof(identifier1));
 	getIdentifierPID(pid, identifier2, sizeof(identifier2));
 
 	ucPIP_addIdentifier(identifier2, NULL);
 
-	ucSemantics_log("%5d: clone(): %s %s\n", tcp->pid, identifier, identifier2);
+	ucSemantics_log("%5d: clone(): %s %s\n", tcp->pid, identifier1, identifier2);
 
 	// PID -> PID
-	ucPIP_copyData(identifier, identifier2, NULL);
+	ucPIP_copyData(identifier1, identifier2, NULL);
 
 	// clone all the aliases
-	ucPIP_copyAliases(identifier, identifier2);
-	ucPIP_alsoAlias(identifier, identifier2);
+	ucPIP_copyAliases(identifier1, identifier2);
+	ucPIP_alsoAlias(identifier1, identifier2);
 
 	// copy all file descriptors
 	if (procFDs[ppid]) {
@@ -903,14 +903,14 @@ void ucSemantics_cloneFirstAction(struct tcb *tcp) {
 		gpointer fd;
 		g_hash_table_iter_init(&iter, procFDs[ppid]);
 		while (g_hash_table_iter_next (&iter, &fd, NULL)) {
-			char *fn = getIdentifierFD(ppid, * (int*)fd, identifier, sizeof(identifier), NULL);
+			char *fn = getIdentifierFD(ppid, * (int*)fd, identifier1, sizeof(identifier1), NULL);
 			getIdentifierFD(pid, * (int*)fd, identifier2, sizeof(identifier2), fn);
 
-			if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
+			if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
 				g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
 			}
-			else if (VALID_CONTID(ucPIP_getContainer(identifier, 0))) {
-				ucPIP_addIdentifier(identifier, identifier2);
+			else if (VALID_CONTID(ucPIP_getContainer(identifier1, 0))) {
+				ucPIP_addIdentifier(identifier1, identifier2);
 			}
 		}
 	}
@@ -927,11 +927,11 @@ void ucSemantics_unlink(struct tcb *tcp) {
 		return;
 	}
 
-	getString(tcp, tcp->u_arg[0], identifier, sizeof(identifier));
+	getString(tcp, tcp->u_arg[0], identifier1, sizeof(identifier1));
 
-	ucPIP_removeIdentifier(identifier);
+	ucPIP_removeIdentifier(identifier1);
 
-	ucSemantics_log("%5d: unlink(): %s\n", tcp->pid, identifier);
+	ucSemantics_log("%5d: unlink(): %s\n", tcp->pid, identifier1);
 }
 
 void ucSemantics_splice(struct tcb *tcp) {
@@ -967,15 +967,15 @@ void ucSemantics_pipe(struct tcb *tcp) {
 		strncpy(pipename, "<undef>", sizeof(pipename));
 	}
 
-	getIdentifierFD(tcp->pid, fds[0], identifier, sizeof(identifier), pipename);
+	getIdentifierFD(tcp->pid, fds[0], identifier1, sizeof(identifier1), pipename);
 	getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2), pipename);
 
-	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
+	if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
 	}
 	else {
-		ucPIP_addIdentifier(identifier, identifier2);
-		ucSemantics_log("%5d: pipe(): %s %s\n", tcp->pid, identifier, identifier2);
+		ucPIP_addIdentifier(identifier1, identifier2);
+		ucSemantics_log("%5d: pipe(): %s %s\n", tcp->pid, identifier1, identifier2);
 	}
 
 
@@ -987,15 +987,15 @@ void ucSemantics_dup(struct tcb *tcp) {
 		return;
 	}
 
-	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
 	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
 
-	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
+	if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
 	}
 	else {
-		ucPIP_addIdentifier(identifier, identifier2);
-		ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
+		ucPIP_addIdentifier(identifier1, identifier2);
+		ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
 	}
 
 }
@@ -1013,15 +1013,15 @@ void ucSemantics_dup2(struct tcb *tcp) {
 	// close the new fd first, if necessary
 	ucSemantics_do_close(tcp->pid, tcp->u_rval, NULL);
 
-	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier, sizeof(identifier), NULL);
+	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
 	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
 
-	if (g_hash_table_lookup_extended(ignoreFDs, identifier, NULL, NULL)) {
+	if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
 		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
 	}
 	else {
-		ucPIP_addIdentifier(identifier, identifier2);
-		ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
+		ucPIP_addIdentifier(identifier1, identifier2);
+		ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
 	}
 
 }
