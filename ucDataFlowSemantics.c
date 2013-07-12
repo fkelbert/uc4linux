@@ -555,9 +555,6 @@ void ucSemantics_do_process_exit(int pid) {
 
 	getIdentifierPID(pid, identifier, sizeof(identifier));
 
-	ucPIP_removeAllAliasesFrom(identifier);
-	ucPIP_removeAllAliasesTo(identifier);
-
 	ucPIP_removeIdentifier(identifier);
 
 	// delete all of the processes' open file descriptors
@@ -710,18 +707,18 @@ void ucSemantics_openat(struct tcb *tcp) {
 }
 
 void ucSemantics_socket(struct tcb *tcp) {
-	char socketname1[FILENAME_MAX];
+	char sockname[FILENAME_MAX];
 	int sfd = tcp->u_rval;
 
 	if (sfd < 0) {
 		return;
 	}
 
-	if (!getSpecialFilename(tcp->pid, sfd, socketname1, sizeof(socketname1))) {
-		strncpy(socketname1, "<undef>", sizeof(socketname1));
+	if (!getSpecialFilename(tcp->pid, sfd, sockname, sizeof(sockname))) {
+		ucSemantics_errorExit("Unable to get socket name.");
 	}
 
-	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), socketname1);
+	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), sockname);
 
 	ucPIP_addIdentifier(identifier, NULL);
 
@@ -730,8 +727,8 @@ void ucSemantics_socket(struct tcb *tcp) {
 
 void ucSemantics_socketpair(struct tcb *tcp) {
 	int sockets[2];
-	char socketname1[FILENAME_MAX];
-	char socketname2[FILENAME_MAX];
+	char sockname1[FILENAME_MAX];
+	char sockname2[FILENAME_MAX];
 
 	if (tcp->u_rval < 0) {
 		return;
@@ -741,21 +738,22 @@ void ucSemantics_socketpair(struct tcb *tcp) {
 		return;
 	}
 
-	if (!getSpecialFilename(tcp->pid, sockets[0], socketname1, sizeof(socketname1))) {
-		strncpy(socketname1, "<undef>", sizeof(socketname1));
+	if (!getSpecialFilename(tcp->pid, sockets[0], sockname1, sizeof(sockname1))) {
+		ucSemantics_errorExit("Unable to get socket name.");
 	}
 
-	if (!getSpecialFilename(tcp->pid, sockets[1], socketname2, sizeof(socketname2))) {
-		strncpy(socketname2, "<undef>", sizeof(socketname2));
+	if (!getSpecialFilename(tcp->pid, sockets[1], sockname2, sizeof(sockname2))) {
+		ucSemantics_errorExit("Unable to get socket name.");
 	}
 
-	getIdentifierFD(tcp->pid, sockets[0], identifier, sizeof(identifier), socketname1);
-	getIdentifierFD(tcp->pid, sockets[1], identifier2, sizeof(identifier2), socketname2);
+	getIdentifierFD(tcp->pid, sockets[0], identifier, sizeof(identifier), sockname1);
+	getIdentifierFD(tcp->pid, sockets[1], identifier2, sizeof(identifier2), sockname2);
 
 	ucPIP_addIdentifier(identifier, NULL);
 	ucPIP_addIdentifier(identifier2, NULL);
 
-	// TODO: add alias between the two
+	ucPIP_addAlias(identifier, identifier2);
+	ucPIP_addAlias(identifier2, identifier);
 
 	ucSemantics_log("%5d: %s(): %s, %s\n", tcp->pid, tcp->s_ent->sys_name, identifier, identifier2);
 }
@@ -827,19 +825,19 @@ void ucSemantics_kill(struct tcb *tcp) {
 }
 
 void ucSemantics_accept(struct tcb *tcp) {
-	char socketname1[FILENAME_MAX];
+	char sockname1[FILENAME_MAX];
 	int sfd = tcp->u_rval;
 
 	if (sfd < 0) {
 		return;
 	}
 
-	if (!getSpecialFilename(tcp->pid, sfd, socketname1, sizeof(socketname1))) {
-		strncpy(socketname1, "<undef>", sizeof(socketname1));
+	if (!getSpecialFilename(tcp->pid, sfd, sockname1, sizeof(sockname1))) {
+		ucSemantics_errorExit("Unable to get socket name.");
 	}
 
-	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), socketname1);
-	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), socketname1);
+	getIdentifierFD(tcp->pid, sfd, identifier, sizeof(identifier), sockname1);
+//	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), sockname1);
 
 	ucPIP_addIdentifier(identifier, identifier2);
 

@@ -39,7 +39,7 @@ void ucDeclass_splus_add(pid_t pid, ucDataSet dataSetToAdd) {
 	gpointer container;
 	ucContainerID *containerCopy;
 
-	if (pid <= 0 || INVALID_DATASET(dataSetToAdd) || ucPIP_isEmptyDataSet(dataSetToAdd)) {
+	if (pid <= 0 || INVALID_DATASET(dataSetToAdd) || dataSetIsEmpty(dataSetToAdd)) {
 		return;
 	}
 

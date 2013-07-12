@@ -51,6 +51,7 @@ void ucPIP_update(struct tcb *tcp) {
 
 		ucPIP_printF();
 		ucPIP_printS();
+		ucPIP_printL();
 		ucDeclass_printSPlus(tcp->pid);
 	}
 }
