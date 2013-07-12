@@ -199,6 +199,8 @@ void ucPIP_removeIdentifier(ucIdentifier identifier) {
 
 	// TODO: This operation is expensive, because countIdentifiers() loops over all identifiers
 	if (ucPIP_countIdentifiers(identifier) == 1) {
+		ucPIP_removeAllAliasesTo(identifier);
+		ucPIP_removeAllAliasesFrom(identifier);
 		ucPIP_removeContainer(identifier);
 	}
 
@@ -341,7 +343,7 @@ void ucPIP_removeAllAliasesTo(ucIdentifier identifier) {
 	}
 
 	g_hash_table_iter_init(&iterAliasSets, l);
-	while (g_hash_table_iter_next (&iterAliasSets, (void **) &aliasSet, NULL)) {
+	while (g_hash_table_iter_next (&iterAliasSets, NULL, (void **) &aliasSet)) {
 		g_hash_table_remove(aliasSet, &cont);
 	}
 }
