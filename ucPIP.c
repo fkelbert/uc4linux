@@ -172,13 +172,6 @@ ucContainerID ucPIP_addIdentifier(ucIdentifier oldIdentifier, ucIdentifier newId
 
 
 
-int ucPIP_isEmptyDataSet(ucDataSet dataSet) {
-	return (INVALID_DATASET(dataSet) || !g_hash_table_size(dataSet));
-}
-
-int ucPIP_isEmptyAliasSet(ucAliasSet aliasSet) {
-	return (INVALID_ALIASSET(aliasSet) || !g_hash_table_size(aliasSet));
-}
 
 
 /*
@@ -228,7 +221,7 @@ void ucPIP_copyAliases(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier) {
 	ucContainerID *aliasedContainerCopy;
 
 	// No aliases in source container. Nothing to do.
-	if (INVALID_ALIASSET(srcAliasSet = ucPIP_getAliasSet(srcIdentifier, 0)) || ucPIP_isEmptyAliasSet(srcAliasSet)) {
+	if (INVALID_ALIASSET(srcAliasSet = ucPIP_getAliasSet(srcIdentifier, 0)) || aliasSetIsEmpty(srcAliasSet)) {
 		return;
 	}
 
@@ -296,7 +289,7 @@ void ucPIP_copyData(ucIdentifier srcIdentifier, ucIdentifier dstIdentifier, ucDa
 	ucDataID *dataIDCopy2;
 
 	// No sensitive data in source container. Nothing to do.
-	if (INVALID_DATASET(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || ucPIP_isEmptyDataSet(srcDataSet)) {
+	if (INVALID_DATASET(srcDataSet = ucPIP_getDataSet(srcIdentifier, 0)) || dataSetIsEmpty(srcDataSet)) {
 		return;
 	}
 
@@ -436,7 +429,7 @@ void ucPIP_printF_impl() {
 
 	g_hash_table_iter_init (&iterateIdentifiers, f);
 	while (g_hash_table_iter_next (&iterateIdentifiers, &identifier, &contID)) {
-		if (UC_PIP_PRINT_EMPTY_CONTAINERS || !ucPIP_isEmptyDataSet(ucPIP_getDataSet(identifier, 0))) {
+		if (UC_PIP_PRINT_EMPTY_CONTAINERS || !dataSetIsEmpty(ucPIP_getDataSet(identifier, 0))) {
 			fprintf(ucPIP_outstream, "  %60s --> %d\n", (char*) identifier, * ((ucContainerID*) contID));
 		}
 	}
@@ -455,7 +448,7 @@ void ucPIP_printS_impl() {
 
 	g_hash_table_iter_init (&iterateContainers, s);
 	while (g_hash_table_iter_next (&iterateContainers, &contID, &dataSet)) {
-		if (!ucPIP_isEmptyDataSet(dataSet)) {
+		if (!dataSetIsEmpty(dataSet)) {
 			fprintf(ucPIP_outstream, "  %10d --> ", *(ucContainerID*) contID);
 			dataSetPrint(ucPIP_outstream, dataSet);
 			fprintf(ucPIP_outstream, "\n");

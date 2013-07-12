@@ -50,12 +50,17 @@ typedef GHashTable* ucAliasSet;
 
 void ucPIP_init();
 
+
+
 #define dataSetNew(set) set = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL)
 #define dataSetAdd(set, value) g_hash_table_insert(set, value, NULL)
+#define dataSetIsEmpty(set) (INVALID_DATASET(set) || !g_hash_table_size(set))
 void dataSetPrint(FILE *f, ucDataSet set);
 
 #define aliasSetNew(set) dataSetNew(set)
 #define aliasSetAdd(set, value) dataSetAdd(set, value)
+#define aliasSetIsEmpty(set) (INVALID_ALIASSET(set) || !g_hash_table_size(set))
+void aliasSetPrint(FILE *f, ucDataSet set);
 
 #define containerDup(contPtr, value) if (!(contPtr = (ucContainerID*) malloc(sizeof(ucContainerID)))) { ucPIP_errorExitMemory(); } *contPtr = value
 #define dataDup(dataPtr, value) if (!(dataPtr = (ucDataID*) malloc(sizeof(ucDataID)))) { ucPIP_errorExitMemory(); } *dataPtr = value
