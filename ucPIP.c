@@ -547,6 +547,27 @@ void ucPIP_printS_impl() {
 }
 
 
+void ucPIP_printL_impl() {
+	GHashTableIter iterateContainers;
+	GHashTableIter iterateData;
+	gpointer contID, aliasSet, dataID;
+
+	fprintf(ucPIP_outstream, "Function l():\n");
+
+	g_hash_table_iter_init (&iterateContainers, l);
+	while (g_hash_table_iter_next (&iterateContainers, &contID, &aliasSet)) {
+		if (!aliasSetIsEmpty(aliasSet)) {
+			fprintf(ucPIP_outstream, "  %10d --> ", *(ucContainerID*) contID);
+			aliasSetPrint(ucPIP_outstream, aliasSet);
+			fprintf(ucPIP_outstream, "\n");
+		}
+	}
+
+	fprintf(ucPIP_outstream, "\n");
+	fflush(ucPIP_outstream);
+}
+
+
 
 
 void ucPIP_init() {
@@ -576,6 +597,30 @@ void dataSetPrint(FILE *f, ucDataSet set) {
 
 	g_hash_table_iter_next (&iter, &dataID, NULL);
 	fprintf(f, "%d", *(ucDataID*)dataID);
+
+	fprintf(f, "}");
+}
+
+
+void aliasSetPrint(FILE *f, ucAliasSet set) {
+	GHashTableIter iter;
+	gpointer containerID;
+	int count;
+
+	if (!f || !set || INVALID_ALIASSET(set)) {
+		return;
+	}
+
+	fprintf(f, "{");
+
+	g_hash_table_iter_init (&iter, set);
+	for (count = 0; count < g_hash_table_size(set) - 1; count++) {
+		g_hash_table_iter_next (&iter, &containerID, NULL);
+		fprintf(f, "%d, ", *(ucContainerID*)containerID);
+	}
+
+	g_hash_table_iter_next (&iter, &containerID, NULL);
+	fprintf(f, "%d", *(ucContainerID*)containerID);
 
 	fprintf(f, "}");
 }

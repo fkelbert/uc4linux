@@ -17,8 +17,8 @@
 #include <glib.h>
 #include <string.h>
 
-#define UC_PIP_PRINT_EMPTY_CONTAINERS 0
-#define UC_PIP_PRINT 0
+#define UC_PIP_PRINT_EMPTY_CONTAINERS 1
+#define UC_PIP_PRINT 1
 
 typedef guint ucDataID;
 typedef guint ucContainerID;
@@ -34,6 +34,7 @@ typedef GHashTable* ucAliasSet;
 
 #define INVALID_CONTID(contid) ((contid) == UC_INVALID_CONTID)
 #define VALID_CONTID(contid) ((contid) != UC_INVALID_CONTID)
+#define EQUAL_CONTID(contid1, contid2) (contid1 == contid2)
 
 #define INVALID_DATAID(dataid) ((dataid) == UC_INVALID_DATAID)
 #define VALID_DATAID(dataid) ((dataid) != UC_INVALID_DATAID)
@@ -71,11 +72,14 @@ ucContainerID	ucPIP_newContainerID();
 #if UC_PIP_PRINT
 #define ucPIP_printS() ucPIP_printS_impl()
 #define ucPIP_printF() ucPIP_printF_impl()
+#define ucPIP_printL() ucPIP_printL_impl()
 void ucPIP_printS_impl();
 void ucPIP_printF_impl();
+void ucPIP_printL_impl();
 #else
 #define ucPIP_printS()
 #define ucPIP_printF()
+#define ucPIP_printL()
 #endif
 
 
