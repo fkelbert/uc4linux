@@ -70,35 +70,8 @@ typedef struct {
 #  include <asm/sigcontext.h>
 # endif
 #else /* !HAVE_ASM_SIGCONTEXT_H */
-# if defined I386 && !defined HAVE_STRUCT_SIGCONTEXT_STRUCT
-struct sigcontext_struct {
-	unsigned short gs, __gsh;
-	unsigned short fs, __fsh;
-	unsigned short es, __esh;
-	unsigned short ds, __dsh;
-	unsigned long edi;
-	unsigned long esi;
-	unsigned long ebp;
-	unsigned long esp;
-	unsigned long ebx;
-	unsigned long edx;
-	unsigned long ecx;
-	unsigned long eax;
-	unsigned long trapno;
-	unsigned long err;
-	unsigned long eip;
-	unsigned short cs, __csh;
-	unsigned long eflags;
-	unsigned long esp_at_signal;
-	unsigned short ss, __ssh;
-	unsigned long i387;
-	unsigned long oldmask;
-	unsigned long cr2;
-};
-# else /* !I386 */
-#  if defined M68K && !defined HAVE_STRUCT_SIGCONTEXT
-struct sigcontext
-{
+# if defined M68K && !defined HAVE_STRUCT_SIGCONTEXT
+struct sigcontext {
 	unsigned long sc_mask;
 	unsigned long sc_usp;
 	unsigned long sc_d0;
@@ -109,17 +82,11 @@ struct sigcontext
 	unsigned long sc_pc;
 	unsigned short sc_formatvec;
 };
-#  endif /* M68K */
-# endif /* !I386 */
+# endif /* M68K */
 #endif /* !HAVE_ASM_SIGCONTEXT_H */
 
 #ifndef NSIG
 # warning: NSIG is not defined, using 32
-# define NSIG 32
-#endif
-#ifdef ARM
-/* Ugh. Is this really correct? ARM has no RT signals?! */
-# undef NSIG
 # define NSIG 32
 #endif
 
@@ -246,29 +213,8 @@ signame(int sig)
 	return buf;
 }
 
-static void
-long_to_sigset(long l, sigset_t *s)
-{
-	sigemptyset(s);
-	*(long *)s = l;
-}
-
-static int
-copy_sigset_len(struct tcb *tcp, long addr, sigset_t *s, int len)
-{
-	if (len > sizeof(*s))
-		len = sizeof(*s);
-	sigemptyset(s);
-	if (umoven(tcp, addr, len, (char *)s) < 0)
-		return -1;
-	return 0;
-}
-
-/* Original sigset is unsigned long */
-#define copy_sigset(tcp, addr, s) copy_sigset_len(tcp, addr, s, sizeof(long))
-
 static const char *
-sprintsigmask(const char *str, sigset_t *mask, int rt)
+sprintsigmask(const char *str, sigset_t *mask)
 /* set might include realtime sigs */
 {
 	/* Was [8 * sizeof(sigset_t) * 8], but
@@ -288,10 +234,13 @@ sprintsigmask(const char *str, sigset_t *mask, int rt)
 	char sep;
 	char *s;
 
-	maxsigs = nsignals;
+	/* Note: nsignals = ARRAY_SIZE(signalent[]),
+	 * and that array may not have SIGRTnn.
+	 */
 #ifdef __SIGRTMAX
-	if (rt)
-		maxsigs = __SIGRTMAX; /* instead */
+	maxsigs = __SIGRTMAX + 1; /* instead */
+#else
+	maxsigs = nsignals;
 #endif
 	s = stpcpy(outstr, str);
 	nsigs = 0;
@@ -308,23 +257,17 @@ sprintsigmask(const char *str, sigset_t *mask, int rt)
 	sep = '[';
 	for (i = 1; i < maxsigs; i++) {
 		if (sigismember(mask, i) == show_members) {
-			/* real-time signals on solaris don't have
-			 * signalent entries
-			 */
-			char tsig[40];
 			*s++ = sep;
 			if (i < nsignals) {
 				s = stpcpy(s, signalent[i] + 3);
 			}
 #ifdef SIGRTMIN
 			else if (i >= __SIGRTMIN && i <= __SIGRTMAX) {
-				sprintf(tsig, "RT_%u", i - __SIGRTMIN);
-				s = stpcpy(s, tsig);
+				s += sprintf(s, "RT_%u", i - __SIGRTMIN);
 			}
-#endif /* SIGRTMIN */
+#endif
 			else {
-				sprintf(tsig, "%u", i);
-				s = stpcpy(s, tsig);
+				s += sprintf(s, "%u", i);
 			}
 			sep = ' ';
 		}
@@ -336,10 +279,19 @@ sprintsigmask(const char *str, sigset_t *mask, int rt)
 	return outstr;
 }
 
-static void
-printsigmask(sigset_t *mask, int rt)
+static const char *
+sprintsigmask_long(const char *str, long mask)
 {
-	tprints(sprintsigmask("", mask, rt));
+	sigset_t s;
+	sigemptyset(&s);
+	*(long *)&s = mask;
+	return sprintsigmask(str, &s);
+}
+
+static void
+printsigmask(sigset_t *mask)
+{
+	tprints(sprintsigmask("", mask));
 }
 
 void
@@ -349,16 +301,28 @@ printsignal(int nr)
 }
 
 void
-print_sigset(struct tcb *tcp, long addr, int rt)
+print_sigset_addr_len(struct tcb *tcp, long addr, long len)
 {
 	sigset_t ss;
 
-	if (!addr)
+	if (!addr) {
 		tprints("NULL");
-	else if (copy_sigset(tcp, addr, &ss) < 0)
+		return;
+	}
+	/* Here len is usually equals NSIG / 8 or current_wordsize.
+	 * But we code this defensively:
+	 */
+	if (len < 0) {
+ bad:
 		tprintf("%#lx", addr);
-	else
-		printsigmask(&ss, rt);
+		return;
+	}
+	if (len > NSIG / 8)
+		len = NSIG / 8;
+	sigemptyset(&ss);
+	if (umoven(tcp, addr, len, (char *)&ss) < 0)
+		goto bad;
+	printsigmask(&ss);
 }
 
 #ifndef ILL_ILLOPC
@@ -694,15 +658,10 @@ int
 sys_sigsetmask(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		sigset_t sigm;
-		long_to_sigset(tcp->u_arg[0], &sigm);
-		printsigmask(&sigm, 0);
+		tprints(sprintsigmask_long("", tcp->u_arg[0]));
 	}
 	else if (!syserror(tcp)) {
-		sigset_t sigm;
-		long_to_sigset(tcp->u_rval, &sigm);
-		tcp->auxstr = sprintsigmask("old mask ", &sigm, 0);
-
+		tcp->auxstr = sprintsigmask_long("old mask ", tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	}
 	return 0;
@@ -722,7 +681,6 @@ int
 sys_sigaction(struct tcb *tcp)
 {
 	long addr;
-	sigset_t sigset;
 	struct old_sigaction sa;
 
 	if (entering(tcp)) {
@@ -754,8 +712,7 @@ sys_sigaction(struct tcb *tcp)
 			tprints("{SIG_IGN, ");
 		else
 			tprintf("{%#lx, ", (long) sa.__sa_handler);
-		long_to_sigset(sa.sa_mask, &sigset);
-		printsigmask(&sigset, 0);
+		tprints(sprintsigmask_long("", sa.sa_mask));
 		tprints(", ");
 		printflags(sigact_flags, sa.sa_flags, "SA_???");
 #ifdef SA_RESTORER
@@ -815,12 +772,53 @@ sys_sigreturn(struct tcb *tcp)
 {
 #if defined(ARM)
 	if (entering(tcp)) {
-		struct sigcontext_struct sc;
+		struct arm_sigcontext {
+			unsigned long trap_no;
+			unsigned long error_code;
+			unsigned long oldmask;
+			unsigned long arm_r0;
+			unsigned long arm_r1;
+			unsigned long arm_r2;
+			unsigned long arm_r3;
+			unsigned long arm_r4;
+			unsigned long arm_r5;
+			unsigned long arm_r6;
+			unsigned long arm_r7;
+			unsigned long arm_r8;
+			unsigned long arm_r9;
+			unsigned long arm_r10;
+			unsigned long arm_fp;
+			unsigned long arm_ip;
+			unsigned long arm_sp;
+			unsigned long arm_lr;
+			unsigned long arm_pc;
+			unsigned long arm_cpsr;
+			unsigned long fault_address;
+		};
+		struct arm_ucontext {
+			unsigned long uc_flags;
+			unsigned long uc_link;  /* struct ucontext* */
+			/* The next three members comprise stack_t struct: */
+			unsigned long ss_sp;    /* void*   */
+			unsigned long ss_flags; /* int     */
+			unsigned long ss_size;  /* size_t  */
+			struct arm_sigcontext sc;
+			/* These two members are sigset_t: */
+			unsigned long uc_sigmask[2];
+			/* more fields follow, which we aren't interested in */
+		};
+		struct arm_ucontext uc;
 		sigset_t sigm;
-		if (umove(tcp, arm_regs.ARM_sp, &sc) < 0)
+		if (umove(tcp, arm_regs.ARM_sp, &uc) < 0)
 			return 0;
-		long_to_sigset(sc.oldmask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		/* Kernel fills out uc.sc.oldmask too when it sets up signal stack,
+		 * but for sigmask restore, sigreturn syscall uses uc.uc_sigmask instead.
+		 *  tprints(sprintsigmask_long(") (mask ", uc.sc.oldmask));
+		 */
+		sigemptyset(&sigm);
+		((uint32_t*)&sigm)[0] = uc.uc_sigmask[0];
+		((uint32_t*)&sigm)[1] = uc.uc_sigmask[1];
+		tprints(sprintsigmask(") (mask ", &sigm));
 	}
 #elif defined(S390) || defined(S390X)
 	if (entering(tcp)) {
@@ -830,21 +828,73 @@ sys_sigreturn(struct tcb *tcp)
 			return 0;
 		if (umove(tcp, usp + __SIGNAL_FRAMESIZE, &sc) < 0)
 			return 0;
-		tprints(sprintsigmask(") (mask ", (sigset_t *)&sc.oldmask[0], 0));
+		tprints(sprintsigmask(") (mask ", (sigset_t *)&sc.oldmask[0]));
 	}
-#elif defined(I386)
+#elif defined(I386) || defined(X86_64)
+# if defined(X86_64)
+	if (current_personality == 0) /* 64-bit */
+		return 0;
+# endif
 	if (entering(tcp)) {
-		struct sigcontext_struct sc;
-		/* Note: on i386, sc is followed on stack by struct fpstate
+		struct i386_sigcontext_struct {
+			uint16_t gs, __gsh;
+			uint16_t fs, __fsh;
+			uint16_t es, __esh;
+			uint16_t ds, __dsh;
+			uint32_t edi;
+			uint32_t esi;
+			uint32_t ebp;
+			uint32_t esp;
+			uint32_t ebx;
+			uint32_t edx;
+			uint32_t ecx;
+			uint32_t eax;
+			uint32_t trapno;
+			uint32_t err;
+			uint32_t eip;
+			uint16_t cs, __csh;
+			uint32_t eflags;
+			uint32_t esp_at_signal;
+			uint16_t ss, __ssh;
+			uint32_t i387;
+			uint32_t oldmask;
+			uint32_t cr2;
+		};
+		struct i386_fpstate {
+			uint32_t cw;
+			uint32_t sw;
+			uint32_t tag;
+			uint32_t ipoff;
+			uint32_t cssel;
+			uint32_t dataoff;
+			uint32_t datasel;
+			uint8_t  st[8][10]; /* 8*10 bytes: FP regs */
+			uint16_t status;
+			uint16_t magic;
+			uint32_t fxsr_env[6];
+			uint32_t mxcsr;
+			uint32_t reserved;
+			uint8_t  stx[8][16]; /* 8*16 bytes: FP regs, each padded to 16 bytes */
+			uint8_t  xmm[8][16]; /* 8 XMM regs */
+			uint32_t padding1[44];
+			uint32_t padding2[12]; /* union with struct _fpx_sw_bytes */
+		};
+		struct {
+			struct i386_sigcontext_struct sc;
+			struct i386_fpstate fp;
+			uint32_t extramask[1];
+		} signal_stack;
+		/* On i386, sc is followed on stack by struct fpstate
 		 * and after it an additional u32 extramask[1] which holds
-		 * upper half of the mask. We can fetch it there
-		 * if/when we'd want to display the full mask...
+		 * upper half of the mask.
 		 */
 		sigset_t sigm;
-		if (umove(tcp, i386_regs.esp, &sc) < 0)
+		if (umove(tcp, *i386_esp_ptr, &signal_stack) < 0)
 			return 0;
-		long_to_sigset(sc.oldmask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		sigemptyset(&sigm);
+		((uint32_t*)&sigm)[0] = signal_stack.sc.oldmask;
+		((uint32_t*)&sigm)[1] = signal_stack.extramask[0];
+		tprints(sprintsigmask(") (mask ", &sigm));
 	}
 #elif defined(IA64)
 	if (entering(tcp)) {
@@ -859,13 +909,12 @@ sys_sigreturn(struct tcb *tcp)
 			return 0;
 		sigemptyset(&sigm);
 		memcpy(&sigm, &sc.sc_mask, NSIG / 8);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask(") (mask ", &sigm));
 	}
 #elif defined(POWERPC)
 	if (entering(tcp)) {
 		long esp;
 		struct sigcontext_struct sc;
-		sigset_t sigm;
 
 		esp = ppc_regs.gpr[1];
 
@@ -880,45 +929,38 @@ sys_sigreturn(struct tcb *tcp)
 #endif
 		if (umove(tcp, esp, &sc) < 0)
 			return 0;
-		long_to_sigset(sc.oldmask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask_long(") (mask ", sc.oldmask));
 	}
 #elif defined(M68K)
 	if (entering(tcp)) {
 		long usp;
 		struct sigcontext sc;
-		sigset_t sigm;
 		if (upeek(tcp->pid, 4*PT_USP, &usp) < 0)
 			return 0;
 		if (umove(tcp, usp, &sc) < 0)
 			return 0;
-		long_to_sigset(sc.sc_mask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask_long(") (mask ", sc.sc_mask));
 	}
 #elif defined(ALPHA)
 	if (entering(tcp)) {
 		long fp;
 		struct sigcontext_struct sc;
-		sigset_t sigm;
 		if (upeek(tcp->pid, REG_FP, &fp) < 0)
 			return 0;
 		if (umove(tcp, fp, &sc) < 0)
 			return 0;
-		long_to_sigset(sc.sc_mask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask_long(") (mask ", sc.sc_mask));
 	}
 #elif defined(SPARC) || defined(SPARC64)
 	if (entering(tcp)) {
 		long i1;
 		m_siginfo_t si;
-		sigset_t sigm;
 		i1 = sparc_regs.u_regs[U_REG_O1];
 		if (umove(tcp, i1, &si) < 0) {
 			perror_msg("sigreturn: umove");
 			return 0;
 		}
-		long_to_sigset(si.si_mask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask_long(") (mask ", si.si_mask));
 	}
 #elif defined(LINUX_MIPSN32) || defined(LINUX_MIPSN64)
 	/* This decodes rt_sigreturn.  The 64-bit ABIs do not have
@@ -933,15 +975,13 @@ sys_sigreturn(struct tcb *tcp)
 		sp = sp + 6 * 4 + 128;
 		if (umove(tcp, sp, &uc) < 0)
 			return 0;
-		long_to_sigset(*(long *) &uc.uc_sigmask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask_long(") (mask ", *(long *) &uc.uc_sigmask));
 	}
 #elif defined(MIPS)
 	if (entering(tcp)) {
 		long sp;
 		struct pt_regs regs;
 		m_siginfo_t si;
-		sigset_t sigm;
 		if (ptrace(PTRACE_GETREGS, tcp->pid, (char *)&regs, 0) < 0) {
 			perror_msg("sigreturn: PTRACE_GETREGS");
 			return 0;
@@ -949,22 +989,19 @@ sys_sigreturn(struct tcb *tcp)
 		sp = regs.regs[29];
 		if (umove(tcp, sp, &si) < 0)
 			return 0;
-		long_to_sigset(si.si_mask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask_long(") (mask ", si.si_mask));
 	}
 #elif defined(CRISV10) || defined(CRISV32)
 	if (entering(tcp)) {
 		struct sigcontext sc;
 		long regs[PT_MAX+1];
-		sigset_t sigm;
 		if (ptrace(PTRACE_GETREGS, tcp->pid, NULL, (long)regs) < 0) {
 			perror_msg("sigreturn: PTRACE_GETREGS");
 			return 0;
 		}
 		if (umove(tcp, regs[PT_USP], &sc) < 0)
 			return 0;
-		long_to_sigset(sc.oldmask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask_long(") (mask ", sc.oldmask));
 	}
 #elif defined(TILE)
 	if (entering(tcp)) {
@@ -977,24 +1014,20 @@ sys_sigreturn(struct tcb *tcp)
 			return 0;
 		sigemptyset(&sigm);
 		memcpy(&sigm, &uc.uc_sigmask, NSIG / 8);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask(") (mask ", &sigm));
 	}
 #elif defined(MICROBLAZE)
 	/* TODO: Verify that this is correct...  */
 	if (entering(tcp)) {
 		struct sigcontext sc;
 		long sp;
-		sigset_t sigm;
 		/* Read r1, the stack pointer.  */
 		if (upeek(tcp->pid, 1 * 4, &sp) < 0)
 			return 0;
 		if (umove(tcp, sp, &sc) < 0)
 			return 0;
-		long_to_sigset(sc.oldmask, &sigm);
-		tprints(sprintsigmask(") (mask ", &sigm, 0));
+		tprints(sprintsigmask_long(") (mask ", sc.oldmask));
 	}
-#elif defined(X86_64)
-	/* no need to remind */
 #elif defined(XTENSA)
 	/* Xtensa only has rt_sys_sigreturn */
 #else
@@ -1008,9 +1041,7 @@ int
 sys_siggetmask(struct tcb *tcp)
 {
 	if (exiting(tcp)) {
-		sigset_t sigm;
-		long_to_sigset(tcp->u_rval, &sigm);
-		tcp->auxstr = sprintsigmask("mask ", &sigm, 0);
+		tcp->auxstr = sprintsigmask_long("mask ", tcp->u_rval);
 	}
 	return RVAL_HEX | RVAL_STR;
 }
@@ -1019,9 +1050,7 @@ int
 sys_sigsuspend(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		sigset_t sigm;
-		long_to_sigset(tcp->u_arg[2], &sigm);
-		printsigmask(&sigm, 0);
+		tprints(sprintsigmask_long("", tcp->u_arg[2]));
 	}
 	return 0;
 }
@@ -1068,11 +1097,11 @@ sys_sigaltstack(struct tcb *tcp)
 
 #ifdef HAVE_SIGACTION
 
+/* "Old" sigprocmask, which operates with word-sized signal masks */
 int
 sys_sigprocmask(struct tcb *tcp)
 {
-#ifdef ALPHA
-	sigset_t ss;
+# ifdef ALPHA
 	if (entering(tcp)) {
 		/*
 		 * Alpha/OSF is different: it doesn't pass in two pointers,
@@ -1085,32 +1114,27 @@ sys_sigprocmask(struct tcb *tcp)
 		 * Everyone else:
 		 *	ret = sigprocmask(how, &new, &old, ...);
 		 */
-		memcpy(&ss, &tcp->u_arg[1], sizeof(long));
 		printxval(sigprocmaskcmds, tcp->u_arg[0], "SIG_???");
-		tprints(", ");
-		printsigmask(&ss, 0);
+		tprints(sprintsigmask_long(", ", tcp->u_arg[1]));
 	}
 	else if (!syserror(tcp)) {
-		memcpy(&ss, &tcp->u_rval, sizeof(long));
-		tcp->auxstr = sprintsigmask("old mask ", &ss, 0);
+		tcp->auxstr = sprintsigmask_long("old mask ", tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	}
-#else /* !ALPHA */
+# else /* !ALPHA */
 	if (entering(tcp)) {
 		printxval(sigprocmaskcmds, tcp->u_arg[0], "SIG_???");
 		tprints(", ");
-		print_sigset(tcp, tcp->u_arg[1], 0);
+		print_sigset_addr_len(tcp, tcp->u_arg[1], current_wordsize);
 		tprints(", ");
 	}
 	else {
-		if (!tcp->u_arg[2])
-			tprints("NULL");
-		else if (syserror(tcp))
+		if (syserror(tcp))
 			tprintf("%#lx", tcp->u_arg[2]);
 		else
-			print_sigset(tcp, tcp->u_arg[2], 0);
+			print_sigset_addr_len(tcp, tcp->u_arg[2], current_wordsize);
 	}
-#endif /* !ALPHA */
+# endif /* !ALPHA */
 	return 0;
 }
 
@@ -1144,15 +1168,11 @@ sys_tgkill(struct tcb *tcp)
 int
 sys_sigpending(struct tcb *tcp)
 {
-	sigset_t sigset;
-
 	if (exiting(tcp)) {
 		if (syserror(tcp))
 			tprintf("%#lx", tcp->u_arg[0]);
-		else if (copy_sigset(tcp, tcp->u_arg[0], &sigset) < 0)
-			tprints("[?]");
 		else
-			printsigmask(&sigset, 0);
+			print_sigset_addr_len(tcp, tcp->u_arg[0], current_wordsize);
 	}
 	return 0;
 }
@@ -1160,30 +1180,18 @@ sys_sigpending(struct tcb *tcp)
 int
 sys_rt_sigprocmask(struct tcb *tcp)
 {
-	sigset_t sigset;
-
-	/* Note: arg[3] is the length of the sigset. */
+	/* Note: arg[3] is the length of the sigset. Kernel requires NSIG / 8 */
 	if (entering(tcp)) {
 		printxval(sigprocmaskcmds, tcp->u_arg[0], "SIG_???");
 		tprints(", ");
-		if (!tcp->u_arg[1])
-			tprints("NULL, ");
-		else if (copy_sigset_len(tcp, tcp->u_arg[1], &sigset, tcp->u_arg[3]) < 0)
-			tprintf("%#lx, ", tcp->u_arg[1]);
-		else {
-			printsigmask(&sigset, 1);
-			tprints(", ");
-		}
+		print_sigset_addr_len(tcp, tcp->u_arg[1], tcp->u_arg[3]);
+		tprints(", ");
 	}
 	else {
-		if (!tcp->u_arg[2])
-			tprints("NULL");
-		else if (syserror(tcp))
+		if (syserror(tcp))
 			tprintf("%#lx", tcp->u_arg[2]);
-		else if (copy_sigset_len(tcp, tcp->u_arg[2], &sigset, tcp->u_arg[3]) < 0)
-			tprints("[?]");
 		else
-			printsigmask(&sigset, 1);
+			print_sigset_addr_len(tcp, tcp->u_arg[2], tcp->u_arg[3]);
 		tprintf(", %lu", tcp->u_arg[3]);
 	}
 	return 0;
@@ -1275,23 +1283,18 @@ sys_rt_sigaction(struct tcb *tcp)
 		tprints("{SIG_IGN, ");
 	else
 		tprintf("{%#lx, ", (long) sa.__sa_handler);
-	/* Questionable code below.
-	 * Kernel won't handle sys_rt_sigaction
-	 * with wrong sigset size (just returns EINVAL)
-	 * therefore tcp->u_arg[3(4)] _must_ be NSIG / 8 here,
-	 * and we always use smaller memcpy. */
+	/*
+	 * Sigset size is in tcp->u_arg[4] (SPARC)
+	 * or in tcp->u_arg[3] (all other),
+	 * but kernel won't handle sys_rt_sigaction
+	 * with wrong sigset size (just returns EINVAL instead).
+	 * We just fetch the right size, which is NSIG / 8.
+	 */
 	sigemptyset(&sigset);
-#if defined(SPARC) || defined(SPARC64)
-	if (tcp->u_arg[4] <= sizeof(sigset))
-		memcpy(&sigset, &sa.sa_mask, tcp->u_arg[4]);
-#else
-	if (tcp->u_arg[3] <= sizeof(sigset))
-		memcpy(&sigset, &sa.sa_mask, tcp->u_arg[3]);
-#endif
-	else
-		memcpy(&sigset, &sa.sa_mask, sizeof(sigset));
-	printsigmask(&sigset, 1);
+	memcpy(&sigset, &sa.sa_mask, NSIG / 8);
+	printsigmask(&sigset);
 	tprints(", ");
+
 	printflags(sigact_flags, sa.sa_flags, "SA_???");
 #ifdef SA_RESTORER
 	if (sa.sa_flags & SA_RESTORER)
@@ -1316,16 +1319,18 @@ sys_rt_sigaction(struct tcb *tcp)
 int
 sys_rt_sigpending(struct tcb *tcp)
 {
-	sigset_t sigset;
-
 	if (exiting(tcp)) {
+		/*
+		 * One of the few syscalls where sigset size (arg[1])
+		 * is allowed to be <= NSIG / 8, not strictly ==.
+		 * This allows non-rt sigpending() syscall
+		 * to reuse rt_sigpending() code in kernel.
+		 */
 		if (syserror(tcp))
 			tprintf("%#lx", tcp->u_arg[0]);
-		else if (copy_sigset_len(tcp, tcp->u_arg[0],
-					 &sigset, tcp->u_arg[1]) < 0)
-			tprints("[?]");
 		else
-			printsigmask(&sigset, 1);
+			print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[1]);
+		tprintf(", %lu", tcp->u_arg[1]);
 	}
 	return 0;
 }
@@ -1334,11 +1339,9 @@ int
 sys_rt_sigsuspend(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		sigset_t sigm;
-		if (copy_sigset_len(tcp, tcp->u_arg[0], &sigm, tcp->u_arg[1]) < 0)
-			tprints("[?]");
-		else
-			printsigmask(&sigm, 1);
+		/* NB: kernel requires arg[1] == NSIG / 8 */
+		print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[1]);
+		tprintf(", %lu", tcp->u_arg[1]);
 	}
 	return 0;
 }
@@ -1373,14 +1376,9 @@ sys_rt_tgsigqueueinfo(struct tcb *tcp)
 
 int sys_rt_sigtimedwait(struct tcb *tcp)
 {
+	/* NB: kernel requires arg[3] == NSIG / 8 */
 	if (entering(tcp)) {
-		sigset_t sigset;
-
-		if (copy_sigset_len(tcp, tcp->u_arg[0],
-				    &sigset, tcp->u_arg[3]) < 0)
-			tprints("[?]");
-		else
-			printsigmask(&sigset, 1);
+		print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[3]);
 		tprints(", ");
 		/* This is the only "return" parameter, */
 		if (tcp->u_arg[1] != 0)
@@ -1398,7 +1396,7 @@ int sys_rt_sigtimedwait(struct tcb *tcp)
 		return 0;
 	}
 	print_timespec(tcp, tcp->u_arg[2]);
-	tprintf(", %d", (int) tcp->u_arg[3]);
+	tprintf(", %lu", tcp->u_arg[3]);
 	return 0;
 };
 
@@ -1413,10 +1411,11 @@ sys_restart_syscall(struct tcb *tcp)
 static int
 do_signalfd(struct tcb *tcp, int flags_arg)
 {
+	/* NB: kernel requires arg[2] == NSIG / 8 */
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		print_sigset(tcp, tcp->u_arg[1], 1);
+		print_sigset_addr_len(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 		tprintf(", %lu", tcp->u_arg[2]);
 		if (flags_arg >= 0) {
 			tprints(", ");

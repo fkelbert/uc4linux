@@ -84,11 +84,6 @@
 # warning: NSIG is not defined, using 32
 # define NSIG 32
 #endif
-#ifdef ARM
-/* Ugh. Is this really correct? ARM has no RT signals?! */
-# undef NSIG
-# define NSIG 32
-#endif
 
 #include "syscall.h"
 
@@ -682,7 +677,9 @@ getrval2(struct tcb *tcp)
 #endif
 
 #if defined(I386)
-struct user_regs_struct i386_regs;
+static struct user_regs_struct i386_regs;
+/* Cast suppresses signedness warning (.esp is long, not unsigned long) */
+uint32_t *const i386_esp_ptr = (uint32_t*)&i386_regs.esp;
 # define ARCH_REGS_FOR_GETREGSET i386_regs
 #elif defined(X86_64) || defined(X32)
 /*
@@ -716,6 +713,7 @@ static union {
 } x86_regs_union;
 # define x86_64_regs x86_regs_union.x86_64_r
 # define i386_regs   x86_regs_union.i386_r
+uint32_t *const i386_esp_ptr = &i386_regs.esp;
 static struct iovec x86_io = {
 	.iov_base = &x86_regs_union
 };

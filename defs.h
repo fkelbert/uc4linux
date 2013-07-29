@@ -149,6 +149,15 @@ extern char *stpcpy(char *dst, const char *src);
 #define USE_SEIZE 1
 /* To force NOMMU build, set to 1 */
 #define NOMMU_SYSTEM 0
+/*
+ * Set to 1 to use speed-optimized vfprintf implementation.
+ * It results in strace using about 5% less CPU in user space
+ * (compared to glibc version).
+ * But strace spends a lot of time in kernel space,
+ * so overall it does not appear to be a significant win.
+ * Thus disabled by default.
+ */
+#define USE_CUSTOM_PRINTF 0
 
 #if (defined(SPARC) || defined(SPARC64) \
     || defined(I386) || defined(X32) || defined(X86_64) \
@@ -381,8 +390,8 @@ struct arm_pt_regs {
 # define PERSONALITY0_WORDSIZE (int)(sizeof(long))
 #endif
 
-#if defined(I386)
-extern struct user_regs_struct i386_regs;
+#if defined(I386) || defined(X86_64)
+extern uint32_t *const i386_esp_ptr;
 #elif defined(IA64)
 extern bool ia64_ia32mode;
 #elif defined(SPARC) || defined(SPARC64)
@@ -578,17 +587,10 @@ void error_msg_and_die(const char *fmt, ...) __attribute__ ((noreturn, format(pr
 void perror_msg_and_die(const char *fmt, ...) __attribute__ ((noreturn, format(printf, 1, 2)));
 void die_out_of_memory(void) __attribute__ ((noreturn));
 
-#ifdef USE_CUSTOM_PRINTF
+#if USE_CUSTOM_PRINTF
 /*
- * Speed-optimized vfprintf implementation.
  * See comment in vsprintf.c for allowed formats.
  * Short version: %h[h]u, %zu, %tu are not allowed, use %[l[l]]u.
- *
- * It results in strace using about 5% less CPU in user space
- * (compared to glibc version).
- * But strace spends a lot of time in kernel space,
- * so overall it does not appear to be a significant win.
- * Thus disabled by default.
  */
 int strace_vfprintf(FILE *fp, const char *fmt, va_list args);
 #else
@@ -696,7 +698,7 @@ extern void printrusage(struct tcb *, long);
 extern void printrusage32(struct tcb *, long);
 #endif
 extern void printuid(const char *, unsigned long);
-extern void print_sigset(struct tcb *, long, int);
+extern void print_sigset_addr_len(struct tcb *, long, long);
 extern void printsignal(int);
 extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);
 extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long, int decode_iov, unsigned long);
