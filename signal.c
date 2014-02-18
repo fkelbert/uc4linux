@@ -37,12 +37,6 @@
 
 #ifdef HAVE_SYS_REG_H
 # include <sys/reg.h>
-# ifndef PTRACE_PEEKUSR
-#  define PTRACE_PEEKUSR PTRACE_PEEKUSER
-# endif
-# ifndef PTRACE_POKEUSR
-#  define PTRACE_POKEUSR PTRACE_POKEUSER
-# endif
 #elif defined(HAVE_LINUX_PTRACE_H)
 # undef PTRACE_SYSCALL
 # ifdef HAVE_STRUCT_IA64_FPREG
@@ -51,7 +45,11 @@
 # ifdef HAVE_STRUCT_PT_ALL_USER_REGS
 #  define pt_all_user_regs XXX_pt_all_user_regs
 # endif
+# ifdef HAVE_STRUCT_PTRACE_PEEKSIGINFO_ARGS
+#  define ptrace_peeksiginfo_args XXX_ptrace_peeksiginfo_args
+# endif
 # include <linux/ptrace.h>
+# undef ptrace_peeksiginfo_args
 # undef ia64_fpreg
 # undef pt_all_user_regs
 #endif
@@ -92,74 +90,74 @@ struct sigcontext {
 
 #ifdef HAVE_SIGACTION
 
-#if defined I386 || defined X86_64 || defined X32
 /* The libc headers do not define this constant since it should only be
    used by the implementation.  So we define it here.  */
-# ifndef SA_RESTORER
-#  define SA_RESTORER 0x04000000
+#ifndef SA_RESTORER
+# ifdef ASM_SA_RESTORER
+#  define SA_RESTORER ASM_SA_RESTORER
 # endif
 #endif
 
 static const struct xlat sigact_flags[] = {
 #ifdef SA_RESTORER
-	{ SA_RESTORER,	"SA_RESTORER"	},
+	XLAT(SA_RESTORER),
 #endif
 #ifdef SA_STACK
-	{ SA_STACK,	"SA_STACK"	},
+	XLAT(SA_STACK),
 #endif
 #ifdef SA_RESTART
-	{ SA_RESTART,	"SA_RESTART"	},
+	XLAT(SA_RESTART),
 #endif
 #ifdef SA_INTERRUPT
-	{ SA_INTERRUPT,	"SA_INTERRUPT"	},
+	XLAT(SA_INTERRUPT),
 #endif
 #ifdef SA_NODEFER
-	{ SA_NODEFER,	"SA_NODEFER"	},
+	XLAT(SA_NODEFER),
 #endif
 #if defined SA_NOMASK && SA_NODEFER != SA_NOMASK
-	{ SA_NOMASK,	"SA_NOMASK"	},
+	XLAT(SA_NOMASK),
 #endif
 #ifdef SA_RESETHAND
-	{ SA_RESETHAND,	"SA_RESETHAND"	},
+	XLAT(SA_RESETHAND),
 #endif
 #if defined SA_ONESHOT && SA_ONESHOT != SA_RESETHAND
-	{ SA_ONESHOT,	"SA_ONESHOT"	},
+	XLAT(SA_ONESHOT),
 #endif
 #ifdef SA_SIGINFO
-	{ SA_SIGINFO,	"SA_SIGINFO"	},
+	XLAT(SA_SIGINFO),
 #endif
 #ifdef SA_RESETHAND
-	{ SA_RESETHAND,	"SA_RESETHAND"	},
+	XLAT(SA_RESETHAND),
 #endif
 #ifdef SA_ONSTACK
-	{ SA_ONSTACK,	"SA_ONSTACK"	},
+	XLAT(SA_ONSTACK),
 #endif
 #ifdef SA_NODEFER
-	{ SA_NODEFER,	"SA_NODEFER"	},
+	XLAT(SA_NODEFER),
 #endif
 #ifdef SA_NOCLDSTOP
-	{ SA_NOCLDSTOP,	"SA_NOCLDSTOP"	},
+	XLAT(SA_NOCLDSTOP),
 #endif
 #ifdef SA_NOCLDWAIT
-	{ SA_NOCLDWAIT,	"SA_NOCLDWAIT"	},
+	XLAT(SA_NOCLDWAIT),
 #endif
 #ifdef _SA_BSDCALL
-	{ _SA_BSDCALL,	"_SA_BSDCALL"	},
+	XLAT(_SA_BSDCALL),
 #endif
 #ifdef SA_NOPTRACE
-	{ SA_NOPTRACE,	"SA_NOPTRACE"	},
+	XLAT(SA_NOPTRACE),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 static const struct xlat sigprocmaskcmds[] = {
-	{ SIG_BLOCK,	"SIG_BLOCK"	},
-	{ SIG_UNBLOCK,	"SIG_UNBLOCK"	},
-	{ SIG_SETMASK,	"SIG_SETMASK"	},
+	XLAT(SIG_BLOCK),
+	XLAT(SIG_UNBLOCK),
+	XLAT(SIG_SETMASK),
 #ifdef SIG_SETMASK32
-	{ SIG_SETMASK32,"SIG_SETMASK32"	},
+	XLAT(SIG_SETMASK32),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 #endif /* HAVE_SIGACTION */
@@ -378,118 +376,118 @@ print_sigset_addr_len(struct tcb *tcp, long addr, long len)
 
 static const struct xlat siginfo_codes[] = {
 #ifdef SI_KERNEL
-	{ SI_KERNEL,	"SI_KERNEL"	},
+	XLAT(SI_KERNEL),
 #endif
 #ifdef SI_USER
-	{ SI_USER,	"SI_USER"	},
+	XLAT(SI_USER),
 #endif
 #ifdef SI_QUEUE
-	{ SI_QUEUE,	"SI_QUEUE"	},
+	XLAT(SI_QUEUE),
 #endif
 #ifdef SI_TIMER
-	{ SI_TIMER,	"SI_TIMER"	},
+	XLAT(SI_TIMER),
 #endif
 #ifdef SI_MESGQ
-	{ SI_MESGQ,	"SI_MESGQ"	},
+	XLAT(SI_MESGQ),
 #endif
 #ifdef SI_ASYNCIO
-	{ SI_ASYNCIO,	"SI_ASYNCIO"	},
+	XLAT(SI_ASYNCIO),
 #endif
 #ifdef SI_SIGIO
-	{ SI_SIGIO,	"SI_SIGIO"	},
+	XLAT(SI_SIGIO),
 #endif
 #ifdef SI_TKILL
-	{ SI_TKILL,	"SI_TKILL"	},
+	XLAT(SI_TKILL),
 #endif
 #ifdef SI_ASYNCNL
-	{ SI_ASYNCNL,	"SI_ASYNCNL"	},
+	XLAT(SI_ASYNCNL),
 #endif
 #ifdef SI_NOINFO
-	{ SI_NOINFO,	"SI_NOINFO"	},
+	XLAT(SI_NOINFO),
 #endif
 #ifdef SI_LWP
-	{ SI_LWP,	"SI_LWP"	},
+	XLAT(SI_LWP),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 static const struct xlat sigill_codes[] = {
-	{ ILL_ILLOPC,	"ILL_ILLOPC"	},
-	{ ILL_ILLOPN,	"ILL_ILLOPN"	},
-	{ ILL_ILLADR,	"ILL_ILLADR"	},
-	{ ILL_ILLTRP,	"ILL_ILLTRP"	},
-	{ ILL_PRVOPC,	"ILL_PRVOPC"	},
-	{ ILL_PRVREG,	"ILL_PRVREG"	},
-	{ ILL_COPROC,	"ILL_COPROC"	},
-	{ ILL_BADSTK,	"ILL_BADSTK"	},
-	{ 0,		NULL		},
+	XLAT(ILL_ILLOPC),
+	XLAT(ILL_ILLOPN),
+	XLAT(ILL_ILLADR),
+	XLAT(ILL_ILLTRP),
+	XLAT(ILL_PRVOPC),
+	XLAT(ILL_PRVREG),
+	XLAT(ILL_COPROC),
+	XLAT(ILL_BADSTK),
+	XLAT_END
 };
 
 static const struct xlat sigfpe_codes[] = {
-	{ FPE_INTDIV,	"FPE_INTDIV"	},
-	{ FPE_INTOVF,	"FPE_INTOVF"	},
-	{ FPE_FLTDIV,	"FPE_FLTDIV"	},
-	{ FPE_FLTOVF,	"FPE_FLTOVF"	},
-	{ FPE_FLTUND,	"FPE_FLTUND"	},
-	{ FPE_FLTRES,	"FPE_FLTRES"	},
-	{ FPE_FLTINV,	"FPE_FLTINV"	},
-	{ FPE_FLTSUB,	"FPE_FLTSUB"	},
-	{ 0,		NULL		},
+	XLAT(FPE_INTDIV),
+	XLAT(FPE_INTOVF),
+	XLAT(FPE_FLTDIV),
+	XLAT(FPE_FLTOVF),
+	XLAT(FPE_FLTUND),
+	XLAT(FPE_FLTRES),
+	XLAT(FPE_FLTINV),
+	XLAT(FPE_FLTSUB),
+	XLAT_END
 };
 
 static const struct xlat sigtrap_codes[] = {
-	{ TRAP_BRKPT,	"TRAP_BRKPT"	},
-	{ TRAP_TRACE,	"TRAP_TRACE"	},
-	{ 0,		NULL		},
+	XLAT(TRAP_BRKPT),
+	XLAT(TRAP_TRACE),
+	XLAT_END
 };
 
 static const struct xlat sigchld_codes[] = {
-	{ CLD_EXITED,	"CLD_EXITED"	},
-	{ CLD_KILLED,	"CLD_KILLED"	},
-	{ CLD_DUMPED,	"CLD_DUMPED"	},
-	{ CLD_TRAPPED,	"CLD_TRAPPED"	},
-	{ CLD_STOPPED,	"CLD_STOPPED"	},
-	{ CLD_CONTINUED,"CLD_CONTINUED"	},
-	{ 0,		NULL		},
+	XLAT(CLD_EXITED),
+	XLAT(CLD_KILLED),
+	XLAT(CLD_DUMPED),
+	XLAT(CLD_TRAPPED),
+	XLAT(CLD_STOPPED),
+	XLAT(CLD_CONTINUED),
+	XLAT_END
 };
 
 static const struct xlat sigpoll_codes[] = {
-	{ POLL_IN,	"POLL_IN"	},
-	{ POLL_OUT,	"POLL_OUT"	},
-	{ POLL_MSG,	"POLL_MSG"	},
-	{ POLL_ERR,	"POLL_ERR"	},
-	{ POLL_PRI,	"POLL_PRI"	},
-	{ POLL_HUP,	"POLL_HUP"	},
-	{ 0,		NULL		},
+	XLAT(POLL_IN),
+	XLAT(POLL_OUT),
+	XLAT(POLL_MSG),
+	XLAT(POLL_ERR),
+	XLAT(POLL_PRI),
+	XLAT(POLL_HUP),
+	XLAT_END
 };
 
 static const struct xlat sigprof_codes[] = {
 #ifdef PROF_SIG
-	{ PROF_SIG,	"PROF_SIG"	},
+	XLAT(PROF_SIG),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 #ifdef SIGEMT
 static const struct xlat sigemt_codes[] = {
 #ifdef EMT_TAGOVF
-	{ EMT_TAGOVF,	"EMT_TAGOVF"	},
+	XLAT(EMT_TAGOVF),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 #endif
 
 static const struct xlat sigsegv_codes[] = {
-	{ SEGV_MAPERR,	"SEGV_MAPERR"	},
-	{ SEGV_ACCERR,	"SEGV_ACCERR"	},
-	{ 0,		NULL		},
+	XLAT(SEGV_MAPERR),
+	XLAT(SEGV_ACCERR),
+	XLAT_END
 };
 
 static const struct xlat sigbus_codes[] = {
-	{ BUS_ADRALN,	"BUS_ADRALN"	},
-	{ BUS_ADRERR,	"BUS_ADRERR"	},
-	{ BUS_OBJERR,	"BUS_OBJERR"	},
-	{ 0,		NULL		},
+	XLAT(BUS_ADRALN),
+	XLAT(BUS_ADRERR),
+	XLAT(BUS_OBJERR),
+	XLAT_END
 };
 
 void
@@ -671,60 +669,77 @@ sys_sigsetmask(struct tcb *tcp)
 
 struct old_sigaction {
 	/* sa_handler may be a libc #define, need to use other name: */
+#ifdef MIPS
+	unsigned int sa_flags;
+	void (*__sa_handler)(int);
+	/* Kernel treats sa_mask as an array of longs. */
+	unsigned long sa_mask[NSIG / sizeof(long) ? NSIG / sizeof(long) : 1];
+#else
 	void (*__sa_handler)(int);
 	unsigned long sa_mask;
 	unsigned long sa_flags;
 	void (*sa_restorer)(void);
+#endif /* !MIPS */
 };
+
+static void
+decode_old_sigaction(struct tcb *tcp, long addr)
+{
+	struct old_sigaction sa;
+
+	if (!addr) {
+		tprints("NULL");
+		return;
+	}
+	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp))) {
+		tprintf("%#lx", addr);
+		return;
+	}
+	if (umove(tcp, addr, &sa) < 0) {
+		tprints("{...}");
+		return;
+	}
+
+	/* Architectures using function pointers, like
+	 * hppa, may need to manipulate the function pointer
+	 * to compute the result of a comparison. However,
+	 * the __sa_handler function pointer exists only in
+	 * the address space of the traced process, and can't
+	 * be manipulated by strace. In order to prevent the
+	 * compiler from generating code to manipulate
+	 * __sa_handler we cast the function pointers to long. */
+	if ((long)sa.__sa_handler == (long)SIG_ERR)
+		tprints("{SIG_ERR, ");
+	else if ((long)sa.__sa_handler == (long)SIG_DFL)
+		tprints("{SIG_DFL, ");
+	else if ((long)sa.__sa_handler == (long)SIG_IGN)
+		tprints("{SIG_IGN, ");
+	else
+		tprintf("{%#lx, ", (long) sa.__sa_handler);
+#ifdef MIPS
+	tprints(sprintsigmask("", (sigset_t *)sa.sa_mask));
+#else
+	tprints(sprintsigmask_long("", sa.sa_mask));
+#endif
+	tprints(", ");
+	printflags(sigact_flags, sa.sa_flags, "SA_???");
+#ifdef SA_RESTORER
+	if (sa.sa_flags & SA_RESTORER)
+		tprintf(", %p", sa.sa_restorer);
+#endif
+	tprints("}");
+}
 
 int
 sys_sigaction(struct tcb *tcp)
 {
-	long addr;
-	struct old_sigaction sa;
-
 	if (entering(tcp)) {
 		printsignal(tcp->u_arg[0]);
 		tprints(", ");
-		addr = tcp->u_arg[1];
+		decode_old_sigaction(tcp, tcp->u_arg[1]);
+		tprints(", ");
 	} else
-		addr = tcp->u_arg[2];
-	if (addr == 0)
-		tprints("NULL");
-	else if (!verbose(tcp))
-		tprintf("%#lx", addr);
-	else if (umove(tcp, addr, &sa) < 0)
-		tprints("{...}");
-	else {
-		/* Architectures using function pointers, like
-		 * hppa, may need to manipulate the function pointer
-		 * to compute the result of a comparison. However,
-		 * the __sa_handler function pointer exists only in
-		 * the address space of the traced process, and can't
-		 * be manipulated by strace. In order to prevent the
-		 * compiler from generating code to manipulate
-		 * __sa_handler we cast the function pointers to long. */
-		if ((long)sa.__sa_handler == (long)SIG_ERR)
-			tprints("{SIG_ERR, ");
-		else if ((long)sa.__sa_handler == (long)SIG_DFL)
-			tprints("{SIG_DFL, ");
-		else if ((long)sa.__sa_handler == (long)SIG_IGN)
-			tprints("{SIG_IGN, ");
-		else
-			tprintf("{%#lx, ", (long) sa.__sa_handler);
-		tprints(sprintsigmask_long("", sa.sa_mask));
-		tprints(", ");
-		printflags(sigact_flags, sa.sa_flags, "SA_???");
-#ifdef SA_RESTORER
-		if (sa.sa_flags & SA_RESTORER)
-			tprintf(", %p", sa.sa_restorer);
-#endif
-		tprints("}");
-	}
-	if (entering(tcp))
-		tprints(", ");
-	else
-		tprintf(", %#lx", (unsigned long) sa.sa_restorer);
+		decode_old_sigaction(tcp, tcp->u_arg[2]);
 	return 0;
 }
 
@@ -816,14 +831,13 @@ sys_sigreturn(struct tcb *tcp)
 		 *  tprints(sprintsigmask_long(") (mask ", uc.sc.oldmask));
 		 */
 		sigemptyset(&sigm);
-		((uint32_t*)&sigm)[0] = uc.uc_sigmask[0];
-		((uint32_t*)&sigm)[1] = uc.uc_sigmask[1];
+		memcpy(&sigm, uc.uc_sigmask, 8);
 		tprints(sprintsigmask(") (mask ", &sigm));
 	}
 #elif defined(S390) || defined(S390X)
 	if (entering(tcp)) {
 		long usp;
-		struct sigcontext_struct sc;
+		struct sigcontext sc;
 		if (upeek(tcp->pid, PT_GPR15, &usp) < 0)
 			return 0;
 		if (umove(tcp, usp + __SIGNAL_FRAMESIZE, &sc) < 0)
@@ -888,13 +902,16 @@ sys_sigreturn(struct tcb *tcp)
 		 * and after it an additional u32 extramask[1] which holds
 		 * upper half of the mask.
 		 */
-		sigset_t sigm;
+		union {
+			sigset_t sig;
+			uint32_t mask[2];
+		} sigmask;
 		if (umove(tcp, *i386_esp_ptr, &signal_stack) < 0)
 			return 0;
-		sigemptyset(&sigm);
-		((uint32_t*)&sigm)[0] = signal_stack.sc.oldmask;
-		((uint32_t*)&sigm)[1] = signal_stack.extramask[0];
-		tprints(sprintsigmask(") (mask ", &sigm));
+		sigemptyset(&sigmask.sig);
+		sigmask.mask[0] = signal_stack.sc.oldmask;
+		sigmask.mask[1] = signal_stack.extramask[0];
+		tprints(sprintsigmask(") (mask ", &sigmask.sig));
 	}
 #elif defined(IA64)
 	if (entering(tcp)) {
@@ -914,7 +931,7 @@ sys_sigreturn(struct tcb *tcp)
 #elif defined(POWERPC)
 	if (entering(tcp)) {
 		long esp;
-		struct sigcontext_struct sc;
+		struct sigcontext sc;
 
 		esp = ppc_regs.gpr[1];
 
@@ -944,7 +961,7 @@ sys_sigreturn(struct tcb *tcp)
 #elif defined(ALPHA)
 	if (entering(tcp)) {
 		long fp;
-		struct sigcontext_struct sc;
+		struct sigcontext sc;
 		if (upeek(tcp->pid, REG_FP, &fp) < 0)
 			return 0;
 		if (umove(tcp, fp, &sc) < 0)
@@ -1030,6 +1047,8 @@ sys_sigreturn(struct tcb *tcp)
 	}
 #elif defined(XTENSA)
 	/* Xtensa only has rt_sys_sigreturn */
+#elif defined(ARC)
+	/* ARC syscall ABI only supports rt_sys_sigreturn */
 #else
 # warning No sys_sigreturn() for this architecture
 # warning         (no problem, just a reminder :-)
@@ -1061,9 +1080,9 @@ sys_sigsuspend(struct tcb *tcp)
 #endif
 
 static const struct xlat sigaltstack_flags[] = {
-	{ SS_ONSTACK,	"SS_ONSTACK"	},
-	{ SS_DISABLE,	"SS_DISABLE"	},
-	{ 0,		NULL		},
+	XLAT(SS_ONSTACK),
+	XLAT(SS_DISABLE),
+	XLAT_END
 };
 
 static void
@@ -1201,9 +1220,14 @@ sys_rt_sigprocmask(struct tcb *tcp)
 struct new_sigaction
 {
 	/* sa_handler may be a libc #define, need to use other name: */
+#ifdef MIPS
+	unsigned int sa_flags;
+	void (*__sa_handler)(int);
+#else
 	void (*__sa_handler)(int);
 	unsigned long sa_flags;
 	void (*sa_restorer)(void);
+#endif /* !MIPS */
 	/* Kernel treats sa_mask as an array of longs. */
 	unsigned long sa_mask[NSIG / sizeof(long) ? NSIG / sizeof(long) : 1];
 };
@@ -1216,28 +1240,20 @@ struct new_sigaction32
 	uint32_t sa_mask[2 * (NSIG / sizeof(long) ? NSIG / sizeof(long) : 1)];
 };
 
-int
-sys_rt_sigaction(struct tcb *tcp)
+static void
+decode_new_sigaction(struct tcb *tcp, long addr)
 {
 	struct new_sigaction sa;
 	sigset_t sigset;
-	long addr;
 	int r;
 
-	if (entering(tcp)) {
-		printsignal(tcp->u_arg[0]);
-		tprints(", ");
-		addr = tcp->u_arg[1];
-	} else
-		addr = tcp->u_arg[2];
-
-	if (addr == 0) {
+	if (!addr) {
 		tprints("NULL");
-		goto after_sa;
+		return;
 	}
-	if (!verbose(tcp)) {
+	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp))) {
 		tprintf("%#lx", addr);
-		goto after_sa;
+		return;
 	}
 #if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
 	if (current_wordsize != sizeof(sa.sa_flags) && current_wordsize == 4) {
@@ -1265,7 +1281,7 @@ sys_rt_sigaction(struct tcb *tcp)
 	}
 	if (r < 0) {
 		tprints("{...}");
-		goto after_sa;
+		return;
 	}
 	/* Architectures using function pointers, like
 	 * hppa, may need to manipulate the function pointer
@@ -1301,11 +1317,18 @@ sys_rt_sigaction(struct tcb *tcp)
 		tprintf(", %p", sa.sa_restorer);
 #endif
 	tprints("}");
+}
 
- after_sa:
-	if (entering(tcp))
+int
+sys_rt_sigaction(struct tcb *tcp)
+{
+	if (entering(tcp)) {
+		printsignal(tcp->u_arg[0]);
 		tprints(", ");
-	else
+		decode_new_sigaction(tcp, tcp->u_arg[1]);
+		tprints(", ");
+	} else {
+		decode_new_sigaction(tcp, tcp->u_arg[2]);
 #if defined(SPARC) || defined(SPARC64)
 		tprintf(", %#lx, %lu", tcp->u_arg[3], tcp->u_arg[4]);
 #elif defined(ALPHA)
@@ -1313,6 +1336,7 @@ sys_rt_sigaction(struct tcb *tcp)
 #else
 		tprintf(", %lu", tcp->u_arg[3]);
 #endif
+	}
 	return 0;
 }
 

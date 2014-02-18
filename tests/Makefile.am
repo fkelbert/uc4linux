@@ -2,13 +2,24 @@
 
 AM_CFLAGS = $(WARN_CFLAGS)
 
-check_PROGRAMS = net-accept-connect set_ptracer_any
+check_PROGRAMS = net-accept-connect set_ptracer_any sigaction
 
-TESTS = ptrace_setoptions strace-f qual_syscall stat net \
-	detach-sleeping detach-stopped detach-running
+TESTS = \
+	ptrace_setoptions.test \
+	strace-f.test \
+	qual_syscall.test \
+	sigaction.test \
+	stat.test \
+	net.test \
+	net-fd.test \
+	detach-sleeping.test \
+	detach-stopped.test \
+	detach-running.test
 
-LOG_COMPILER = $(srcdir)/run.sh
+net-fd.log: net.log
 
-EXTRA_DIST = init.sh run.sh $(TESTS)
+TEST_LOG_COMPILER = $(srcdir)/run.sh
+
+EXTRA_DIST = init.sh run.sh sigaction.awk $(TESTS)
 
 CLEANFILES = $(TESTS:=.tmp)

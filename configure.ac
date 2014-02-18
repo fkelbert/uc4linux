@@ -74,6 +74,10 @@ avr32*)
 	arch=avr32
 	AC_DEFINE([AVR32], 1, [Define for the AVR32 architecture.])
 	;;
+arc*)
+	arch=arc
+	AC_DEFINE([ARC], 1, [Define for the ARC architecture.])
+	;;
 s390)
 	arch=s390
 	AC_DEFINE([S390], 1, [Define for the S390 architecture.])
@@ -189,11 +193,7 @@ AC_CHECK_MEMBERS([struct sockaddr_in6.sin6_scope_id],,,
 [#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>])
-AC_CHECK_TYPES([long long])
 AC_LITTLE_ENDIAN_LONG_LONG
-AC_OFF_T_IS_LONG_LONG
-AC_CHECK_TYPES([struct opthdr],,, [#include <sys/socket.h>])
-AC_CHECK_TYPES([struct t_opthdr],,, [#include <sys/tiuser.h>])
 
 AC_CHECK_FUNCS(m4_normalize([
 	fork
@@ -206,8 +206,6 @@ AC_CHECK_FUNCS(m4_normalize([
 	stpcpy
 	strerror
 	strsignal
-	_sys_siglist
-	sys_siglist
 ]))
 AC_CHECK_HEADERS(m4_normalize([
 	asm/cachectl.h
@@ -240,35 +238,26 @@ AC_CHECK_HEADERS([linux/icmp.h linux/in6.h linux/netlink.h linux/if_packet.h],
 #include <sys/socket.h>
 #include <asm/types.h>])
 AC_CHECK_HEADERS([asm/sigcontext.h], [], [], [#include <signal.h>])
-AC_CHECK_TYPES([struct sigcontext_struct,
-		struct sigcontext],,, [#include <signal.h>])
+AC_CHECK_TYPES([struct sigcontext],,, [#include <signal.h>])
 AC_CHECK_HEADERS([netinet/tcp.h netinet/udp.h],,, [#include <netinet/in.h>])
 
 AC_CHECK_MEMBERS([struct msghdr.msg_control],,, [#include <sys/socket.h>])
 
-AC_CHECK_MEMBERS([struct T_conn_res.QUEUE_ptr,
-                  struct T_conn_res.ACCEPTOR_id],,,
-[#include <sys/stream.h>
-#include <sys/tihdr.h>])
-
 AC_CHECK_TYPES([struct __old_kernel_stat],,, [#include <asm/stat.h>])
 
-AC_CHECK_TYPES([struct pt_all_user_regs, struct ia64_fpreg],,,
+AC_CHECK_TYPES([struct pt_all_user_regs, struct ia64_fpreg, struct ptrace_peeksiginfo_args],,,
 	       [#include <sys/ptrace.h>])
 
 AC_CHECK_TYPES([struct user_desc],,, [#include <asm/ldt.h>])
 
-AC_CHECK_MEMBERS([struct dqblk.dqb_curblocks],,, [#include <sys/quota.h>])
-
-AC_CHECK_MEMBERS([struct sigcontext.sc_hi2],,, [#include <signal.h>
-#ifdef HAVE_ASM_SIGCONTEXT_H
-# include <asm/sigcontext.h>
-#endif])
-
 AC_CHECK_MEMBERS([struct utsname.domainname],,, [#include <sys/utsname.h>])
 
+AC_CHECK_MEMBERS([struct sigevent._sigev_un._pad,
+		  struct sigevent.__pad],,, [#include <signal.h>])
+
+AC_CHECK_TYPES([struct flock64],,, [#include <fcntl.h>])
+
 AC_CHECK_DECLS([sys_errlist])
-AC_CHECK_DECLS([sys_siglist, _sys_siglist],,, [#include <signal.h>])
 AC_CHECK_DECLS(m4_normalize([
 	PTRACE_EVENT_CLONE,
 	PTRACE_EVENT_EXEC,
@@ -284,6 +273,8 @@ AC_CHECK_DECLS(m4_normalize([
 	PTRACE_O_TRACEFORK,
 	PTRACE_O_TRACESYSGOOD,
 	PTRACE_O_TRACEVFORK,
+	PTRACE_PEEKUSER,
+	PTRACE_POKEUSER,
 	PTRACE_SETOPTIONS
 ]),,, [#include <sys/ptrace.h>])
 
@@ -305,10 +296,15 @@ AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([long long])
 AC_CHECK_SIZEOF([rlim_t],,[#include <sys/resource.h>])
 
-AC_CHECK_HEADERS([libaio.h], [
-	AC_CHECK_MEMBERS([struct iocb.u.c.flags],,, [#include <libaio.h>])
-	AC_CHECK_DECLS([IO_CMD_PWRITE, IO_CMD_PWRITEV],,, [#include <libaio.h>])
-])
+AC_CACHE_CHECK([for SA_RESTORER], [st_cv_sa_restorer],
+	       [st_cv_sa_restorer="$(echo SA_RESTORER |
+			$CPP $CPPFLAGS -P -imacros asm/signal.h - |
+			grep ^0x)"
+	        test -n "$st_cv_sa_restorer" || st_cv_sa_restorer=no])
+if test "x$st_cv_sa_restorer" != xno; then
+	AC_DEFINE_UNQUOTED([ASM_SA_RESTORER], [$st_cv_sa_restorer],
+			   [SA_RESTORER defined in <asm/signal.h>])
+fi
 
 PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0])
 

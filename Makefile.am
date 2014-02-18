@@ -15,21 +15,29 @@ AM_CFLAGS = $(WARN_CFLAGS)
 AM_CPPFLAGS = -I$(srcdir)/$(OS)/$(ARCH) -I$(srcdir)/$(OS) -I$(builddir)/$(OS)
 
 strace_SOURCES =	\
+	aio.c		\
 	bjm.c		\
 	block.c		\
 	count.c		\
 	desc.c		\
+	fanotify.c	\
 	file.c		\
+	inotify.c	\
 	io.c		\
 	ioctl.c		\
+	ioprio.c	\
 	ipc.c		\
+	kexec.c		\
+	keyctl.c	\
 	loop.c		\
 	mem.c		\
 	mtd.c		\
 	net.c		\
 	pathtrace.c	\
 	process.c	\
+	ptp.c		\
 	quota.c		\
+	reboot.c	\
 	resource.c	\
 	scsi.c		\
 	signal.c	\
@@ -89,6 +97,8 @@ EXTRA_DIST =				\
 	linux/alpha/ioctlent.h.in	\
 	linux/alpha/signalent.h		\
 	linux/alpha/syscallent.h	\
+	linux/arc/ioctlent.h.in		\
+	linux/arc/syscallent.h		\
 	linux/arm/ioctlent.h.in		\
 	linux/arm/syscallent.h		\
 	linux/avr32/ioctlent.h.in	\
@@ -97,6 +107,7 @@ EXTRA_DIST =				\
 	linux/bfin/syscallent.h		\
 	linux/dummy.h			\
 	linux/errnoent.h		\
+	linux/fanotify.h		\
 	linux/hppa/errnoent.h		\
 	linux/hppa/ioctlent.h.in	\
 	linux/hppa/signalent.h		\
@@ -106,10 +117,13 @@ EXTRA_DIST =				\
 	linux/ia64/ioctlent.h.in	\
 	linux/ia64/signalent.h		\
 	linux/ia64/syscallent.h		\
+	linux/inotify.h			\
 	linux/ioctlent-filter.awk	\
 	linux/ioctlent.h.in		\
 	linux/ioctlent.sh		\
 	linux/ioctlsort.c		\
+	linux/kexec.h			\
+	linux/keyctl.h			\
 	linux/m68k/ioctlent.h.in	\
 	linux/m68k/syscallent.h		\
 	linux/metag/ioctlent.h.in	\
@@ -128,12 +142,15 @@ EXTRA_DIST =				\
 	linux/mtd-abi.h			\
 	linux/or1k/ioctlent.h.in	\
 	linux/or1k/syscallent.h		\
+	linux/personality.h		\
 	linux/powerpc/errnoent1.h	\
 	linux/powerpc/ioctlent.h.in	\
 	linux/powerpc/ioctlent1.h	\
 	linux/powerpc/signalent1.h	\
 	linux/powerpc/syscallent.h	\
 	linux/powerpc/syscallent1.h	\
+	linux/ptp_clock.h		\
+	linux/reboot.h			\
 	linux/s390/ioctlent.h.in	\
 	linux/s390/syscallent.h		\
 	linux/s390x/ioctlent.h.in	\

@@ -46,7 +46,6 @@
 
 #ifdef HAVE_SYS_REG_H
 # include <sys/reg.h>
-# define PTRACE_PEEKUSR PTRACE_PEEKUSER
 #elif defined(HAVE_LINUX_PTRACE_H)
 # undef PTRACE_SYSCALL
 # ifdef HAVE_STRUCT_IA64_FPREG
@@ -55,7 +54,11 @@
 # ifdef HAVE_STRUCT_PT_ALL_USER_REGS
 #  define pt_all_user_regs XXX_pt_all_user_regs
 # endif
+# ifdef HAVE_STRUCT_PTRACE_PEEKSIGINFO_ARGS
+#  define ptrace_peeksiginfo_args XXX_ptrace_peeksiginfo_args
+# endif
 # include <linux/ptrace.h>
+# undef ptrace_peeksiginfo_args
 # undef ia64_fpreg
 # undef pt_all_user_regs
 #endif
@@ -156,6 +159,53 @@ stpcpy(char *dst, const char *src)
 }
 #endif
 
+/* Find a next bit which is set.
+ * Starts testing at cur_bit.
+ * Returns -1 if no more bits are set.
+ *
+ * We never touch bytes we don't need to.
+ * On big-endian, array is assumed to consist of
+ * current_wordsize wide words: for example, is current_wordsize is 4,
+ * the bytes are walked in 3,2,1,0, 7,6,5,4, 11,10,9,8 ... sequence.
+ * On little-endian machines, word size is immaterial.
+ */
+int
+next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits)
+{
+	const unsigned endian = 1;
+	int little_endian = *(char*)&endian;
+
+	const uint8_t *array = bit_array;
+	unsigned pos = cur_bit / 8;
+	unsigned pos_xor_mask = little_endian ? 0 : current_wordsize-1;
+
+	for (;;) {
+		uint8_t bitmask;
+		uint8_t cur_byte;
+
+		if (cur_bit >= size_bits)
+			return -1;
+		cur_byte = array[pos ^ pos_xor_mask];
+		if (cur_byte == 0) {
+			cur_bit = (cur_bit + 8) & (-8);
+			pos++;
+			continue;
+		}
+		bitmask = 1 << (cur_bit & 7);
+		for (;;) {
+			if (cur_byte & bitmask)
+				return cur_bit;
+			cur_bit++;
+			if (cur_bit >= size_bits)
+				return -1;
+			bitmask <<= 1;
+			/* This check *can't be* optimized out: */
+			if (bitmask == 0)
+				break;
+		}
+		pos++;
+	}
+}
 /*
  * Print entry in struct xlat table, if there.
  */
@@ -1404,6 +1454,9 @@ change_syscall(struct tcb *tcp, arg_setup_state *state, int new)
 #elif defined(XTENSA)
 	/* setbpt/clearbpt never used: */
 	/* Xtensa is only supported since linux 2.6.13 */
+#elif defined(ARC)
+	/* setbpt/clearbpt never used: */
+	/* ARC only supported since 3.9 */
 #else
 #warning Do not know how to handle change_syscall for this architecture
 #endif /* architecture */

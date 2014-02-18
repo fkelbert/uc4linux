@@ -33,12 +33,6 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
-#ifdef _LARGEFILE64_SOURCE
-/* This is the macro everything checks before using foo64 names.  */
-# ifndef _LFS64_LARGEFILE
-#  define _LFS64_LARGEFILE 1
-# endif
-#endif
 
 #ifdef MIPS
 # include <sgidefs.h>
@@ -159,27 +153,17 @@ extern char *stpcpy(char *dst, const char *src);
  */
 #define USE_CUSTOM_PRINTF 0
 
-#if (defined(SPARC) || defined(SPARC64) \
-    || defined(I386) || defined(X32) || defined(X86_64) \
-    || defined(ARM) || defined(AARCH64) \
-    || defined(AVR32) \
-    || defined(OR1K) \
-    || defined(METAG) \
-    || defined(TILE) \
-    || defined(XTENSA) \
-    ) && defined(__GLIBC__)
-# include <sys/ptrace.h>
-#else
-/* Work around awkward prototype in ptrace.h. */
+#ifdef NEED_PTRACE_PROTOTYPE_WORKAROUND
 # define ptrace xptrace
 # include <sys/ptrace.h>
 # undef ptrace
-# ifdef POWERPC
-#  define __KERNEL__
-#  include <asm/ptrace.h>
-#  undef __KERNEL__
-# endif
 extern long ptrace(int, int, char *, long);
+#else
+# include <sys/ptrace.h>
+#endif
+
+#if defined(POWERPC)
+# include <asm/ptrace.h>
 #endif
 
 #if defined(TILE)
@@ -247,8 +231,10 @@ extern long ptrace(int, int, char *, long);
 # define PTRACE_EVENT_EXIT	6
 #endif
 
-#if !defined(__GLIBC__)
+#if !HAVE_DECL_PTRACE_PEEKUSER
 # define PTRACE_PEEKUSER PTRACE_PEEKUSR
+#endif
+#if !HAVE_DECL_PTRACE_POKEUSER
 # define PTRACE_POKEUSER PTRACE_POKEUSR
 #endif
 
@@ -520,6 +506,8 @@ struct xlat {
 	int val;
 	const char *str;
 };
+#define XLAT(x) { x, #x }
+#define XLAT_END { 0, NULL }
 
 extern const struct xlat open_mode_flags[];
 extern const struct xlat addrfams[];
@@ -614,6 +602,7 @@ extern void call_summary(FILE *);
  || defined(TILE) \
  || defined(OR1K) \
  || defined(METAG) \
+ || defined(ARC) \
  || defined(POWERPC)
 extern long get_regs_error;
 # define clear_regs()  (get_regs_error = -1)
@@ -649,6 +638,7 @@ extern const char *xlookup(const struct xlat *, int);
 
 extern int string_to_uint(const char *str);
 extern int string_quote(const char *, char *, long, int);
+extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits);
 
 /* a refers to the lower numbered u_arg,
  * b refers to the higher numbered u_arg
@@ -691,6 +681,7 @@ extern void printsiginfo(siginfo_t *, int);
 extern void printsiginfo_at(struct tcb *tcp, long addr);
 #endif
 extern void printfd(struct tcb *, int);
+extern void print_dirfd(struct tcb *, int);
 extern void printsock(struct tcb *, long, int);
 extern void print_sock_optmgmt(struct tcb *, long, int);
 extern void printrusage(struct tcb *, long);
@@ -718,6 +709,7 @@ extern int block_ioctl(struct tcb *, long, long);
 extern int mtd_ioctl(struct tcb *, long, long);
 extern int ubi_ioctl(struct tcb *, long, long);
 extern int loop_ioctl(struct tcb *, long, long);
+extern int ptp_ioctl(struct tcb *, long, long);
 
 extern int tv_nz(struct timeval *);
 extern int tv_cmp(struct timeval *, struct timeval *);

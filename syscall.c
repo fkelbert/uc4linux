@@ -37,9 +37,6 @@
 
 #ifdef HAVE_SYS_REG_H
 # include <sys/reg.h>
-# ifndef PTRACE_PEEKUSR
-#  define PTRACE_PEEKUSR PTRACE_PEEKUSER
-# endif
 #elif defined(HAVE_LINUX_PTRACE_H)
 # undef PTRACE_SYSCALL
 # ifdef HAVE_STRUCT_IA64_FPREG
@@ -48,7 +45,11 @@
 # ifdef HAVE_STRUCT_PT_ALL_USER_REGS
 #  define pt_all_user_regs XXX_pt_all_user_regs
 # endif
+# ifdef HAVE_STRUCT_PTRACE_PEEKSIGINFO_ARGS
+#  define ptrace_peeksiginfo_args XXX_ptrace_peeksiginfo_args
+# endif
 # include <linux/ptrace.h>
+# undef ptrace_peeksiginfo_args
 # undef ia64_fpreg
 # undef pt_all_user_regs
 #endif
@@ -774,6 +775,9 @@ static struct user_gp_regs metag_regs;
 # define ARCH_REGS_FOR_GETREGSET metag_regs
 #elif defined(XTENSA)
 static long xtensa_a2;
+# elif defined(ARC)
+static struct user_regs_struct arc_regs;
+# define ARCH_REGS_FOR_GETREGSET arc_regs
 #endif
 
 void
@@ -914,6 +918,8 @@ print_pc(struct tcb *tcp)
 		return;
 	}
 	tprintf("[%08lx] ", pc);
+#elif defined(ARC)
+	tprintf("[%08lx] ", arc_regs.efa);
 #endif /* architecture */
 }
 
@@ -1009,7 +1015,8 @@ static void get_regset(pid_t pid)
 # if defined(ARM) \
   || defined(I386) \
   || defined(METAG) \
-  || defined(OR1K)
+  || defined(OR1K) \
+  || defined(ARC)
 	static struct iovec io = {
 		.iov_base = &ARCH_REGS_FOR_GETREGSET,
 		.iov_len = sizeof(ARCH_REGS_FOR_GETREGSET)
@@ -1035,7 +1042,7 @@ void
 get_regs(pid_t pid)
 {
 /* PTRACE_GETREGSET only */
-# if defined(METAG) || defined(OR1K) || defined(X32) || defined(AARCH64)
+# if defined(METAG) || defined(OR1K) || defined(X32) || defined(AARCH64) || defined(ARC)
 	get_regset(pid);
 
 /* PTRACE_GETREGS only */
@@ -1542,6 +1549,8 @@ get_scno(struct tcb *tcp)
 #elif defined(XTENSA)
 	if (upeek(tcp->pid, SYSCALL_NR, &scno) < 0)
 		return -1;
+# elif defined(ARC)
+	scno = arc_regs.scratch.r8;
 #endif
 
 	tcp->scno = scno;
@@ -1932,6 +1941,11 @@ get_syscall_args(struct tcb *tcp)
 	for (i = 0; i < nargs; ++i)
 		if (upeek(tcp->pid, REG_A_BASE + xtensaregs[i], &tcp->u_arg[i]) < 0)
 			return -1;
+# elif defined(ARC)
+	long *arc_args = &arc_regs.scratch.r0;
+	for (i = 0; i < nargs; ++i)
+		tcp->u_arg[i] = *arc_args--;
+
 #else /* Other architecture (32bits specific) */
 	for (i = 0; i < nargs; ++i)
 		if (upeek(tcp->pid, i*4, &tcp->u_arg[i]) < 0)
@@ -2130,6 +2144,8 @@ get_syscall_result(struct tcb *tcp)
 #elif defined(XTENSA)
 	if (upeek(tcp->pid, REG_A_BASE + 2, &xtensa_a2) < 0)
 		return -1;
+#elif defined(ARC)
+	/* already done by get_regs */
 #endif
 	return 1;
 }
@@ -2434,6 +2450,14 @@ get_error(struct tcb *tcp)
 	}
 	else {
 		tcp->u_rval = xtensa_a2;
+	}
+#elif defined(ARC)
+	if (check_errno && is_negated_errno(arc_regs.scratch.r0)) {
+		tcp->u_rval = -1;
+		u_error = -arc_regs.scratch.r0;
+	}
+	else {
+		tcp->u_rval = arc_regs.scratch.r0;
 	}
 #endif
 	tcp->u_error = u_error;
