@@ -2,45 +2,45 @@
 
 
 void ucInit() {
-	ucPIP_main_init();
+	//ucPIP_main_init();
 }
 
 
-int ucDesired(struct tcb *tcp) {
-	int retval = ucPDPask(tcp);
+//int ucDesired(struct tcb *tcp) {
+//	int retval = ucPDPask(tcp);
+//
+//	switch(retval) {
+//		case UC_PDP_ALLOW:
+//		case UC_PDP_MODIFY:
+//			ucPIP_update(tcp);
+//			break;
+//		case UC_PDP_INHIBIT:
+//			break;
+//		case UC_PDP_DELAY:
+//			break;
+//	}
+//
+//	return (retval);
+//}
 
-	switch(retval) {
-		case UC_PDP_ALLOW:
-		case UC_PDP_MODIFY:
-			ucPIP_update(tcp);
-			break;
-		case UC_PDP_INHIBIT:
-			break;
-		case UC_PDP_DELAY:
-			break;
-	}
 
-	return (retval);
-}
-
-
-int ucActual(struct tcb *tcp) {
-	int retval = ucPDPask(tcp);
-
-	switch(retval) {
-		case UC_PDP_ALLOW:
-			ucPIP_update(tcp);
-			break;
-		case UC_PDP_DELAY:
-		case UC_PDP_MODIFY:
-		case UC_PDP_INHIBIT:
-			// TODO: does it make sense to modify/delay/inhibit
-			// after the call has been executed???
-			break;
-	}
-
-	return (retval);
-}
+//int ucActual(struct tcb *tcp) {
+//	int retval = ucPDPask(tcp);
+//
+//	switch(retval) {
+//		case UC_PDP_ALLOW:
+//			ucPIP_update(tcp);
+//			break;
+//		case UC_PDP_DELAY:
+//		case UC_PDP_MODIFY:
+//		case UC_PDP_INHIBIT:
+//			// TODO: does it make sense to modify/delay/inhibit
+//			// after the call has been executed???
+//			break;
+//	}
+//
+//	return (retval);
+//}
 
 
 /**
@@ -67,10 +67,10 @@ void notifySyscall(struct tcb *tcp) {
 	 * This also needs to be fixed in ucPIP_main.c::ucPIP_update() then.
 	 */
 	if (exiting(tcp)) {
-		ucDesired(tcp);
+//		ucDesired(tcp);
 	}
 	else {
-		ucActual(tcp);
+//		ucActual(tcp);
 	}
 }
 

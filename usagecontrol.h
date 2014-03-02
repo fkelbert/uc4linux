@@ -3,7 +3,7 @@
 
 
 #include "defs.h"
-#include "ucPIP_main.h"
+//#include "ucPIP_main.h"
 
 #define UC_ENABLED 1
 #define UC_DEBUG_MODE 1
@@ -16,8 +16,8 @@
 
 void ucInit();
 
-int ucDesired(struct tcb *tcp);
-int ucActual(struct tcb *tcp);
+//int ucDesired(struct tcb *tcp);
+//int ucActual(struct tcb *tcp);
 
 
 

@@ -31,6 +31,7 @@
 #include "defs.h"
 #include "usagecontrol.h"
 #include <stdarg.h>
+#include <stdbool.h>
 #include <sys/param.h>
 #include <fcntl.h>
 #include <sys/resource.h>
