@@ -12,7 +12,8 @@ ARCH		= @arch@
 
 ACLOCAL_AMFLAGS = -I m4
 AM_CFLAGS = $(WARN_CFLAGS)
-AM_CPPFLAGS = -I$(srcdir)/$(OS)/$(ARCH) -I$(srcdir)/$(OS) -I$(builddir)/$(OS)
+AM_CPPFLAGS = -I$(srcdir)/$(OS)/$(ARCH) -I$(srcdir)/$(OS) -I$(builddir)/$(OS) 
+
 
 strace_SOURCES =	\
 	aio.c		\
@@ -220,7 +221,7 @@ EXTRA_DIST =				\
 	strace-log-merge		\
 	strace.spec			\
 	syscallent.sh			\
-	xlate.el
+	xlate.el	
 
 .PHONY: srpm
 srpm: dist-xz

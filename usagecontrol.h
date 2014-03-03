@@ -1,7 +1,8 @@
 #ifndef USAGECONTROL_H
 #define USAGECONTROL_H
 
-
+#include <jni.h>
+#include <stdbool.h>
 #include "defs.h"
 //#include "ucPIP_main.h"
 
@@ -14,7 +15,9 @@
 #define UC_PDP_DELAY 4
 #define ucPDPask(tcp) UC_PDP_ALLOW
 
-void ucInit();
+#define JAVA_CLASS_PATH "-Djava.class.path=../pdp/PdpCommunicationManager/target/PdpCommunicationManager-1.0-jar-with-dependencies.jar"
+
+bool ucInit();
 
 //int ucDesired(struct tcb *tcp);
 //int ucActual(struct tcb *tcp);
@@ -23,3 +26,4 @@ void ucInit();
 
 
 #endif /* USAGECONTROL_H */
+

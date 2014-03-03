@@ -1,7 +1,38 @@
 #include "usagecontrol.h"
 
+JNIEnv* create_vm(JavaVM ** jvm) {
 
-void ucInit() {
+    JNIEnv *env;
+    JavaVMInitArgs vm_args;
+    JavaVMOption options;
+    options.optionString = JAVA_CLASS_PATH; //Path to the java source code
+    vm_args.version = JNI_VERSION_1_6; //JDK version. This indicates version 1.6
+    vm_args.nOptions = 1;
+    vm_args.options = &options;
+    vm_args.ignoreUnrecognized = 0;
+
+    int ret = JNI_CreateJavaVM(jvm, (void**)&env, &vm_args);
+    if(ret < 0)
+    	printf("\nUnable to Launch JVM\n");
+	return env;
+}
+
+
+bool ucInit() {
+	JNIEnv *env;
+	JavaVM * jvm;
+	env = create_vm(&jvm);
+	if (env == NULL) {
+		return false;
+	}
+
+    jclass cls = env->FindClass("PdpController");
+    if (cls != 0) {
+        jmethodID meth = env->GetStaticMethodID(cls, "main", "([Ljava/lang/String;)V");
+        jarray args = env->NewObjectArray(0, env->FindClass("java/lang/String"), 0);
+        env->CallStaticVoidMethod(cls, meth, args);
+    }
+
 	//ucPIP_main_init();
 }
 

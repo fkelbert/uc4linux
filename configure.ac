@@ -308,6 +308,13 @@ fi
 
 PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0])
 
+AX_JNI_INCLUDE_DIR
+
+for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
+do
+	CPPFLAGS="$CPPFLAGS -I$JNI_INCLUDE_DIR"
+done
+
 AC_PATH_PROG([PERL], [perl])
 
 AC_CONFIG_FILES([Makefile tests/Makefile])
