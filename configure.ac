@@ -306,14 +306,20 @@ if test "x$st_cv_sa_restorer" != xno; then
 			   [SA_RESTORER defined in <asm/signal.h>])
 fi
 
-PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0])
+PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0 libevent_pthreads])
 
+# JNI
 AX_JNI_INCLUDE_DIR
-
 for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
 do
 	CPPFLAGS="$CPPFLAGS -I$JNI_INCLUDE_DIR"
 done
+
+# Pthreads
+#ACX_PTHREAD
+#LIBS="$PTHREAD_LIBS $LIBS"
+#CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+#CC="$PTHREAD_CC"
 
 AC_PATH_PROG([PERL], [perl])
 

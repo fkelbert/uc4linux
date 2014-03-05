@@ -28,6 +28,7 @@
 									<listOptionValue builtIn="false" value="/usr/include/glib-2.0"/>
 									<listOptionValue builtIn="false" value="/usr/include"/>
 									<listOptionValue builtIn="false" value="/usr/lib/jvm/java-7-openjdk/include/"/>
+									<listOptionValue builtIn="false" value="/usr/include/gtk-3.0"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1673901184" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

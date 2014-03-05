@@ -61,7 +61,8 @@ noinst_HEADERS = defs.h
 # Enable this to get link map generated
 #strace_CFLAGS = $(AM_CFLAGS) -Wl,-Map=strace.mapfile
 strace_CFLAGS = $(DEPS_CFLAGS) 
-LIBS = $(DEPS_LIBS)
+# FK: did not find pkg-config for jvm to automate this. Hard-wiring linking of jvm.
+LIBS = $(DEPS_LIBS) -ljvm
 
 EXTRA_DIST =				\
 	$(man_MANS)			\
