@@ -2,6 +2,7 @@
 #define UC_EVENTS_H
 
 #include <stdbool.h>
+#include <sys/fcntl.h>
 
 #include "defs.h"
 #include "ucTypes.h"
@@ -14,6 +15,10 @@
 
 #define toPid(str,len,i) snprintf(str,len,"%d",i);
 #define toFd(str,len,i) snprintf(str,len,"%d",i);
+
+#define IS_O_RDWR(flag)		((flag & O_RDWR) 	== O_RDWR)
+#define IS_O_WRONLY(flag)	((flag & O_WRONLY) 	== O_WRONLY)
+#define IS_O_TRUNC(flag)	((flag & O_TRUNC) 	== O_TRUNC)
 
 extern event *(*ucSemanticsFunct[])(struct tcb *tcp);
 

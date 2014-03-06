@@ -3,20 +3,8 @@
 char pid[PID_LEN];
 char fd1[FD_LEN];
 
-event *ucSemantics_open(struct tcb *tcp) { return NULL;
-//	char relFilename[FILENAME_MAX];
-//	char absFilename[FILENAME_MAX];
-//
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	// retrieve the filename
-//	getString(tcp, tcp->u_arg[0], relFilename, sizeof(relFilename));
-//	cwdAbsoluteFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), 1);
-//
-//	ucSemantics_do_open(tcp->pid, tcp->u_rval, absFilename, tcp->u_arg[1]);
-}
+
+
 
 event *ucSemantics_unlink(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
@@ -182,8 +170,36 @@ event *ucSemantics_pipe(struct tcb *tcp) { return NULL;
 //	}
 }
 
-char *x() {
-	return "x";
+
+event *ucSemantics_open(struct tcb *tcp) {
+	char relFilename[FILENAME_MAX];
+	char *trunc = "false";
+
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_rval);
+
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(relFilename), relFilename)) {
+		relFilename[sizeof(relFilename) - 1] = '\0';
+	}
+
+	int flags = tcp->u_arg[1];
+	if (IS_O_TRUNC(flags) && (IS_O_RDWR(flags) || IS_O_WRONLY(flags))) {
+		trunc = "true";
+	}
+
+	event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("filename", relFilename))
+		&& addParam(ev, createParam("trunc", trunc))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 event *ucSemantics_read(struct tcb *tcp) {
