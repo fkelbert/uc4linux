@@ -5,8 +5,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include "defs.h"
-//#include <gtk/gtk.h>		// only after defs.h due to redefinition of macros!
-//#include "ucPIP_main.h"
+#include "ucEvents.h"
 
 #define UC_ENABLED 1
 #define UC_DEBUG_MODE 1
@@ -18,7 +17,6 @@
 #define ucPDPask(tcp) UC_PDP_ALLOW
 
 #define USER_CLASSPATH "../pdp/PdpCommunicationManager/target/PdpCommunicationManager-1.0-jar-with-dependencies.jar"
-//#define USER_CLASSPATH "PdpCommunicationManager-1.0-jar-with-dependencies.jar"
 
 #define CLASS_STRING "java/lang/String"
 
@@ -42,17 +40,21 @@
 #define METHOD_ISSTARTED_SIG 	"()" JNI_BOOL
 
 #define METHOD_NOTIFY_NAME 		"notifyEvent"
-#define METHOD_NOTIFY_SIG 		"(" JNI_STRING "[" JNI_STRING "[" JNI_STRING ")" JNI_VOID
+#define METHOD_NOTIFY_SIG 		"(" JNI_STRING "[" JNI_STRING "[" JNI_STRING JNI_BOOL ")" JNI_VOID
 
-JNIEnv *mainJniEnv;
 
-// CAUTION!
-// The following references are only valid within the main thread!
-jclass classPepHandler;
-jmethodID methodNotifyEvent;
-jclass classString;
+struct s_event {
+	const char *name;
+	const char **params;
+	int cntParams;
+	bool isActual;
+};
+typedef struct s_event event;
 
 bool ucInit();
+
+
+
 
 
 #endif /* USAGECONTROL_H */

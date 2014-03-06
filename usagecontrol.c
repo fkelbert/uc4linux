@@ -2,6 +2,14 @@
 
 volatile JavaVM *jvm = NULL;
 
+JNIEnv *mainJniEnv;
+
+// CAUTION!
+// The following references are only valid within the main thread!
+jclass classPepHandler;
+jmethodID methodNotifyEvent;
+jclass classString;
+
 pthread_t jvmStarter;
 
 void *threadJvmStarter(void *args) {
@@ -62,18 +70,32 @@ void *threadJvmWaiter(void *args) {
 }
 
 
-void notifyEventToPep(char *name, int cntParams, const char ***params) {
-	jstring jName = (*mainJniEnv)->NewStringUTF(mainJniEnv, name);
-	jarray jKeys = (*mainJniEnv)->NewObjectArray(mainJniEnv, cntParams, classString, 0);
-	jarray jVals = (*mainJniEnv)->NewObjectArray(mainJniEnv, cntParams, classString, 0);
+//void notifyEventToPep(char *name, int cntParams, const char ***params) {
+//	jstring jName = (*mainJniEnv)->NewStringUTF(mainJniEnv, name);
+//	jarray jKeys = (*mainJniEnv)->NewObjectArray(mainJniEnv, cntParams, classString, 0);
+//	jarray jVals = (*mainJniEnv)->NewObjectArray(mainJniEnv, cntParams, classString, 0);
+//
+//	int i;
+//	for (i = 0; i < cntParams; i++) {
+//		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, jKeys, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) params[i*2]));
+//		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, jVals, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) params[i*2+1]));
+//	}
+//
+//	(*mainJniEnv)->CallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, jName, jKeys, jVals);
+//}
+
+void notifyEventToPep(event *ev) {
+	jstring name = (*mainJniEnv)->NewStringUTF(mainJniEnv, ev->name);
+	jarray paramKeys = (*mainJniEnv)->NewObjectArray(mainJniEnv, ev->cntParams, classString, 0);
+	jarray paramVals = (*mainJniEnv)->NewObjectArray(mainJniEnv, ev->cntParams, classString, 0);
 
 	int i;
-	for (i = 0; i < cntParams; i++) {
-		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, jKeys, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) params[i*2]));
-		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, jVals, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) params[i*2+1]));
+	for (i = 0; i < ev->cntParams; i++) {
+		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, paramKeys, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) ev->params[i*2]));
+		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, paramVals, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) ev->params[i*2+1]));
 	}
 
-	(*mainJniEnv)->CallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, jName, jKeys, jVals);
+	(*mainJniEnv)->CallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, name, paramKeys, paramVals, ev->isActual);
 }
 
 
@@ -168,22 +190,26 @@ bool ucInit() {
 
 
 
-
-	const char *paramsFoo[][2] = {
-			{"key1", "val1"},
-			{"key2", "val2"},
-			{"key3", "val3"}
+	event ev;
+	ev.name = "foo";
+	ev.isActual = true;
+	const char *params[] = {
+			"key1", "val1",
+			"key2", "val2",
+			"key3", "val3"
 	};
-	notifyEventToPep("foo", 3, (const char***) paramsFoo);
+	ev.params = params;
+	ev.cntParams = 3;
+	notifyEventToPep(&ev);
 
 
-	const char *paramSocket[][2] = {
-			{"PEP", "Linux"},
-			{"host", "machine"},
-			{"pid", "4562"},
-			{"fd", "2"},
-	};
-	notifyEventToPep("Socket", 4, (const char***) paramSocket);
+//	const char *paramSocket[][2] = {
+//			{"PEP", "Linux"},
+//			{"host", "machine"},
+//			{"pid", "4562"},
+//			{"fd", "2"},
+//	};
+//	notifyEventToPep("Socket", 4, (const char***) paramSocket);
 
 
 
@@ -261,8 +287,10 @@ void notifySyscall(struct tcb *tcp) {
 	 */
 	if (exiting(tcp)) {
 //		ucDesired(tcp);
+		printf("%3d (d) %s\n", tcp->scno, tcp->s_ent->sys_name);
 	}
 	else {
+		printf("%3d (a) %s\n", tcp->scno, tcp->s_ent->sys_name);
 //		ucActual(tcp);
 	}
 }
