@@ -44,12 +44,15 @@
 #define METHOD_NOTIFY_NAME 		"notifyEvent"
 #define METHOD_NOTIFY_SIG 		"(" JNI_STRING "[" JNI_STRING "[" JNI_STRING ")" JNI_VOID
 
+JNIEnv *mainJniEnv;
+
+// CAUTION!
+// The following references are only valid within the main thread!
+jclass classPepHandler;
+jmethodID methodNotifyEvent;
+jclass classString;
+
 bool ucInit();
-
-//int ucDesired(struct tcb *tcp);
-//int ucActual(struct tcb *tcp);
-
-
 
 
 #endif /* USAGECONTROL_H */

@@ -2,7 +2,9 @@
 
 volatile JavaVM *jvm = NULL;
 
-void *createJvmThread(void *args) {
+pthread_t jvmStarter;
+
+void *threadJvmStarter(void *args) {
 	JNIEnv *env;
     JavaVMInitArgs vm_args;
     JavaVMOption options;
@@ -35,34 +37,107 @@ void *createJvmThread(void *args) {
 	}
 
 	// call the main method
-	jarray arg = (*env)->NewObjectArray(env, 0, (*env)->FindClass(env, JNI_STRING), 0);
-//	(*env)->SetObjectArrayElement(env, arg, 0, (*env)->NewStringUTF(env, "-pp"));
-//	(*env)->SetObjectArrayElement(env, arg, 1, (*env)->NewStringUTF(env, "pdp1.properties"));
+	jarray arg = (*env)->NewObjectArray(env, 2, (*env)->FindClass(env, JNI_STRING), 0);
+	(*env)->SetObjectArrayElement(env, arg, 0, (*env)->NewStringUTF(env, "-pp"));
+	(*env)->SetObjectArrayElement(env, arg, 1, (*env)->NewStringUTF(env, "pdp1.properties"));
 	(*env)->CallStaticVoidMethod(env, pdpClass, mainMethod, arg);
 	if ((*env)->ExceptionOccurred(env)) {
 		printf("Exception in " METHOD_MAIN_NAME ".\n");
 		exit(1);
 	}
 
+	// The above main() (i.e. this thread) should actually never exit
 	pthread_exit((void *) true);
 }
 
 
+// This thread will wait for the JVM thread to exit,
+// which will hopefully never happen
+void *threadJvmWaiter(void *args) {
+	void *ret;
+	printf("WAITING for JVM to die!\n");
+	pthread_join(jvmStarter, &ret);
+	printf("JVM died. Exiting.\n");
+	exit(1);
+}
+
+
+void notifyEventToPep(char *name, int cntParams, const char ***params) {
+	jstring jName = (*mainJniEnv)->NewStringUTF(mainJniEnv, name);
+	jarray jKeys = (*mainJniEnv)->NewObjectArray(mainJniEnv, cntParams, classString, 0);
+	jarray jVals = (*mainJniEnv)->NewObjectArray(mainJniEnv, cntParams, classString, 0);
+
+	int i;
+	for (i = 0; i < cntParams; i++) {
+		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, jKeys, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) params[i*2]));
+		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, jVals, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) params[i*2+1]));
+	}
+
+	(*mainJniEnv)->CallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, jName, jKeys, jVals);
+}
+
+
+bool waitForStartupCompletion() {
+	// get class pdp controller
+	jclass classPdpController = (*mainJniEnv)->FindClass(mainJniEnv, CLASS_PDP_CONTROLLER);
+	if ((*mainJniEnv)->ExceptionOccurred(mainJniEnv)) {
+		printf("Could not find class " CLASS_PDP_CONTROLLER ".\n");
+		return false;
+	}
+
+	jmethodID methodIsStarted = (*mainJniEnv)->GetStaticMethodID(mainJniEnv, classPdpController, METHOD_ISSTARTED_NAME, METHOD_ISSTARTED_SIG);
+	if ((*mainJniEnv)->ExceptionOccurred(mainJniEnv)) {
+		printf("Could not find " METHOD_ISSTARTED_NAME " method.\n");
+		return false;
+	}
+
+	printf("Waiting for PdpController to get started");
+	jboolean isStarted = JNI_FALSE;
+	while (isStarted == JNI_FALSE) {
+		isStarted = (*mainJniEnv)->CallStaticBooleanMethod(mainJniEnv, classPdpController, methodIsStarted);
+		if ((*mainJniEnv)->ExceptionOccurred(mainJniEnv)) {
+			printf("Could not execute " METHOD_ISSTARTED_NAME " method.\n");
+			return false;
+		}
+		printf(".");
+		fflush(stdout);
+		sleep(1);
+	}
+	printf("\n");
+
+	return true;
+}
+
+
+bool getMainJniRefs() {
+	classPepHandler = (*mainJniEnv)->FindClass(mainJniEnv, CLASS_PEP_NATIVE_HANDLER);
+	if ((*mainJniEnv)->ExceptionOccurred(mainJniEnv)) {
+		printf("Could not find class " CLASS_PEP_NATIVE_HANDLER ".\n");
+		return false;
+	}
+
+	methodNotifyEvent = (*mainJniEnv)->GetStaticMethodID(mainJniEnv, classPepHandler, METHOD_NOTIFY_NAME, METHOD_NOTIFY_SIG);
+	if ((*mainJniEnv)->ExceptionOccurred(mainJniEnv)) {
+		printf("Could not access method " METHOD_NOTIFY_NAME " in class " CLASS_PDP_CONTROLLER ".\n");
+		return false;
+	}
+
+	classString = (*mainJniEnv)->FindClass(mainJniEnv, CLASS_STRING);
+	if ((*mainJniEnv)->ExceptionOccurred(mainJniEnv)) {
+		printf("Could not find class " CLASS_STRING ".\n");
+		return false;
+	}
+
+	return true;
+}
+
+
 bool ucInit() {
-	pthread_t jvmThread;
-	JNIEnv *env;
+	pthread_t jvmWaiter;
 	void *ret;
 
-	jclass classPdpController;
-	jclass classPepHandler;
-	jmethodID methodIsStarted;
-	jmethodID methodNotifyEvent;
-	jfieldID fieldPepHandler;
-	jobject objPepHandler;
-	jboolean isStarted;
-
-	if (pthread_create( &jvmThread, NULL, createJvmThread, NULL) != 0) {
-		printf("Unable to create JVM thread.\n");
+	if (pthread_create( &jvmStarter, NULL, threadJvmStarter, NULL) != 0) {
+		printf("Unable to create JVM starter thread.\n");
 	}
 
 	printf("Wait for startup of JVM");
@@ -75,100 +150,49 @@ bool ucInit() {
 
 
 	// Attach this thread to JVM
-	if ((*jvm)->AttachCurrentThread((JavaVM*) jvm, (void**) &env, NULL) != 0) {
-		printf("Error attaching main thread to JVM.\n");
-		exit(1);
-	}
-
-	// check whether we had found PdpController before
-	classPdpController = (*env)->FindClass(env, CLASS_PDP_CONTROLLER);
-	if ((*env)->ExceptionOccurred(env)) {
-		printf("Could not find class " CLASS_PDP_CONTROLLER ".\n");
-		exit(1);
-	}
-
-	methodIsStarted = (*env)->GetStaticMethodID(env, classPdpController, METHOD_ISSTARTED_NAME, METHOD_ISSTARTED_SIG);
-	if ((*env)->ExceptionOccurred(env)) {
-		printf("Could not find " METHOD_ISSTARTED_NAME " method.\n");
-		exit(1);
-	}
-
-	printf("Waiting for PdpController to get started");
-	isStarted = JNI_FALSE;
-	while (isStarted == JNI_FALSE) {
-		isStarted = (*env)->CallStaticBooleanMethod(env, classPdpController, methodIsStarted);
-		if ((*env)->ExceptionOccurred(env)) {
-			printf("Could not execute " METHOD_ISSTARTED_NAME " method.\n");
-			exit(1);
-		}
-		printf(".");
-		fflush(stdout);
-		sleep(1);
-	}
-	printf("\n");
-
-
-
-	fieldPepHandler = (*env)->GetStaticFieldID(env, classPdpController, FIELD_NATIVE_PEP, FIELD_NATIVE_PEP_SIG);
-	if ((*env)->ExceptionOccurred(env)) {
-		printf("Could not find field " FIELD_NATIVE_PEP " in class " CLASS_PDP_CONTROLLER ".\n");
+	if ((*jvm)->AttachCurrentThread((JavaVM*) jvm, (void**) &mainJniEnv, NULL) != 0) {
+		printf("Error attaching main thread to JVM. Exiting.\n");
 		exit(1);
 	}
 
 
-	objPepHandler = (*env)->GetStaticObjectField(env, classPdpController, fieldPepHandler);
-	if ((*env)->ExceptionOccurred(env)) {
-		printf("Could not access field " FIELD_NATIVE_PEP " in class " CLASS_PDP_CONTROLLER ".\n");
+	if (!waitForStartupCompletion()) {
+		printf("Error while starting up JVM. Exiting.\n");
 		exit(1);
 	}
 
-	classPepHandler = (*env)->FindClass(env, CLASS_PEP_NATIVE_HANDLER);
-	if ((*env)->ExceptionOccurred(env)) {
-		printf("Could not find class " CLASS_PEP_NATIVE_HANDLER ".\n");
-		exit(1);
-	}
-
-	methodNotifyEvent = (*env)->GetMethodID(env, classPepHandler, METHOD_NOTIFY_NAME, METHOD_NOTIFY_SIG);
-	if ((*env)->ExceptionOccurred(env)) {
-		printf("Could not access method " METHOD_NOTIFY_NAME " in class " CLASS_PDP_CONTROLLER ".\n");
+	if (!getMainJniRefs()) {
+		printf("Error getting main JNI references. Exiting.\n");
 		exit(1);
 	}
 
 
-	jstring eventName = (*env)->NewStringUTF(env, "foo");
-
-	jarray paramKeys = (*env)->NewObjectArray(env, 2, (*env)->FindClass(env, CLASS_STRING), 0);
-	(*env)->SetObjectArrayElement(env, paramKeys, 0, (*env)->NewStringUTF(env, "key1"));
-	(*env)->SetObjectArrayElement(env, paramKeys, 1, (*env)->NewStringUTF(env, "key2"));
-
-	jarray paramValues = (*env)->NewObjectArray(env, 2, (*env)->FindClass(env, CLASS_STRING), 0);
-	(*env)->SetObjectArrayElement(env, paramValues, 0, (*env)->NewStringUTF(env, "val1"));
-	(*env)->SetObjectArrayElement(env, paramValues, 1, (*env)->NewStringUTF(env, "val2"));
-
-	(*env)->CallVoidMethod(env, objPepHandler, methodNotifyEvent, eventName, paramKeys, paramValues);
 
 
-	eventName = (*env)->NewStringUTF(env, "Socket");
+	const char *paramsFoo[][2] = {
+			{"key1", "val1"},
+			{"key2", "val2"},
+			{"key3", "val3"}
+	};
+	notifyEventToPep("foo", 3, (const char***) paramsFoo);
 
-	paramKeys = (*env)->NewObjectArray(env, 4, (*env)->FindClass(env, CLASS_STRING), 0);
-	(*env)->SetObjectArrayElement(env, paramKeys, 0, (*env)->NewStringUTF(env, "PEP"));
-	(*env)->SetObjectArrayElement(env, paramKeys, 1, (*env)->NewStringUTF(env, "host"));
-	(*env)->SetObjectArrayElement(env, paramKeys, 2, (*env)->NewStringUTF(env, "pid"));
-	(*env)->SetObjectArrayElement(env, paramKeys, 3, (*env)->NewStringUTF(env, "fd"));
 
-	paramValues = (*env)->NewObjectArray(env, 4, (*env)->FindClass(env, CLASS_STRING), 0);
-	(*env)->SetObjectArrayElement(env, paramValues, 0, (*env)->NewStringUTF(env, "Linux"));
-	(*env)->SetObjectArrayElement(env, paramValues, 1, (*env)->NewStringUTF(env, "machine"));
-	(*env)->SetObjectArrayElement(env, paramValues, 2, (*env)->NewStringUTF(env, "4562"));
-	(*env)->SetObjectArrayElement(env, paramValues, 3, (*env)->NewStringUTF(env, "2"));
-
-	(*env)->CallVoidMethod(env, objPepHandler, methodNotifyEvent, eventName, paramKeys, paramValues);
-//	sleep(1);
+	const char *paramSocket[][2] = {
+			{"PEP", "Linux"},
+			{"host", "machine"},
+			{"pid", "4562"},
+			{"fd", "2"},
+	};
+	notifyEventToPep("Socket", 4, (const char***) paramSocket);
 
 
 
-	pthread_join(jvmThread, &ret);
+	// start new thread to wait for JVM to die (which should not happen)
+	if (pthread_create( &jvmWaiter, NULL, threadJvmWaiter, NULL) != 0) {
+		printf("Unable to create JVM waiter thread.\n");
+	}
 
+	return true;
 }
 
 
