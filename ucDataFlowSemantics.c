@@ -1068,22 +1068,6 @@ void ucSemantics__init() {
 }
 
 
-void ucSemantics_IGNORE_impl(struct tcb *tcp) {
-	ucSemantics_log("%5d: %s(): ---IGNORED---\n",tcp->pid, tcp->s_ent->sys_name);
-}
-
-void ucSemantics_log_impl(const char* format, ...) {
-	va_list argptr;
-	va_start(argptr, format);
-	vfprintf(outstream, format, argptr);
-	va_end(argptr);
-	fflush(outstream);
-}
-
-
-
-
-
 
 void (*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_accept] = ucSemantics_accept,

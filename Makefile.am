@@ -52,7 +52,10 @@ strace_SOURCES =	\
 	util.c		\
 	vsprintf.c	\
 	usagecontrol.c	\
-	ucEvents.c #\
+	ucEvents.c 	\
+	ucLog.c 	\
+	ucSettings.c 	\
+	ucTypes.c	#\
 	#ucPIP.c		\
 	#ucPIP_main.c		\
 	#ucDataFlowSemantics.c \

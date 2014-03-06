@@ -1,14 +1,15 @@
 #ifndef USAGECONTROL_H
 #define USAGECONTROL_H
 
+
 #include <jni.h>
 #include <stdbool.h>
 #include <pthread.h>
 #include "defs.h"
 #include "ucEvents.h"
-
-#define UC_ENABLED 1
-#define UC_DEBUG_MODE 1
+#include "ucLog.h"
+#include "ucSettings.h"
+#include "ucTypes.h"
 
 #define UC_PDP_ALLOW 1
 #define UC_PDP_INHIBIT 2
@@ -42,19 +43,7 @@
 #define METHOD_NOTIFY_NAME 		"notifyEvent"
 #define METHOD_NOTIFY_SIG 		"(" JNI_STRING "[" JNI_STRING "[" JNI_STRING JNI_BOOL ")" JNI_VOID
 
-
-struct s_event {
-	const char *name;
-	const char **params;
-	int cntParams;
-	bool isActual;
-};
-typedef struct s_event event;
-
 bool ucInit();
-
-
-
 
 
 #endif /* USAGECONTROL_H */

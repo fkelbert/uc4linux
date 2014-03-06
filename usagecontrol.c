@@ -84,15 +84,15 @@ void *threadJvmWaiter(void *args) {
 //	(*mainJniEnv)->CallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, jName, jKeys, jVals);
 //}
 
-void notifyEventToPep(event *ev) {
+void notifyEventToPdp(event *ev) {
 	jstring name = (*mainJniEnv)->NewStringUTF(mainJniEnv, ev->name);
 	jarray paramKeys = (*mainJniEnv)->NewObjectArray(mainJniEnv, ev->cntParams, classString, 0);
 	jarray paramVals = (*mainJniEnv)->NewObjectArray(mainJniEnv, ev->cntParams, classString, 0);
 
 	int i;
 	for (i = 0; i < ev->cntParams; i++) {
-		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, paramKeys, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) ev->params[i*2]));
-		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, paramVals, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) ev->params[i*2+1]));
+		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, paramKeys, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) ev->params[i]->key));
+		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, paramVals, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) ev->params[i]->val));
 	}
 
 	(*mainJniEnv)->CallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, name, paramKeys, paramVals, ev->isActual);
@@ -190,17 +190,25 @@ bool ucInit() {
 
 
 
-	event ev;
-	ev.name = "foo";
-	ev.isActual = true;
-	const char *params[] = {
-			"key1", "val1",
-			"key2", "val2",
-			"key3", "val3"
-	};
-	ev.params = params;
-	ev.cntParams = 3;
-	notifyEventToPep(&ev);
+//	event ev;
+//	ev.name = "foo";
+//	ev.isActual = true;
+//	ev.cntParams = 3;
+//	ev.params = malloc (ev.cntParams * sizeof(param));
+//	ev.params[0].key = "k1";
+//	ev.params[1].key = "k2";
+//	ev.params[2].key = "k3";
+//	ev.params[0].val = "v1";
+//	ev.params[1].val = "v2";
+//	ev.params[2].val = "v3";
+//	notifyEventToPdp(&ev);
+
+	event *ev = createEventWithStdParams("foo", 3);
+	addParam(ev, createParam("k1", "v1"));
+	addParam(ev, createParam("k2", "v2"));
+	addParam(ev, createParam("k3", "v3"));
+	notifyEventToPdp(ev);
+	destroyEvent(ev);
 
 
 //	const char *paramSocket[][2] = {
@@ -209,7 +217,7 @@ bool ucInit() {
 //			{"pid", "4562"},
 //			{"fd", "2"},
 //	};
-//	notifyEventToPep("Socket", 4, (const char***) paramSocket);
+//	notifyEventToPdp("Socket", 4, (const char***) paramSocket);
 
 
 
@@ -285,13 +293,33 @@ void notifySyscall(struct tcb *tcp) {
 	 * maybe use syscall_fixup_on_sysenter() in syscall.c
 	 * This also needs to be fixed in ucPIP_main.c::ucPIP_update() then.
 	 */
-	if (exiting(tcp)) {
+	bool actual = !exiting(tcp);
+
+	uc_log("%3d (%c) %s ... ", tcp->scno, actual ? 'A' : 'D', tcp->s_ent->sys_name);
+
+	if (!ucSemanticsDefined(tcp->scno)) {
+		uc_log("ignoring.\n");
+		return;
+	}
+
+	event *ev = ucSemanticsFunct[tcp->scno](tcp);
+	if (ev == NULL) {
+		uc_log("returned NULL.\n");
+		return;
+	}
+
+	if (!actual) {
 //		ucDesired(tcp);
-		printf("%3d (d) %s\n", tcp->scno, tcp->s_ent->sys_name);
+		ev->isActual = false;
+		uc_log("--- DESIRED ---\n");
 	}
 	else {
-		printf("%3d (a) %s\n", tcp->scno, tcp->s_ent->sys_name);
+		uc_log("--- ACTUAL --- ... executing.\n");
+		ev->isActual = true;
+		notifyEventToPdp(ev);
 //		ucActual(tcp);
 	}
+
+	destroyEvent(ev);
 }
 

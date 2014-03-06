@@ -1,34 +1,49 @@
-#include <defs.h>
+#ifndef UC_EVENTS_H
+#define UC_EVENTS_H
+
+#include <stdbool.h>
+
+#include "defs.h"
+#include "ucTypes.h"
 
 #define ucSemantics_IGNORE NULL
+#define ucSemanticsDefined(syscallno) (ucSemanticsFunct[syscallno] != NULL)
 
-extern void (*ucSemanticsFunct[])(struct tcb *tcp);
+#define PID_LEN 8
+#define FD_LEN 8
 
-void ucSemantics_accept(struct tcb *tcp);
-void ucSemantics_clone(struct tcb *tcp);
-void ucSemantics_close(struct tcb *tcp);
-void ucSemantics_connect(struct tcb *tcp);
-void ucSemantics_dup2(struct tcb *tcp);
-void ucSemantics_dup(struct tcb *tcp);
-void ucSemantics_eventfd(struct tcb *tcp);
-void ucSemantics_execve(struct tcb *tcp);
-void ucSemantics_exit(struct tcb *tcp);
-void ucSemantics_exit_group(struct tcb *tcp);
-void ucSemantics_fcntl(struct tcb *tcp);
-void ucSemantics_ftruncate(struct tcb *tcp);
-void ucSemantics_kill(struct tcb *tcp);
-void ucSemantics_mmap(struct tcb *tcp);
-void ucSemantics_munmap(struct tcb *tcp);
-void ucSemantics_openat(struct tcb *tcp);
-void ucSemantics_open(struct tcb *tcp);
-void ucSemantics_pipe(struct tcb *tcp);
-void ucSemantics_read(struct tcb *tcp);
-void ucSemantics_rename(struct tcb *tcp);
-void ucSemantics_shutdown(struct tcb *tcp);
-void ucSemantics_socketpair(struct tcb *tcp);
-void ucSemantics_socket(struct tcb *tcp);
-void ucSemantics_splice(struct tcb *tcp);
-void ucSemantics_unlink(struct tcb *tcp);
-void ucSemantics_write(struct tcb *tcp);
+#define toPid(str,len,i) snprintf(str,len,"%d",i);
+#define toFd(str,len,i) snprintf(str,len,"%d",i);
 
-//void ucSemantics_cloneFirstAction(struct tcb *tcp);
+extern event *(*ucSemanticsFunct[])(struct tcb *tcp);
+
+event *ucSemantics_accept(struct tcb *tcp);
+event *ucSemantics_clone(struct tcb *tcp);
+event *ucSemantics_close(struct tcb *tcp);
+event *ucSemantics_connect(struct tcb *tcp);
+event *ucSemantics_dup2(struct tcb *tcp);
+event *ucSemantics_dup(struct tcb *tcp);
+event *ucSemantics_eventfd(struct tcb *tcp);
+event *ucSemantics_execve(struct tcb *tcp);
+event *ucSemantics_exit(struct tcb *tcp);
+event *ucSemantics_exit_group(struct tcb *tcp);
+event *ucSemantics_fcntl(struct tcb *tcp);
+event *ucSemantics_ftruncate(struct tcb *tcp);
+event *ucSemantics_kill(struct tcb *tcp);
+event *ucSemantics_mmap(struct tcb *tcp);
+event *ucSemantics_munmap(struct tcb *tcp);
+event *ucSemantics_openat(struct tcb *tcp);
+event *ucSemantics_open(struct tcb *tcp);
+event *ucSemantics_pipe(struct tcb *tcp);
+event *ucSemantics_read(struct tcb *tcp);
+event *ucSemantics_rename(struct tcb *tcp);
+event *ucSemantics_shutdown(struct tcb *tcp);
+event *ucSemantics_socketpair(struct tcb *tcp);
+event *ucSemantics_socket(struct tcb *tcp);
+event *ucSemantics_splice(struct tcb *tcp);
+event *ucSemantics_unlink(struct tcb *tcp);
+event *ucSemantics_write(struct tcb *tcp);
+
+//event *ucSemantics_cloneFirstAction(struct tcb *tcp);
+
+#endif

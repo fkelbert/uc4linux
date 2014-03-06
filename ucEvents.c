@@ -1,6 +1,9 @@
-#include <ucEvents.h>
+#include "ucEvents.h"
 
-void ucSemantics_open(struct tcb *tcp) {
+char pid[PID_LEN];
+char fd1[FD_LEN];
+
+event *ucSemantics_open(struct tcb *tcp) { return NULL;
 //	char relFilename[FILENAME_MAX];
 //	char absFilename[FILENAME_MAX];
 //
@@ -15,7 +18,7 @@ void ucSemantics_open(struct tcb *tcp) {
 //	ucSemantics_do_open(tcp->pid, tcp->u_rval, absFilename, tcp->u_arg[1]);
 }
 
-void ucSemantics_unlink(struct tcb *tcp) {
+event *ucSemantics_unlink(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
 //		return;
 //	}
@@ -27,7 +30,7 @@ void ucSemantics_unlink(struct tcb *tcp) {
 //	ucSemantics_log("%5d: unlink(): %s\n", tcp->pid, identifier1);
 }
 
-void ucSemantics_splice(struct tcb *tcp) {
+event *ucSemantics_splice(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval <= 0) {
 //		return;
 //	}
@@ -40,7 +43,7 @@ void ucSemantics_splice(struct tcb *tcp) {
 
 
 
-void ucSemantics_socketpair(struct tcb *tcp) {
+event *ucSemantics_socketpair(struct tcb *tcp) { return NULL;
 //	int sockets[2];
 //	char sockname1[FILENAME_MAX];
 //	char sockname2[FILENAME_MAX];
@@ -73,14 +76,14 @@ void ucSemantics_socketpair(struct tcb *tcp) {
 //	ucSemantics_log("%5d: %s(): %s, %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
 }
 
-void ucSemantics_shutdown(struct tcb *tcp) {
+event *ucSemantics_shutdown(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 shutdown
 }
 
 
 
-void ucSemantics_rename(struct tcb *tcp) {
+event *ucSemantics_rename(struct tcb *tcp) { return NULL;
 //	char oldRelFilename[FILENAME_MAX];
 //	char newRelFilename[FILENAME_MAX];
 //	char oldAbsFilename[FILENAME_MAX];
@@ -107,7 +110,7 @@ void ucSemantics_rename(struct tcb *tcp) {
 //	ucSemantics_log("%5d: rename(): %s --> %s\n", tcp->pid, oldAbsFilename, newAbsFilename);
 }
 
-void ucSemantics_write(struct tcb *tcp) {
+event *ucSemantics_write(struct tcb *tcp) { return NULL;
 //	if (tcp->u_arg[0] <= 0) {
 //		// if return value is 0, nothing was written.
 //		return;
@@ -132,7 +135,7 @@ void ucSemantics_write(struct tcb *tcp) {
 //	ucSemantics_log("%5d: write(): %s --> %s\n", tcp->pid, identifier1, identifier2);
 }
 
-void ucSemantics_socket(struct tcb *tcp) {
+event *ucSemantics_socket(struct tcb *tcp) { return NULL;
 //	char sockname[FILENAME_MAX];
 //	int sfd = tcp->u_rval;
 //
@@ -151,7 +154,7 @@ void ucSemantics_socket(struct tcb *tcp) {
 //	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
 }
 
-void ucSemantics_pipe(struct tcb *tcp) {
+event *ucSemantics_pipe(struct tcb *tcp) { return NULL;
 //	int fds[2];
 //	char pipename[FILENAME_MAX];
 //
@@ -179,34 +182,30 @@ void ucSemantics_pipe(struct tcb *tcp) {
 //	}
 }
 
-void ucSemantics_read(struct tcb *tcp) {
-//	if (tcp->u_arg[0] <= 0) {
-//		// if return value is 0, nothing was written.
-//		return;
-//	}
-//
-//	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
-//	getIdentifierPID(tcp->pid, identifier2, sizeof(identifier2));
-//
-//	if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
-//		return;
-//	}
-//
-//	ucSemantics_log("%5d: %s(): %d <-- %s\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid, identifier1);
-//
-//	// FD -> PID
-//#if defined(UC_DECLASS_ENABLED) && UC_DECLASS_ENABLED
-//	ucDataSet copied;
-//
-//	dataSetNew(copied);
-//	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, copied);
-//	ucDeclass_splus_add(tcp->pid, copied);
-//#else
-//	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
-//#endif
+char *x() {
+	return "x";
 }
 
-void ucSemantics_openat(struct tcb *tcp) {
+event *ucSemantics_read(struct tcb *tcp) {
+	if (tcp->u_arg[0] <= 0) {
+		// if return value is 0, nothing was written.
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_READ, 2);
+
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))) {
+		return ev;
+	}
+
+	return NULL;
+}
+
+event *ucSemantics_openat(struct tcb *tcp) { return NULL;
 //	char path[FILENAME_MAX];
 //	char relFilename[FILENAME_MAX];
 //	char absFilename[FILENAME_MAX];
@@ -235,18 +234,18 @@ void ucSemantics_openat(struct tcb *tcp) {
 //	}
 }
 
-void ucSemantics_munmap(struct tcb *tcp) {
+event *ucSemantics_munmap(struct tcb *tcp) { return NULL;
 //	// TODO. man 2 munmap
 //	// is it possible to do something useful here?
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
-void ucSemantics_mmap(struct tcb *tcp) {
+event *ucSemantics_mmap(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 //	// TODO. man 2 mmap
 }
 
-void ucSemantics_kill(struct tcb *tcp) {
+event *ucSemantics_kill(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
 //		return;
 //	}
@@ -262,7 +261,7 @@ void ucSemantics_kill(struct tcb *tcp) {
 //	// todo: kill may imply exit (do CTRL+F4 while the monitored gnome-terminal is booting up)
 }
 
-void ucSemantics_fcntl(struct tcb *tcp) {
+event *ucSemantics_fcntl(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
 //		return;
 //	}
@@ -283,16 +282,16 @@ void ucSemantics_fcntl(struct tcb *tcp) {
 }
 
 
-void ucSemantics_ftruncate(struct tcb *tcp) {
+event *ucSemantics_ftruncate(struct tcb *tcp) { return NULL;
 //	// TODO. man 2 ftruncate; do sth if length == 0
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
-void ucSemantics_exit(struct tcb *tcp) {
+event *ucSemantics_exit(struct tcb *tcp) { return NULL;
 //	ucSemantics_do_process_exit(tcp->pid);
 }
 
-void ucSemantics_execve(struct tcb *tcp) {
+event *ucSemantics_execve(struct tcb *tcp) { return NULL;
 //	if (initialProcess) {
 //		addProcMem(tcp->pid);
 //
@@ -309,13 +308,13 @@ void ucSemantics_execve(struct tcb *tcp) {
 }
 
 
-void ucSemantics_eventfd(struct tcb *tcp) {
+event *ucSemantics_eventfd(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 //	// TODO. man 2 eventfd
 }
 
 
-void ucSemantics_dup(struct tcb *tcp) {
+event *ucSemantics_dup(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
 //		return;
 //	}
@@ -333,7 +332,7 @@ void ucSemantics_dup(struct tcb *tcp) {
 }
 
 
-void ucSemantics_close(struct tcb *tcp) {
+event *ucSemantics_close(struct tcb *tcp) { return NULL;
 //	if (tcp->u_arg[0] < 0) {
 //		return;
 //	}
@@ -344,12 +343,12 @@ void ucSemantics_close(struct tcb *tcp) {
 //	ucSemantics_log("%5d: close(): %s\n", tcp->pid, identifier1);
 }
 
-void ucSemantics_connect(struct tcb *tcp) {
+event *ucSemantics_connect(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 //	// TODO. man 2 connect
 }
 
-void ucSemantics_accept(struct tcb *tcp) {
+event *ucSemantics_accept(struct tcb *tcp) { return NULL;
 //	char sockname1[FILENAME_MAX];
 //	int sfd = tcp->u_rval;
 //
@@ -370,7 +369,7 @@ void ucSemantics_accept(struct tcb *tcp) {
 }
 
 
-void ucSemantics_sendfile(struct tcb *tcp) {
+event *ucSemantics_sendfile(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
 //		return;
 //	}
@@ -384,7 +383,7 @@ void ucSemantics_sendfile(struct tcb *tcp) {
 }
 
 
-void ucSemantics_dup2(struct tcb *tcp) {
+event *ucSemantics_dup2(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
 //		return;
 //	}
@@ -411,7 +410,7 @@ void ucSemantics_dup2(struct tcb *tcp) {
 }
 
 
-void ucSemantics_exit_group(struct tcb *tcp) {
+event *ucSemantics_exit_group(struct tcb *tcp) { return NULL;
 //	int count;
 //	int *tasks;
 //
@@ -426,7 +425,9 @@ void ucSemantics_exit_group(struct tcb *tcp) {
 //	ucSemantics_log("%5d: exit_group(): %d\n", tcp->pid, tcp->pid);
 }
 
-void (*ucSemanticsFunct[])(struct tcb *tcp) = {
+
+
+event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_accept] = ucSemantics_accept,
 	[SYS_accept4] = ucSemantics_accept,
 	[SYS_access] = ucSemantics_IGNORE,
