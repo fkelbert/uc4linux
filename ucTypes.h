@@ -5,6 +5,7 @@
 #define EVENT_NAME_CLOSE "Close"
 #define EVENT_NAME_DUP "Dup"
 #define EVENT_NAME_DUP2 "Dup2"
+#define EVENT_NAME_EXECVE "Execve"
 #define EVENT_NAME_EXIT "Exit"
 #define EVENT_NAME_EXITGROUP "ExitGroup"
 #define EVENT_NAME_FCNTL "Fcntl"

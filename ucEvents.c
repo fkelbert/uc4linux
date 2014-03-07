@@ -445,20 +445,15 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 	return NULL;
 }
 
-event *ucSemantics_execve(struct tcb *tcp) { return NULL;
-//	if (initialProcess) {
-//		addProcMem(tcp->pid);
-//
-//		getIdentifierPID(tcp->pid, identifier1, sizeof(identifier1));
-//
-//		ucPIP_addIdentifier(identifier1, NULL);
-//
-//		initialProcess = 0;
-//	}
-//	// TODO: man 2 execve
-//	// Remember that execve returns 3 times!
-//	// Also consider man 2 open and fcntl: some file descriptors close automatically on execve()
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
+event *ucSemantics_execve(struct tcb *tcp) {
+	toPid(pid, PID_LEN, tcp->pid);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 1);
+	if (addParam(ev, createParam("pid", pid))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 
