@@ -36,9 +36,7 @@ int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 	}
 
 	if ((dir = opendir(procfsPath))) {
-
 		while ((ent = readdir(dir))) {
-
 			if (*count + 1 == size) {
 				size *= 2;
 				if (!(fds = realloc(fds, size * sizeof(int)))) {
@@ -52,7 +50,6 @@ int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 				(*count)++;
 			}
 		}
-
 	}
 	else {
 		ucSemantics_errorExit("Failed to open procfs directory");
@@ -124,10 +121,6 @@ event *ucSemantics_tee(struct tcb *tcp) {
 	return NULL;
 }
 
-
-
-
-
 event *ucSemantics_shutdown(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 	// TODO. man 2 shutdown
@@ -135,56 +128,23 @@ event *ucSemantics_shutdown(struct tcb *tcp) { return NULL;
 
 
 
-event *ucSemantics_rename(struct tcb *tcp) { return NULL;
-//	char oldRelFilename[FILENAME_MAX];
-//	char newRelFilename[FILENAME_MAX];
-//	char oldAbsFilename[FILENAME_MAX];
-//	char newAbsFilename[FILENAME_MAX];
-//
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	getString(tcp,tcp->u_arg[0],oldRelFilename, sizeof(oldRelFilename));
-//	getString(tcp,tcp->u_arg[1],newRelFilename, sizeof(newRelFilename));
-//
-//	cwdAbsoluteFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename), 0);
-//	cwdAbsoluteFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), 1);
-//
-//	ucPIP_removeContainer(newAbsFilename);
-//
-//	if (!ignoreFile(newAbsFilename)) {
-//		ucPIP_addIdentifier(oldAbsFilename, newAbsFilename);
-//	}
-//
-//	ucPIP_removeIdentifier(oldAbsFilename);
-//
-//	ucSemantics_log("%5d: rename(): %s --> %s\n", tcp->pid, oldAbsFilename, newAbsFilename);
-}
 
-event *ucSemantics_write(struct tcb *tcp) { return NULL;
-//	if (tcp->u_arg[0] <= 0) {
-//		// if return value is 0, nothing was written.
-//		return;
-//	}
-//
-//	getIdentifierPID(tcp->pid, identifier1, sizeof(identifier1));
-//	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
-//
-//	if (g_hash_table_lookup_extended(ignoreFDs, identifier2, NULL, NULL)) {
-//		return;
-//	}
-//
-//	if (strstarts(fn, "socket:")) {
-//		// For sockets, we won't be able to read the same data again using the same container.
-//		// Thus, copy data to all aliases but not to the container into which we are writing itself.
-//		ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL_ALIASES, NULL);
-//	}
-//	else {
-//		ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
-//	}
-//
-//	ucSemantics_log("%5d: write(): %s --> %s\n", tcp->pid, identifier1, identifier2);
+event *ucSemantics_write(struct tcb *tcp) {
+	if (tcp->u_rval <= 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_WRITE, 2);
+
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 event *ucSemantics_socket(struct tcb *tcp) {
@@ -308,8 +268,8 @@ event *ucSemantics_open(struct tcb *tcp) {
 }
 
 event *ucSemantics_read(struct tcb *tcp) {
-	if (tcp->u_arg[0] <= 0) {
-		// if return value is 0, nothing was written.
+	if (tcp->u_rval <= 0) {
+		// if return value is 0, nothing was read.
 		return NULL;
 	}
 
@@ -325,6 +285,34 @@ event *ucSemantics_read(struct tcb *tcp) {
 
 	return NULL;
 }
+
+event *ucSemantics_rename(struct tcb *tcp) {
+	char oldFilename[FILENAME_MAX];
+	char newFilename[FILENAME_MAX];
+
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(oldFilename), oldFilename)) {
+		oldFilename[sizeof(oldFilename) - 1] = '\0';
+	}
+
+	if (!umovestr(tcp, tcp->u_arg[1], sizeof(newFilename), newFilename)) {
+		newFilename[sizeof(newFilename) - 1] = '\0';
+	}
+
+	event *ev = createEventWithStdParams(EVENT_NAME_RENAME, 2);
+	if (addParam(ev, createParam("old", oldFilename))
+		&& addParam(ev, createParam("new", newFilename))) {
+		return ev;
+	}
+
+	return NULL;
+}
+
 
 event *ucSemantics_openat(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
@@ -524,7 +512,7 @@ event *ucSemantics_dup2(struct tcb *tcp) {
 }
 
 event *ucSemantics_close(struct tcb *tcp) {
-	if (tcp->u_arg[0] < 0) {
+	if (tcp->u_rval < 0) {
 		return NULL;
 	}
 
