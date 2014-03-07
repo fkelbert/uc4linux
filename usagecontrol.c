@@ -82,20 +82,6 @@ void *threadJvmWaiter(void *args) {
 }
 
 
-//void notifyEventToPep(char *name, int cntParams, const char ***params) {
-//	jstring jName = (*mainJniEnv)->NewStringUTF(mainJniEnv, name);
-//	jarray jKeys = (*mainJniEnv)->NewObjectArray(mainJniEnv, cntParams, classString, 0);
-//	jarray jVals = (*mainJniEnv)->NewObjectArray(mainJniEnv, cntParams, classString, 0);
-//
-//	int i;
-//	for (i = 0; i < cntParams; i++) {
-//		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, jKeys, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) params[i*2]));
-//		(*mainJniEnv)->SetObjectArrayElement(mainJniEnv, jVals, i, (*mainJniEnv)->NewStringUTF(mainJniEnv, (const char*) params[i*2+1]));
-//	}
-//
-//	(*mainJniEnv)->CallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, jName, jKeys, jVals);
-//}
-
 void notifyEventToPdp(event *ev) {
 	jstring name = JniNewStringUTF(mainJniEnv, ev->name);
 	jarray paramKeys = JniNewObjectArray(mainJniEnv, ev->cntParams, classString, 0);
@@ -200,20 +186,6 @@ bool ucInit() {
 		exit(1);
 	}
 
-
-
-//	event ev;
-//	ev.name = "foo";
-//	ev.isActual = true;
-//	ev.cntParams = 3;
-//	ev.params = malloc (ev.cntParams * sizeof(param));
-//	ev.params[0].key = "k1";
-//	ev.params[1].key = "k2";
-//	ev.params[2].key = "k3";
-//	ev.params[0].val = "v1";
-//	ev.params[1].val = "v2";
-//	ev.params[2].val = "v3";
-//	notifyEventToPdp(&ev);
 
 	event *ev = createEventWithStdParams("foo", 3);
 	addParam(ev, createParam("k1", "v1"));

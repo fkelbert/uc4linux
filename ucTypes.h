@@ -3,6 +3,8 @@
 
 #define EVENT_NAME_READ "Read"
 #define EVENT_NAME_OPEN "Open"
+#define EVENT_NAME_OPENAT "OpenAt"
+#define EVENT_NAME_CLOSE "Close"
 
 #include <stdlib.h>
 #include <stdbool.h>
