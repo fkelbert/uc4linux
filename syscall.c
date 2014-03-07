@@ -926,7 +926,7 @@ print_pc(struct tcb *tcp)
 /* Shuffle syscall numbers so that we don't have huge gaps in syscall table.
  * The shuffling should be reversible: shuffle_scno(shuffle_scno(n)) == n.
  */
-#if defined(ARM) /* So far only ARM needs this */
+#if defined(ARM) || defined(AARCH64) /* So far only 32-bit ARM needs this */
 static long
 shuffle_scno(unsigned long scno)
 {
@@ -1218,12 +1218,13 @@ get_scno(struct tcb *tcp)
 # ifdef POWERPC64
 	int currpers;
 
-	/* Check for 64/32 bit mode. */
-	/* SF is bit 0 of MSR */
-	if ((ppc_regs.msr >> 63) & 1)
-		currpers = 0;
-	else
-		currpers = 1;
+	/*
+	 * Check for 64/32 bit mode.
+	 * Embedded implementations covered by Book E extension of PPC use
+	 * bit 0 (CM) of 32-bit Machine state register (MSR).
+	 * Other implementations use bit 0 (SF) of 64-bit MSR.
+	 */
+	currpers = (ppc_regs.msr & 0x8000000080000000) ? 0 : 1;
 	update_personality(tcp, currpers);
 # endif
 #elif defined(AVR32)
@@ -1346,6 +1347,7 @@ get_scno(struct tcb *tcp)
 			/* We are in 32-bit mode */
 			/* Note: we don't support OABI, unlike 32-bit ARM build */
 			scno = arm_regs.ARM_r7;
+			scno = shuffle_scno(scno);
 			update_personality(tcp, 0);
 			break;
 	}

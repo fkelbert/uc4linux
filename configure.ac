@@ -196,7 +196,9 @@ AC_CHECK_MEMBERS([struct sockaddr_in6.sin6_scope_id],,,
 AC_LITTLE_ENDIAN_LONG_LONG
 
 AC_CHECK_FUNCS(m4_normalize([
+	fopen64
 	fork
+	fputs_unlocked
 	if_indextoname
 	inet_ntop
 	prctl
@@ -220,6 +222,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	mqueue.h
 	netinet/sctp.h
 	poll.h
+	scsi/sg.h
 	stropts.h
 	sys/acl.h
 	sys/asynch.h
@@ -294,6 +297,7 @@ AC_CACHE_CHECK([for BLKGETSIZE64], [ac_cv_have_blkgetsize64],
 
 AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([long long])
+AC_CHECK_SIZEOF([off_t],,[#include <sys/types.h>])
 AC_CHECK_SIZEOF([rlim_t],,[#include <sys/resource.h>])
 
 AC_CACHE_CHECK([for SA_RESTORER], [st_cv_sa_restorer],
@@ -306,6 +310,15 @@ if test "x$st_cv_sa_restorer" != xno; then
 			   [SA_RESTORER defined in <asm/signal.h>])
 fi
 
+AC_CACHE_CHECK([for __builtin_popcount], [st_cv_have___builtin_popcount],
+	       [AC_LINK_IFELSE([AC_LANG_PROGRAM([], [__builtin_popcount(0)])],
+			       [st_cv_have___builtin_popcount=yes],
+			       [st_cv_have___builtin_popcount=no])])
+if test "x$st_cv_have___builtin_popcount" = xyes; then
+	AC_DEFINE([HAVE___BUILTIN_POPCOUNT], [1],
+		  [Define to 1 if the system provides __builtin_popcount function])
+fi
+
 PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0 libevent_pthreads])
 
 # JNI
@@ -314,12 +327,6 @@ for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
 do
 	CPPFLAGS="$CPPFLAGS -I$JNI_INCLUDE_DIR"
 done
-
-# Pthreads
-#ACX_PTHREAD
-#LIBS="$PTHREAD_LIBS $LIBS"
-#CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-#CC="$PTHREAD_CC"
 
 AC_PATH_PROG([PERL], [perl])
 

@@ -109,9 +109,6 @@ static const struct xlat fcntlcmds[] = {
 #ifdef F_SETLKW
 	XLAT(F_SETLKW),
 #endif
-#ifdef F_FREESP
-	XLAT(F_FREESP),
-#endif
 #ifdef F_GETLK
 	XLAT(F_GETLK),
 #endif
@@ -120,9 +117,6 @@ static const struct xlat fcntlcmds[] = {
 #endif
 #ifdef F_SETLKW64
 	XLAT(F_SETLKW64),
-#endif
-#ifdef F_FREESP64
-	XLAT(F_FREESP64),
 #endif
 #ifdef F_GETLK64
 	XLAT(F_GETLK64),
@@ -220,36 +214,26 @@ static const struct xlat perf_event_open_flags[] = {
 	XLAT_END
 };
 
+/*
+ * Assume that F_SETLK64, F_SETLKW64, and F_GETLK64 are either defined
+ * or not defined altogether.
+ */
 #if defined(F_SETLK64) && F_SETLK64 + 0 != F_SETLK
-# define HAVE_F_SETLK64 1
+# define USE_PRINTFLOCK64 1
 #else
-# define HAVE_F_SETLK64 0
+# define USE_PRINTFLOCK64 0
 #endif
 
-#if defined(F_SETLKW64) && F_SETLKW64 + 0 != F_SETLKW
-# define HAVE_F_SETLKW64 1
-#else
-# define HAVE_F_SETLKW64 0
-#endif
+#if USE_PRINTFLOCK64
 
-#if defined(F_GETLK64) && F_GETLK64+0 != F_GETLK
-# define HAVE_F_GETLK64 1
-#else
-# define HAVE_F_GETLK64 0
-#endif
-
-#if defined(X32) || defined(F_FREESP64) || \
-    HAVE_F_SETLK64 || HAVE_F_SETLKW64 || HAVE_F_GETLK64
-
-#ifndef HAVE_STRUCT_FLOCK64
+# ifndef HAVE_STRUCT_FLOCK64
 struct flock64 {
 	short int l_type, l_whence;
 	int64_t l_start, l_len;
 	int l_pid;
 };
-#endif
+# endif
 
-/* fcntl/lockf */
 static void
 printflock64(struct tcb *tcp, long addr, int getlk)
 {
@@ -269,22 +253,20 @@ printflock64(struct tcb *tcp, long addr, int getlk)
 	else
 		tprints("}");
 }
-#endif
+#endif /* USE_PRINTFLOCK64 */
 
-/* fcntl/lockf */
 static void
 printflock(struct tcb *tcp, long addr, int getlk)
 {
 	struct flock fl;
+	int r;
 
 #if SUPPORTED_PERSONALITIES > 1
-# ifdef X32
-	if (current_personality == 0) {
-		printflock64(tcp, addr, getlk);
-		return;
-	}
-# endif
-	if (current_wordsize != sizeof(fl.l_start)) {
+	if (
+# if SIZEOF_OFF_T > SIZEOF_LONG
+	    current_personality > 0 &&
+#endif
+	    current_wordsize != sizeof(fl.l_start)) {
 		if (current_wordsize == 4) {
 			/* 32-bit x86 app on x86_64 and similar cases */
 			struct {
@@ -294,15 +276,14 @@ printflock(struct tcb *tcp, long addr, int getlk)
 				int32_t l_len; /* off_t */
 				int32_t l_pid; /* pid_t */
 			} fl32;
-			if (umove(tcp, addr, &fl32) < 0) {
-				tprints("{...}");
-				return;
+			r = umove(tcp, addr, &fl32);
+			if (r >= 0) {
+				fl.l_type = fl32.l_type;
+				fl.l_whence = fl32.l_whence;
+				fl.l_start = fl32.l_start;
+				fl.l_len = fl32.l_len;
+				fl.l_pid = fl32.l_pid;
 			}
-			fl.l_type = fl32.l_type;
-			fl.l_whence = fl32.l_whence;
-			fl.l_start = fl32.l_start;
-			fl.l_len = fl32.l_len;
-			fl.l_pid = fl32.l_pid;
 		} else {
 			/* let people know we have a problem here */
 			tprintf("<decode error: unsupported wordsize %d>",
@@ -312,16 +293,17 @@ printflock(struct tcb *tcp, long addr, int getlk)
 	} else
 #endif
 	{
-		if (umove(tcp, addr, &fl) < 0) {
-			tprints("{...}");
-			return;
-		}
+		r = umove(tcp, addr, &fl);
+	}
+	if (r < 0) {
+		tprints("{...}");
+		return;
 	}
 	tprints("{type=");
 	printxval(lockfcmds, fl.l_type, "F_???");
 	tprints(", whence=");
 	printxval(whence_codes, fl.l_whence, "SEEK_???");
-#ifdef X32
+#if SIZEOF_OFF_T > SIZEOF_LONG
 	tprintf(", start=%lld, len=%lld", fl.l_start, fl.l_len);
 #else
 	tprintf(", start=%ld, len=%ld", fl.l_start, fl.l_len);
@@ -355,28 +337,15 @@ sys_fcntl(struct tcb *tcp)
 			tprint_open_modes(tcp->u_arg[2]);
 			break;
 		case F_SETLK: case F_SETLKW:
-#ifdef F_FREESP
-		case F_FREESP:
-#endif
 			tprints(", ");
 			printflock(tcp, tcp->u_arg[2], 0);
 			break;
-#if defined(F_FREESP64) || HAVE_F_SETLK64 || HAVE_F_SETLKW64
-#ifdef F_FREESP64
-		case F_FREESP64:
-#endif
-		/* Linux glibc defines SETLK64 as SETLK,
-		   even though the kernel has different values - as does Solaris. */
-#if HAVE_F_SETLK64
-		case F_SETLK64:
-#endif
-#if HAVE_F_SETLKW64
-		case F_SETLKW64:
-#endif
+#if USE_PRINTFLOCK64
+		case F_SETLK64: case F_SETLKW64:
 			tprints(", ");
 			printflock64(tcp, tcp->u_arg[2], 0);
 			break;
-#endif /* defined(F_FREESP64) || HAVE_F_SETLK64 || HAVE_F_SETLKW64 */
+#endif /* USE_PRINTFLOCK64 */
 #ifdef F_NOTIFY
 		case F_NOTIFY:
 			tprints(", ");
@@ -421,7 +390,7 @@ sys_fcntl(struct tcb *tcp)
 			tprints(", ");
 			printflock(tcp, tcp->u_arg[2], 1);
 			break;
-#if HAVE_F_GETLK64
+#if USE_PRINTFLOCK64
 		case F_GETLK64:
 			tprints(", ");
 			printflock64(tcp, tcp->u_arg[2], 1);
