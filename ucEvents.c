@@ -126,9 +126,6 @@ event *ucSemantics_shutdown(struct tcb *tcp) { return NULL;
 	// TODO. man 2 shutdown
 }
 
-
-
-
 event *ucSemantics_write(struct tcb *tcp) {
 	if (tcp->u_rval <= 0) {
 		return NULL;
@@ -359,25 +356,83 @@ event *ucSemantics_munmap(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
-event *ucSemantics_mmap(struct tcb *tcp) { return NULL;
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
-//	// TODO. man 2 mmap
+event *ucSemantics_mmap(struct tcb *tcp) {
+	if (tcp->u_rval < 0 || tcp->u_arg[4] < 0) {
+		return NULL;
+	}
+
+	int n;
+	int written;
+	const struct xlat *xlat;
+
+	char protsStr[256];
+	char flagsStr[256];
+
+	int prots = tcp->u_arg[2];
+	int flags = tcp->u_arg[3];
+
+	// First thing to do is to retrieve mmap flags.
+	// The reason is that one of those flags is MAP_ANONYMOUS,
+	// in which case we are no longer interested
+
+	// retrieve mmap flags, cf. strace:mem.c/util.c
+	xlat = mmap_flags;
+	written = 0;
+	for (n = 0; xlat->str; xlat++) {
+		if (xlat->val && (flags & xlat->val) == xlat->val) {
+			if (strncmp(xlat->str,MAP_ANONYMOUS,MIN(sizeof(xlat->str),sizeof(MAP_ANONYMOUS))) == 0) {
+				// One of the flags is MAP_ANONYMOUS. Not interesting. return.
+				return NULL;
+			}
+			written += snprintf(flagsStr + written, sizeof(flagsStr) - written, "%s|", xlat->str);
+			flags &= ~xlat->val;
+			n++;
+		}
+	}
+
+	// retrieve mmap protocols, cf. strace:mem.c/util.c
+	xlat = mmap_prot;
+	written = 0;
+	for (n = 0; xlat->str; xlat++) {
+		if (xlat->val && (prots & xlat->val) == xlat->val) {
+			written += snprintf(protsStr + written, sizeof(protsStr) - written, "%s|", xlat->str);
+			prots &= ~xlat->val;
+			n++;
+		}
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1,FD_LEN,tcp->u_arg[4]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_MMAP, 4);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("prot", protsStr))
+		&& addParam(ev, createParam("flags", flagsStr))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
-event *ucSemantics_kill(struct tcb *tcp) { return NULL;
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	getIdentifierPID(tcp->pid, identifier1, sizeof(identifier1));
-//	getIdentifierPID(tcp->u_arg[0], identifier2, sizeof(identifier2));
-//
-//	// PID -> PID
-//	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
-//
-//	ucSemantics_log("%5d: kill(): %s --> %s\n", tcp->pid, identifier1, identifier2);
-//
-//	// todo: kill may imply exit (do CTRL+F4 while the monitored gnome-terminal is booting up)
+// todo: kill may imply exit (do CTRL+F4 while the monitored gnome-terminal is booting up)
+event *ucSemantics_kill(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	char pid2[PID_LEN];
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toPid(pid2, PID_LEN, tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_KILL, 2);
+	if (addParam(ev, createParam("srcPid", pid))
+		&& addParam(ev, createParam("dstPid", pid2))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 event *ucSemantics_fcntl(struct tcb *tcp) {
@@ -455,13 +510,6 @@ event *ucSemantics_execve(struct tcb *tcp) {
 
 	return NULL;
 }
-
-
-event *ucSemantics_eventfd(struct tcb *tcp) { return NULL;
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
-//	// TODO. man 2 eventfd
-}
-
 
 event *ucSemantics_dup(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
@@ -687,10 +735,10 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_epoll_wait] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_eventfd2
-	[SYS_eventfd2] = ucSemantics_eventfd,
+	[SYS_eventfd2] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_eventfd
-	[SYS_eventfd] = ucSemantics_eventfd,
+	[SYS_eventfd] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_execve
 	[SYS_execve] = ucSemantics_execve,

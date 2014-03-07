@@ -30,7 +30,6 @@ event *ucSemantics_close(struct tcb *tcp);
 event *ucSemantics_connect(struct tcb *tcp);
 event *ucSemantics_dup2(struct tcb *tcp);
 event *ucSemantics_dup(struct tcb *tcp);
-event *ucSemantics_eventfd(struct tcb *tcp);
 event *ucSemantics_execve(struct tcb *tcp);
 event *ucSemantics_exit(struct tcb *tcp);
 event *ucSemantics_exit_group(struct tcb *tcp);
@@ -57,5 +56,9 @@ event *ucSemantics_write(struct tcb *tcp);
 // defined in strace:net.c
 extern const struct xlat domains[];
 extern const struct xlat socktypes[];
+extern const struct xlat mmap_prot[];
+extern const struct xlat mmap_flags[];
+
+#define MAP_ANONYMOUS "MAP_ANONYMOUS"
 
 #endif
