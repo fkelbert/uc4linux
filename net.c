@@ -94,7 +94,7 @@
 # define PF_UNSPEC AF_UNSPEC
 #endif
 
-static const struct xlat domains[] = {
+const struct xlat domains[] = {
 #ifdef PF_UNSPEC
 	XLAT(PF_UNSPEC),
 #endif
@@ -346,7 +346,7 @@ const struct xlat addrfams[] = {
 #endif
 	XLAT_END
 };
-static const struct xlat socktypes[] = {
+const struct xlat socktypes[] = {
 	XLAT(SOCK_STREAM),
 	XLAT(SOCK_DGRAM),
 #ifdef SOCK_RAW

@@ -12,8 +12,8 @@
 #define ucSemantics_IGNORE NULL
 #define ucSemanticsDefined(syscallno) (ucSemanticsFunct[syscallno] != NULL)
 
-#define PID_LEN 8
-#define FD_LEN 8
+#define PID_LEN 6
+#define FD_LEN 6
 
 #define toPid(str,len,i) snprintf(str,len,"%d",i);
 #define toFd(str,len,i) snprintf(str,len,"%d",i);
@@ -52,5 +52,9 @@ event *ucSemantics_unlink(struct tcb *tcp);
 event *ucSemantics_write(struct tcb *tcp);
 
 //event *ucSemantics_cloneFirstAction(struct tcb *tcp);
+
+// defined in strace:net.c
+extern const struct xlat domains[];
+extern const struct xlat socktypes[];
 
 #endif

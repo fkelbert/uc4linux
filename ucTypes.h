@@ -7,6 +7,9 @@
 #define EVENT_NAME_CLOSE "Close"
 #define EVENT_NAME_EXIT "Exit"
 #define EVENT_NAME_EXITGROUP "ExitGroup"
+#define EVENT_NAME_SOCKET "Socket"
+#define EVENT_NAME_PIPE "Pipe"
+#define EVENT_NAME_FCNTL "Fcntl"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -39,4 +42,5 @@ void destroyEvent(event *e);
 bool addParam(event *ev, param *p);
 
 #endif
+
 

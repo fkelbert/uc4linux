@@ -184,51 +184,58 @@ event *ucSemantics_write(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: write(): %s --> %s\n", tcp->pid, identifier1, identifier2);
 }
 
-event *ucSemantics_socket(struct tcb *tcp) { return NULL;
-//	char sockname[FILENAME_MAX];
-//	int sfd = tcp->u_rval;
-//
-//	if (sfd < 0) {
-//		return;
-//	}
-//
-//	if (!getSpecialFilename(tcp->pid, sfd, sockname, sizeof(sockname))) {
-//		ucSemantics_errorExit("Unable to get socket name.");
-//	}
-//
-//	getIdentifierFD(tcp->pid, sfd, identifier1, sizeof(identifier1), sockname);
-//
-//	ucPIP_addIdentifier(identifier1, NULL);
-//
-//	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
+event *ucSemantics_socket(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_rval);
+
+	// cf. strace:net.c
+	char *domain = (char*) xlookup(domains, tcp->u_arg[0]);
+
+	// cf. strace:net.c: SOCK_TYPE_MASK == 0xf
+	char *type = (char*) xlookup(socktypes, tcp->u_arg[1] & 0xf);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_SOCKET, 4);
+
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("domain", domain))
+		&& addParam(ev, createParam("type", type))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
-event *ucSemantics_pipe(struct tcb *tcp) { return NULL;
-//	int fds[2];
-//	char pipename[FILENAME_MAX];
-//
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	if (umoven(tcp, tcp->u_arg[0], sizeof(fds), (char *) fds) < 0) {
-//		return;
-//	}
-//
-//	if (!getSpecialFilename(tcp->pid, fds[0], pipename, sizeof(pipename))) {
-//		strncpy(pipename, "<undef>", sizeof(pipename));
-//	}
-//
-//	getIdentifierFD(tcp->pid, fds[0], identifier1, sizeof(identifier1), pipename);
-//	getIdentifierFD(tcp->pid, fds[1], identifier2, sizeof(identifier2), pipename);
-//
-//	if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
-//		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-//	}
-//	else {
-//		ucPIP_addIdentifier(identifier1, identifier2);
-//		ucSemantics_log("%5d: pipe(): %s %s\n", tcp->pid, identifier1, identifier2);
-//	}
+event *ucSemantics_pipe(struct tcb *tcp) {
+	int fds[2];
+	char fd1[FD_LEN];
+	char fd2[FD_LEN];
+
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	if (umoven(tcp, tcp->u_arg[0], sizeof(fds), (char *) fds) < 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1,FD_LEN,fds[0]);
+	toFd(fd2,FD_LEN,fds[1]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_PIPE, 3);
+
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd1", fd1))
+		&& addParam(ev, createParam("fd2", fd2))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 
@@ -348,24 +355,28 @@ event *ucSemantics_kill(struct tcb *tcp) { return NULL;
 //	// todo: kill may imply exit (do CTRL+F4 while the monitored gnome-terminal is booting up)
 }
 
-event *ucSemantics_fcntl(struct tcb *tcp) { return NULL;
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	if (tcp->u_arg[1] == F_DUPFD
-//			|| tcp->u_arg[1] == F_DUPFD_CLOEXEC) {
-//		char * fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
-//		getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
-//
-//		if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
-//			g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-//		}
-//		else {
-//			ucPIP_addIdentifier(identifier1, identifier2);
-//			ucSemantics_log("%5d: fcntl(): %s --> %s\n", tcp->pid, identifier1, identifier2);
-//		}
-//	}
+event *ucSemantics_fcntl(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	if (tcp->u_arg[1] != F_DUPFD && tcp->u_arg[1] != F_DUPFD_CLOEXEC) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1,FD_LEN,tcp->u_arg[0]);
+	toFd(fd2,FD_LEN,tcp->u_rval);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_FCNTL, 4);
+	if (addParam(ev, createParam("operation", "dupfd"))
+		&& addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("oldfd", fd1))
+		&& addParam(ev, createParam("newfd", fd2))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 
@@ -393,7 +404,7 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 
 	// terminate all of the processes' tasks
 	if ((tasks = getProcessTasks(tcp->pid, &count))) {
-		char pids[count * sizeof(char) * 6];
+		char pids[count * sizeof(char) * PID_LEN];
 		int written = 0;
 		while (count-- > 0) {
 			written += snprintf(pids + written, sizeof(pids) - written, "%d:", tasks[count]);
@@ -421,7 +432,7 @@ event *ucSemantics_execve(struct tcb *tcp) { return NULL;
 //	}
 //	// TODO: man 2 execve
 //	// Remember that execve returns 3 times!
-//	// Also consider man 2 open and fcntl: some file descriptors close automatically on exeve()
+//	// Also consider man 2 open and fcntl: some file descriptors close automatically on execve()
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
@@ -467,7 +478,9 @@ event *ucSemantics_close(struct tcb *tcp) {
 	return NULL;
 }
 
-event *ucSemantics_connect(struct tcb *tcp) { return NULL;
+event *ucSemantics_connect(struct tcb *tcp) {
+return NULL;
+
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 //	// TODO. man 2 connect
 }
@@ -1452,6 +1465,9 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 #endif
 #ifdef SYS_socketcall
 	[SYS_socketcall] = ucSemantics_IGNORE,
+#endif
+#ifdef SYS_socket
+	[SYS_socket] = ucSemantics_socket,
 #endif
 #ifdef SYS_socketpair
 	[SYS_socketpair] = ucSemantics_socketpair,
