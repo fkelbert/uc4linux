@@ -4,7 +4,67 @@ char pid[PID_LEN];
 char fd1[FD_LEN];
 char fd2[FD_LEN];
 
+#define PROCFS_MNT "/proc"
 
+#define ucSemantics_errorExit(msg) { \
+			fprintf(stderr, "%s\n", msg); \
+			fprintf(stderr, "Happened in: %s:%d\n", __FILE__, __LINE__); \
+			fprintf(stderr, "Exiting.\n"); \
+			exit (1); \
+		}
+
+int *getIntDirEntries(long pid, int *count, char *procSubPath) {
+	char procfsPath[PATH_MAX];
+	int ret;
+	DIR *dir;
+	struct dirent *ent;
+	int *fds;
+	int size = 8; // do not init to 0!
+	*count = 0;
+
+	ret = snprintf(procfsPath, sizeof(procfsPath), "%s/%ld/%s", PROCFS_MNT, pid, procSubPath);
+
+	if (ret >= sizeof(procfsPath)) {
+		ucSemantics_errorExit("Buffer overflowed.");
+	}
+	else if (ret < 0) {
+		ucSemantics_errorExit("Error while writing to buffer.");
+	}
+
+	if (!(fds = malloc(size * sizeof(int)))) {
+		ucSemantics_errorExit("Unable to allocate memory.");
+	}
+
+	if ((dir = opendir(procfsPath))) {
+
+		while ((ent = readdir(dir))) {
+
+			if (*count + 1 == size) {
+				size *= 2;
+				if (!(fds = realloc(fds, size * sizeof(int)))) {
+					ucSemantics_errorExit("Unable to allocate memory.");
+				}
+			}
+
+			// this condition returns != 1, if the entry is not an integer,
+			// in particular for directories . and ..
+			if (sscanf(ent->d_name, "%d", (fds + *count)) == 1) {
+				(*count)++;
+			}
+		}
+
+	}
+	else {
+		ucSemantics_errorExit("Failed to open procfs directory");
+	}
+
+	return (fds);
+}
+
+
+int *getProcessTasks(long pid, int *count) {
+	return (getIntDirEntries(pid, count, "task"));
+}
 
 
 event *ucSemantics_unlink(struct tcb *tcp) { return NULL;
@@ -314,8 +374,39 @@ event *ucSemantics_ftruncate(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
 }
 
-event *ucSemantics_exit(struct tcb *tcp) { return NULL;
-//	ucSemantics_do_process_exit(tcp->pid);
+event *ucSemantics_exit(struct tcb *tcp) {
+	toPid(pid, PID_LEN, tcp->pid);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_EXIT, 1);
+
+	if (addParam(ev, createParam("pid", pid))) {
+		return ev;
+	}
+
+	return NULL;
+}
+
+
+event *ucSemantics_exit_group(struct tcb *tcp) {
+	int count;
+	int *tasks;
+
+	// terminate all of the processes' tasks
+	if ((tasks = getProcessTasks(tcp->pid, &count))) {
+		char pids[count * sizeof(char) * 6];
+		int written = 0;
+		while (count-- > 0) {
+			written += snprintf(pids + written, sizeof(pids) - written, "%d:", tasks[count]);
+		}
+		free(tasks);
+
+		event *ev = createEventWithStdParams(EVENT_NAME_EXITGROUP, 1);
+		if (addParam(ev, createParam("pids", pids))) {
+			return ev;
+		}
+	}
+
+	return NULL;
 }
 
 event *ucSemantics_execve(struct tcb *tcp) { return NULL;
@@ -443,20 +534,6 @@ event *ucSemantics_dup2(struct tcb *tcp) { return NULL;
 }
 
 
-event *ucSemantics_exit_group(struct tcb *tcp) { return NULL;
-//	int count;
-//	int *tasks;
-//
-//	// terminate all of the processes' tasks
-//	if ((tasks = getProcessTasks(tcp->pid, &count))) {
-//		while (count-- > 0) {
-//			ucSemantics_do_process_exit(tasks[count]);
-//		}
-//		free(tasks);
-//	}
-//
-//	ucSemantics_log("%5d: exit_group(): %d\n", tcp->pid, tcp->pid);
-}
 
 
 

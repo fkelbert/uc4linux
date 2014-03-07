@@ -5,6 +5,8 @@
 #define EVENT_NAME_OPEN "Open"
 #define EVENT_NAME_OPENAT "OpenAt"
 #define EVENT_NAME_CLOSE "Close"
+#define EVENT_NAME_EXIT "Exit"
+#define EVENT_NAME_EXITGROUP "ExitGroup"
 
 #include <stdlib.h>
 #include <stdbool.h>

@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 #include <sys/fcntl.h>
+#include <limits.h>
+#include <dirent.h>
 
 #include "defs.h"
 #include "ucTypes.h"

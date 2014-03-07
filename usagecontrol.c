@@ -296,6 +296,7 @@ void notifySyscall(struct tcb *tcp) {
 //		ucDesired(tcp);
 		ev->isActual = false;
 		uc_log("--- DESIRED ---\n");
+//		notifyEventToPdp(ev);
 	}
 	else {
 		uc_log("--- ACTUAL --- ... executing.\n");
