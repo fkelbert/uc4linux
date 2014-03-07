@@ -67,63 +67,66 @@ int *getProcessTasks(long pid, int *count) {
 }
 
 
-event *ucSemantics_unlink(struct tcb *tcp) { return NULL;
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	getString(tcp, tcp->u_arg[0], identifier1, sizeof(identifier1));
-//
-//	ucPIP_removeIdentifier(identifier1);
-//
-//	ucSemantics_log("%5d: unlink(): %s\n", tcp->pid, identifier1);
+event *ucSemantics_unlink(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(filename), filename)) {
+		filename[sizeof(filename) - 1] = '\0';
+	}
+
+	event *ev = createEventWithStdParams(EVENT_NAME_UNLINK, 1);
+	if (addParam(ev, createParam("filename", filename))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
-event *ucSemantics_splice(struct tcb *tcp) { return NULL;
-//	if (tcp->u_rval <= 0) {
-//		return;
-//	}
-//
-//
-//
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
-//	// TODO. man 2 splice
+event *ucSemantics_splice(struct tcb *tcp) {
+	if (tcp->u_rval <= 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+	toFd(fd2, FD_LEN, tcp->u_arg[2]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_SPLICE, 3);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("srcfd", fd1))
+		&& addParam(ev, createParam("dstfd", fd2))) {
+		return ev;
+	}
+
+	return NULL;
+}
+
+event *ucSemantics_tee(struct tcb *tcp) {
+	if (tcp->u_rval <= 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+	toFd(fd2, FD_LEN, tcp->u_arg[1]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_TEE, 3);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("srcfd", fd1))
+		&& addParam(ev, createParam("dstfd", fd2))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 
 
-event *ucSemantics_socketpair(struct tcb *tcp) { return NULL;
-//	int sockets[2];
-//	char sockname1[FILENAME_MAX];
-//	char sockname2[FILENAME_MAX];
-//
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	if (umoven(tcp, tcp->u_arg[3], sizeof(sockets), (char *) sockets) < 0) {
-//		return;
-//	}
-//
-//	if (!getSpecialFilename(tcp->pid, sockets[0], sockname1, sizeof(sockname1))) {
-//		ucSemantics_errorExit("Unable to get socket name.");
-//	}
-//
-//	if (!getSpecialFilename(tcp->pid, sockets[1], sockname2, sizeof(sockname2))) {
-//		ucSemantics_errorExit("Unable to get socket name.");
-//	}
-//
-//	getIdentifierFD(tcp->pid, sockets[0], identifier1, sizeof(identifier1), sockname1);
-//	getIdentifierFD(tcp->pid, sockets[1], identifier2, sizeof(identifier2), sockname2);
-//
-//	ucPIP_addIdentifier(identifier1, NULL);
-//	ucPIP_addIdentifier(identifier2, NULL);
-//
-//	ucPIP_addAlias(identifier1, identifier2);
-//	ucPIP_addAlias(identifier2, identifier1);
-//
-//	ucSemantics_log("%5d: %s(): %s, %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
-}
+
 
 event *ucSemantics_shutdown(struct tcb *tcp) { return NULL;
 //	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
@@ -210,6 +213,40 @@ event *ucSemantics_socket(struct tcb *tcp) {
 	return NULL;
 }
 
+event *ucSemantics_socketpair(struct tcb *tcp) {
+	int fds[2];
+
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	if (umoven(tcp, tcp->u_arg[3], sizeof fds, (char *) fds) < 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1,FD_LEN, fds[0]);
+	toFd(fd2,FD_LEN, fds[1]);
+
+	// cf. strace:net.c
+	char *domain = (char*) xlookup(domains, tcp->u_arg[0]);
+
+	// cf. strace:net.c: SOCK_TYPE_MASK == 0xf
+	char *type = (char*) xlookup(socktypes, tcp->u_arg[1] & 0xf);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_SOCKETPAIR, 5);
+
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd1", fd1))
+		&& addParam(ev, createParam("fd2", fd2))
+		&& addParam(ev, createParam("domain", domain))
+		&& addParam(ev, createParam("type", type))) {
+		return ev;
+	}
+
+	return NULL;
+}
+
 event *ucSemantics_pipe(struct tcb *tcp) {
 	int fds[2];
 	char fd1[FD_LEN];
@@ -240,7 +277,7 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 
 
 event *ucSemantics_open(struct tcb *tcp) {
-	char relFilename[FILENAME_MAX];
+	char filename[FILENAME_MAX];
 	char *trunc = "false";
 
 	if (tcp->u_rval < 0) {
@@ -250,8 +287,8 @@ event *ucSemantics_open(struct tcb *tcp) {
 	toPid(pid, PID_LEN, tcp->pid);
 	toFd(fd1, FD_LEN, tcp->u_rval);
 
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(relFilename), relFilename)) {
-		relFilename[sizeof(relFilename) - 1] = '\0';
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(filename), filename)) {
+		filename[sizeof(filename) - 1] = '\0';
 	}
 
 	int flags = tcp->u_arg[1];
@@ -262,7 +299,7 @@ event *ucSemantics_open(struct tcb *tcp) {
 	event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
-		&& addParam(ev, createParam("filename", relFilename))
+		&& addParam(ev, createParam("filename", filename))
 		&& addParam(ev, createParam("trunc", trunc))) {
 		return ev;
 	}
@@ -1531,7 +1568,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_syslog] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_tee
-	[SYS_tee] = ucSemantics_IGNORE,
+	[SYS_tee] = ucSemantics_tee,
 #endif
 #ifdef SYS_tgkill
 	[SYS_tgkill] = ucSemantics_IGNORE,
