@@ -443,23 +443,48 @@ event *ucSemantics_eventfd(struct tcb *tcp) { return NULL;
 }
 
 
-event *ucSemantics_dup(struct tcb *tcp) { return NULL;
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
-//	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
-//
-//	if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
-//		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-//	}
-//	else {
-//		ucPIP_addIdentifier(identifier1, identifier2);
-//		ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
-//	}
+event *ucSemantics_dup(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+	toFd(fd2, FD_LEN, tcp->u_rval);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_DUP, 3);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("oldfd", fd1))
+		&& addParam(ev, createParam("newfd", fd2))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
+event *ucSemantics_dup2(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	// dup2() does nothing if oldfd == newfd; dup3() would have failed anyway
+	if (tcp->u_arg[0] == tcp->u_rval) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+	toFd(fd2, FD_LEN, tcp->u_rval);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_DUP2, 3);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("oldfd", fd1))
+		&& addParam(ev, createParam("newfd", fd2))) {
+		return ev;
+	}
+
+	return NULL;
+}
 
 event *ucSemantics_close(struct tcb *tcp) {
 	if (tcp->u_arg[0] < 0) {
@@ -520,31 +545,7 @@ event *ucSemantics_sendfile(struct tcb *tcp) { return NULL;
 }
 
 
-event *ucSemantics_dup2(struct tcb *tcp) { return NULL;
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	// dup2() does nothing if oldfd == newfd; dup3() would have failed anyway
-//	if (tcp->u_arg[0] == tcp->u_rval) {
-//		return;
-//	}
-//
-//	// close the new fd first, if necessary
-//	ucSemantics_do_close(tcp->pid, tcp->u_rval, NULL);
-//
-//	char *fn = getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier1, sizeof(identifier1), NULL);
-//	getIdentifierFD(tcp->pid, tcp->u_rval, identifier2, sizeof(identifier2), fn);
-//
-//	if (g_hash_table_lookup_extended(ignoreFDs, identifier1, NULL, NULL)) {
-//		g_hash_table_insert(ignoreFDs, strdup(identifier2), NULL);
-//	}
-//	else {
-//		ucPIP_addIdentifier(identifier1, identifier2);
-//		ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
-//	}
 
-}
 
 
 

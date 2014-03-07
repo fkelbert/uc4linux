@@ -10,6 +10,8 @@
 #define EVENT_NAME_SOCKET "Socket"
 #define EVENT_NAME_PIPE "Pipe"
 #define EVENT_NAME_FCNTL "Fcntl"
+#define EVENT_NAME_DUP "Dup"
+#define EVENT_NAME_DUP2 "Dup2"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -42,5 +44,4 @@ void destroyEvent(event *e);
 bool addParam(event *ev, param *p);
 
 #endif
-
 

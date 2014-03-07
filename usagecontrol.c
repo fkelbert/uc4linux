@@ -195,15 +195,6 @@ bool ucInit() {
 	destroyEvent(ev);
 
 
-//	const char *paramSocket[][2] = {
-//			{"PEP", "Linux"},
-//			{"host", "machine"},
-//			{"pid", "4562"},
-//			{"fd", "2"},
-//	};
-//	notifyEventToPdp("Socket", 4, (const char***) paramSocket);
-
-
 
 	// start new thread to wait for JVM to die (which should not happen)
 	if (pthread_create( &jvmWaiter, NULL, threadJvmWaiter, NULL) != 0) {
