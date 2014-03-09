@@ -11,6 +11,7 @@
 #define EVENT_NAME_FCNTL "Fcntl"
 #define EVENT_NAME_KILL "Kill"
 #define EVENT_NAME_MMAP "Mmap"
+#define EVENT_NAME_MUNMAP "Munmap"
 #define EVENT_NAME_OPEN "Open"
 #define EVENT_NAME_OPENAT "OpenAt"
 #define EVENT_NAME_PIPE "Pipe"

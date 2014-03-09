@@ -350,10 +350,23 @@ event *ucSemantics_openat(struct tcb *tcp) {
 	return NULL;
 }
 
-event *ucSemantics_munmap(struct tcb *tcp) { return NULL;
-//	// TODO. man 2 munmap
-//	// is it possible to do something useful here?
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
+event *ucSemantics_munmap(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+
+	char addr[12];
+	snprintf(addr, sizeof(addr), "%#lx", tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_MUNMAP, 2);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("addr", addr))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 event *ucSemantics_mmap(struct tcb *tcp) {
@@ -364,6 +377,9 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 	int n;
 	int written;
 	const struct xlat *xlat;
+
+	char addr[12];
+	snprintf(addr, sizeof(addr), "%#lx", tcp->u_rval);
 
 	char protsStr[256];
 	char flagsStr[256];
@@ -404,9 +420,10 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 	toPid(pid, PID_LEN, tcp->pid);
 	toFd(fd1,FD_LEN,tcp->u_arg[4]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_MMAP, 4);
+	event *ev = createEventWithStdParams(EVENT_NAME_MMAP, 5);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("addr", addr))
 		&& addParam(ev, createParam("prot", protsStr))
 		&& addParam(ev, createParam("flags", flagsStr))) {
 		return ev;
