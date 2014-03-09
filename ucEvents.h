@@ -48,6 +48,7 @@ event *ucSemantics_socketpair(struct tcb *tcp);
 event *ucSemantics_socket(struct tcb *tcp);
 event *ucSemantics_splice(struct tcb *tcp);
 event *ucSemantics_tee(struct tcb *tcp);
+event *ucSemantics_truncate(struct tcb *tcp);
 event *ucSemantics_unlink(struct tcb *tcp);
 event *ucSemantics_write(struct tcb *tcp);
 

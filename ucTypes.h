@@ -9,6 +9,7 @@
 #define EVENT_NAME_EXIT "Exit"
 #define EVENT_NAME_EXITGROUP "ExitGroup"
 #define EVENT_NAME_FCNTL "Fcntl"
+#define EVENT_NAME_FTRUNCATE "Ftruncate"
 #define EVENT_NAME_KILL "Kill"
 #define EVENT_NAME_MMAP "Mmap"
 #define EVENT_NAME_MUNMAP "Munmap"
@@ -20,6 +21,7 @@
 #define EVENT_NAME_SOCKETPAIR "Socketpair"
 #define EVENT_NAME_SPLICE "Splice"
 #define EVENT_NAME_TEE "Tee"
+#define EVENT_NAME_TRUNCATE "Truncate"
 #define EVENT_NAME_UNLINK "Unlink"
 #define EVENT_NAME_WRITE "Write"
 

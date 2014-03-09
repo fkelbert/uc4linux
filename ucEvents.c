@@ -248,6 +248,7 @@ event *ucSemantics_open(struct tcb *tcp) {
 		filename[sizeof(filename) - 1] = '\0';
 	}
 
+	// TODO double check whether this is correct and how strace does that!
 	int flags = tcp->u_arg[1];
 	if (IS_O_TRUNC(flags) && (IS_O_RDWR(flags) || IS_O_WRONLY(flags))) {
 		trunc = "true";
@@ -481,9 +482,42 @@ event *ucSemantics_fcntl(struct tcb *tcp) {
 }
 
 
-event *ucSemantics_ftruncate(struct tcb *tcp) { return NULL;
-//	// TODO. man 2 ftruncate; do sth if length == 0
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
+event *ucSemantics_ftruncate(struct tcb *tcp) {
+	if (tcp->u_rval < 0 || tcp->u_arg[1] != 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_FTRUNCATE, 2);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))) {
+		return ev;
+	}
+
+	return NULL;
+}
+
+event *ucSemantics_truncate(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
+	if (tcp->u_rval < 0 || tcp->u_arg[1] != 0) {
+		return NULL;
+	}
+
+	toPid(pid, PID_LEN, tcp->pid);
+
+	if (!umovestr(tcp, tcp->u_arg[0], sizeof(filename), filename)) {
+		filename[sizeof(filename) - 1] = '\0';
+	}
+
+	event *ev = createEventWithStdParams(EVENT_NAME_TRUNCATE, 1);
+	if (addParam(ev, createParam("filename", filename))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 event *ucSemantics_exit(struct tcb *tcp) {
@@ -1659,10 +1693,10 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_tkill] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_truncate64
-	[SYS_truncate64] = ucSemantics_IGNORE,
+	[SYS_truncate64] = ucSemantics_truncate,
 #endif
 #ifdef SYS_truncate
-	[SYS_truncate] = ucSemantics_IGNORE,
+	[SYS_truncate] = ucSemantics_truncate,
 #endif
 #ifdef SYS_ugetrlimit
 	[SYS_ugetrlimit] = ucSemantics_IGNORE,
