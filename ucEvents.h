@@ -59,6 +59,7 @@ extern const struct xlat socktypes[];
 extern const struct xlat mmap_prot[];
 extern const struct xlat mmap_flags[];
 
-#define MAP_ANONYMOUS "MAP_ANONYMOUS"
+#define MMAP_MAP_ANONYMOUS "MAP_ANONYMOUS"
+#define MMAP_PROT_NONE "PROT_NONE"
 
 #endif

@@ -396,7 +396,7 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 	written = 0;
 	for (n = 0; xlat->str; xlat++) {
 		if (xlat->val && (flags & xlat->val) == xlat->val) {
-			if (strncmp(xlat->str,MAP_ANONYMOUS,MIN(sizeof(xlat->str),sizeof(MAP_ANONYMOUS))) == 0) {
+			if (strncmp(xlat->str,MMAP_MAP_ANONYMOUS,MIN(sizeof(xlat->str),sizeof(MMAP_MAP_ANONYMOUS))) == 0) {
 				// One of the flags is MAP_ANONYMOUS. Not interesting. return.
 				return NULL;
 			}
@@ -411,6 +411,10 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 	written = 0;
 	for (n = 0; xlat->str; xlat++) {
 		if (xlat->val && (prots & xlat->val) == xlat->val) {
+			if (strncmp(xlat->str,MMAP_PROT_NONE,MIN(sizeof(xlat->str),sizeof(MMAP_PROT_NONE))) == 0) {
+				// PROT_NONE is not interesting. return.
+				return NULL;
+			}
 			written += snprintf(protsStr + written, sizeof(protsStr) - written, "%s|", xlat->str);
 			prots &= ~xlat->val;
 			n++;

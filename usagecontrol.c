@@ -287,7 +287,12 @@ void notifySyscall(struct tcb *tcp) {
 //		ucDesired(tcp);
 		ev->isActual = false;
 		uc_log("--- DESIRED ---\n");
-//		notifyEventToPdp(ev);
+
+		// SYS_exit and SYS_exit_group will never return. Thus always signal as actual event.
+		if (tcp->scno == SYS_exit || tcp->scno == SYS_exit_group) {
+			ev->isActual = true;
+			notifyEventToPdp(ev);
+		}
 	}
 	else {
 		uc_log("--- ACTUAL --- ... executing.\n");
