@@ -59,7 +59,7 @@ sys_brk(struct tcb *tcp)
 	return RVAL_HEX;
 }
 
-const struct xlat mmap_prot[] = {
+static const struct xlat mmap_prot[] = {
 	XLAT(PROT_NONE),
 	XLAT(PROT_READ),
 	XLAT(PROT_WRITE),
@@ -79,7 +79,7 @@ const struct xlat mmap_prot[] = {
 	XLAT_END
 };
 
-const struct xlat mmap_flags[] = {
+static const struct xlat mmap_flags[] = {
 	XLAT(MAP_SHARED),
 	XLAT(MAP_PRIVATE),
 	XLAT(MAP_FIXED),

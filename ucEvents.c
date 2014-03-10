@@ -71,9 +71,7 @@ event *ucSemantics_unlink(struct tcb *tcp) {
 		return NULL;
 	}
 
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(filename), filename)) {
-		filename[sizeof(filename) - 1] = '\0';
-	}
+	toString(filename, tcp, tcp->u_arg[0]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_UNLINK, 1);
 	if (addParam(ev, createParam("filename", filename))) {
@@ -88,9 +86,9 @@ event *ucSemantics_splice(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_arg[0]);
-	toFd(fd2, FD_LEN, tcp->u_arg[2]);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+	toFd(fd2, tcp->u_arg[2]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_SPLICE, 3);
 	if (addParam(ev, createParam("pid", pid))
@@ -107,9 +105,9 @@ event *ucSemantics_tee(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_arg[0]);
-	toFd(fd2, FD_LEN, tcp->u_arg[1]);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+	toFd(fd2, tcp->u_arg[1]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_TEE, 3);
 	if (addParam(ev, createParam("pid", pid))
@@ -131,8 +129,8 @@ event *ucSemantics_write(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_WRITE, 2);
 
@@ -149,8 +147,8 @@ event *ucSemantics_socket(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_rval);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_rval);
 
 	// cf. strace:net.c
 	char *domain = (char*) xlookup(domains, tcp->u_arg[0]);
@@ -181,9 +179,9 @@ event *ucSemantics_socketpair(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1,FD_LEN, fds[0]);
-	toFd(fd2,FD_LEN, fds[1]);
+	toPid(pid, tcp->pid);
+	toFd(fd1, fds[0]);
+	toFd(fd2, fds[1]);
 
 	// cf. strace:net.c
 	char *domain = (char*) xlookup(domains, tcp->u_arg[0]);
@@ -217,9 +215,9 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1,FD_LEN,fds[0]);
-	toFd(fd2,FD_LEN,fds[1]);
+	toPid(pid, tcp->pid);
+	toFd(fd1,fds[0]);
+	toFd(fd2,fds[1]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_PIPE, 3);
 
@@ -241,16 +239,12 @@ event *ucSemantics_open(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_rval);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_rval);
+	toString(filename, tcp, tcp->u_arg[0]);
 
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(filename), filename)) {
-		filename[sizeof(filename) - 1] = '\0';
-	}
-
-	// TODO double check whether this is correct and how strace does that!
 	int flags = tcp->u_arg[1];
-	if (IS_O_TRUNC(flags) && (IS_O_RDWR(flags) || IS_O_WRONLY(flags))) {
+	if (IS_FLAG_SET(flags, O_TRUNC) && (IS_FLAG_SET(flags, O_RDWR) || IS_FLAG_SET(flags, O_WRONLY))) {
 		trunc = "true";
 	}
 
@@ -271,8 +265,8 @@ event *ucSemantics_read(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_READ, 2);
 
@@ -292,15 +286,9 @@ event *ucSemantics_rename(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(oldFilename), oldFilename)) {
-		oldFilename[sizeof(oldFilename) - 1] = '\0';
-	}
-
-	if (!umovestr(tcp, tcp->u_arg[1], sizeof(newFilename), newFilename)) {
-		newFilename[sizeof(newFilename) - 1] = '\0';
-	}
+	toPid(pid, tcp->pid);
+	toString(oldFilename, tcp, tcp->u_arg[0]);
+	toString(newFilename, tcp, tcp->u_arg[1]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_RENAME, 2);
 	if (addParam(ev, createParam("old", oldFilename))
@@ -321,16 +309,13 @@ event *ucSemantics_openat(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_rval);
-	toFd(fd2, FD_LEN, tcp->u_arg[0]);
-
-	if (!umovestr(tcp, tcp->u_arg[1], sizeof(relFilename), relFilename)) {
-		relFilename[sizeof(relFilename) - 1] = '\0';
-	}
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_rval);
+	toFd(fd2, tcp->u_arg[0]);
+	toString(relFilename, tcp, tcp->u_arg[1]);
 
 	int flags = tcp->u_arg[2];
-	if (IS_O_TRUNC(flags) && (IS_O_RDWR(flags) || IS_O_WRONLY(flags))) {
+	if (IS_FLAG_SET(flags, O_TRUNC) && (IS_FLAG_SET(flags, O_RDWR) || IS_FLAG_SET(flags, O_WRONLY))) {
 		trunc = "true";
 	}
 
@@ -356,7 +341,7 @@ event *ucSemantics_munmap(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
+	toPid(pid, tcp->pid);
 
 	char addr[12];
 	snprintf(addr, sizeof(addr), "%#lx", tcp->u_arg[0]);
@@ -375,61 +360,43 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 		return NULL;
 	}
 
-	int n;
-	int written;
-	const struct xlat *xlat;
-
 	char addr[12];
 	snprintf(addr, sizeof(addr), "%#lx", tcp->u_rval);
-
-	char protsStr[256];
-	char flagsStr[256];
 
 	int prots = tcp->u_arg[2];
 	int flags = tcp->u_arg[3];
 
-	// First thing to do is to retrieve mmap flags.
-	// The reason is that one of those flags is MAP_ANONYMOUS,
-	// in which case we are no longer interested
-
-	// retrieve mmap flags, cf. strace:mem.c/util.c
-	xlat = mmap_flags;
-	written = 0;
-	for (n = 0; xlat->str; xlat++) {
-		if (xlat->val && (flags & xlat->val) == xlat->val) {
-			if (strncmp(xlat->str,MMAP_MAP_ANONYMOUS,MIN(sizeof(xlat->str),sizeof(MMAP_MAP_ANONYMOUS))) == 0) {
-				// One of the flags is MAP_ANONYMOUS. Not interesting. return.
-				return NULL;
-			}
-			written += snprintf(flagsStr + written, sizeof(flagsStr) - written, "%s|", xlat->str);
-			flags &= ~xlat->val;
-			n++;
-		}
+	// MAP_ANONYMOUS flag is not interesting. Return.
+	if (IS_FLAG_SET(flags, MAP_ANONYMOUS)) {
+		return NULL;
 	}
 
-	// retrieve mmap protocols, cf. strace:mem.c/util.c
-	xlat = mmap_prot;
-	written = 0;
-	for (n = 0; xlat->str; xlat++) {
-		if (xlat->val && (prots & xlat->val) == xlat->val) {
-			if (strncmp(xlat->str,MMAP_PROT_NONE,MIN(sizeof(xlat->str),sizeof(MMAP_PROT_NONE))) == 0) {
-				// PROT_NONE is not interesting. return.
-				return NULL;
-			}
-			written += snprintf(protsStr + written, sizeof(protsStr) - written, "%s|", xlat->str);
-			prots &= ~xlat->val;
-			n++;
-		}
+	int written = 0;
+	char flagsStr[256];
+	if (IS_FLAG_SET(prots, PROT_READ)) {
+		written += snprintf(flagsStr + written, sizeof(flagsStr) - written, "%s|", "PROT_READ");
+	}
+	if (IS_FLAG_SET(prots, PROT_WRITE)) {
+		written += snprintf(flagsStr + written, sizeof(flagsStr) - written, "%s|", "PROT_WRITE");
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1,FD_LEN,tcp->u_arg[4]);
+	// if we have not written PROT_READ or PROT_WRITE at this point
+	// the call is not interesting and we return
+	if (written == 0) {
+		return NULL;
+	}
 
-	event *ev = createEventWithStdParams(EVENT_NAME_MMAP, 5);
+	if (IS_FLAG_SET(prots, MAP_SHARED)) {
+		written += snprintf(flagsStr + written, sizeof(flagsStr) - written, "%s|", "MAP_SHARED");
+	}
+
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[4]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_MMAP, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
 		&& addParam(ev, createParam("addr", addr))
-		&& addParam(ev, createParam("prot", protsStr))
 		&& addParam(ev, createParam("flags", flagsStr))) {
 		return ev;
 	}
@@ -445,8 +412,8 @@ event *ucSemantics_kill(struct tcb *tcp) {
 
 	char pid2[PID_LEN];
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toPid(pid2, PID_LEN, tcp->u_arg[0]);
+	toPid(pid, tcp->pid);
+	toPid(pid2, tcp->u_arg[0]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_KILL, 2);
 	if (addParam(ev, createParam("srcPid", pid))
@@ -466,9 +433,9 @@ event *ucSemantics_fcntl(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1,FD_LEN,tcp->u_arg[0]);
-	toFd(fd2,FD_LEN,tcp->u_rval);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+	toFd(fd2, tcp->u_rval);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_FCNTL, 4);
 	if (addParam(ev, createParam("operation", "dupfd"))
@@ -487,8 +454,8 @@ event *ucSemantics_ftruncate(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_FTRUNCATE, 2);
 	if (addParam(ev, createParam("pid", pid))
@@ -506,11 +473,8 @@ event *ucSemantics_truncate(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-
-	if (!umovestr(tcp, tcp->u_arg[0], sizeof(filename), filename)) {
-		filename[sizeof(filename) - 1] = '\0';
-	}
+	toPid(pid, tcp->pid);
+	toString(filename, tcp, tcp->u_arg[0]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_TRUNCATE, 1);
 	if (addParam(ev, createParam("filename", filename))) {
@@ -521,7 +485,7 @@ event *ucSemantics_truncate(struct tcb *tcp) {
 }
 
 event *ucSemantics_exit(struct tcb *tcp) {
-	toPid(pid, PID_LEN, tcp->pid);
+	toPid(pid, tcp->pid);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_EXIT, 1);
 
@@ -556,7 +520,7 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 }
 
 event *ucSemantics_execve(struct tcb *tcp) {
-	toPid(pid, PID_LEN, tcp->pid);
+	toPid(pid, tcp->pid);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 1);
 	if (addParam(ev, createParam("pid", pid))) {
@@ -571,9 +535,9 @@ event *ucSemantics_dup(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_arg[0]);
-	toFd(fd2, FD_LEN, tcp->u_rval);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+	toFd(fd2, tcp->u_rval);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_DUP, 3);
 	if (addParam(ev, createParam("pid", pid))
@@ -595,9 +559,9 @@ event *ucSemantics_dup2(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_arg[0]);
-	toFd(fd2, FD_LEN, tcp->u_rval);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+	toFd(fd2, tcp->u_rval);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_DUP2, 3);
 	if (addParam(ev, createParam("pid", pid))
@@ -614,8 +578,8 @@ event *ucSemantics_close(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, PID_LEN, tcp->pid);
-	toFd(fd1, FD_LEN, tcp->u_arg[0]);
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_CLOSE, 2);
 	if (addParam(ev, createParam("pid", pid))

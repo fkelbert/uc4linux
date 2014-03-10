@@ -5,6 +5,7 @@
 #include <sys/fcntl.h>
 #include <limits.h>
 #include <dirent.h>
+#include <sys/mman.h>
 
 #include "defs.h"
 #include "ucTypes.h"
@@ -15,12 +16,13 @@
 #define PID_LEN 6
 #define FD_LEN 6
 
-#define toPid(str,len,i) snprintf(str,len,"%d",i);
-#define toFd(str,len,i) snprintf(str,len,"%d",i);
+#define toPid(str,i) snprintf(str,PID_LEN,"%d",i);
+#define toFd(str,i) snprintf(str,FD_LEN,"%d",i);
+#define toString(str,tcp,arg)	{ if (!umovestr(tcp, arg, sizeof(str), str)) { \
+											str[sizeof(str) - 1] = '\0';\
+									} }
 
-#define IS_O_RDWR(flag)		((flag & O_RDWR) 	== O_RDWR)
-#define IS_O_WRONLY(flag)	((flag & O_WRONLY) 	== O_WRONLY)
-#define IS_O_TRUNC(flag)	((flag & O_TRUNC) 	== O_TRUNC)
+#define IS_FLAG_SET(field,flag)	((field & flag) == flag)
 
 extern event *(*ucSemanticsFunct[])(struct tcb *tcp);
 
@@ -57,10 +59,5 @@ event *ucSemantics_write(struct tcb *tcp);
 // defined in strace:net.c
 extern const struct xlat domains[];
 extern const struct xlat socktypes[];
-extern const struct xlat mmap_prot[];
-extern const struct xlat mmap_flags[];
-
-#define MMAP_MAP_ANONYMOUS "MAP_ANONYMOUS"
-#define MMAP_PROT_NONE "PROT_NONE"
 
 #endif
