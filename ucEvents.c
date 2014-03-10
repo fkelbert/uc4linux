@@ -673,7 +673,7 @@ event *ucSemantics_connect(struct tcb *tcp) {
 
 }
 
-event *ucSemantics_accept(struct tcb *tcp) { return NULL;
+event *ucSemantics_accept(struct tcb *tcp) {
 //	char sockname1[FILENAME_MAX];
 //	int sfd = tcp->u_rval;
 //
@@ -695,22 +695,23 @@ event *ucSemantics_accept(struct tcb *tcp) { return NULL;
 
 
 event *ucSemantics_sendfile(struct tcb *tcp) { return NULL;
-//	if (tcp->u_rval < 0) {
-//		return;
-//	}
-//
-//	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier1, sizeof(identifier1), NULL);
-//	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
-//
-//	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
-//
-//	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+	toFd(fd2, tcp->u_arg[1]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_SENDFILE, 3);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("outfd", fd1))
+		&& addParam(ev, createParam("infd", fd2))) {
+		return ev;
+	}
+
+	return NULL;
 }
-
-
-
-
-
 
 
 

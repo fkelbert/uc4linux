@@ -18,6 +18,7 @@
 #define EVENT_NAME_OPENAT "OpenAt"
 #define EVENT_NAME_PIPE "Pipe"
 #define EVENT_NAME_RENAME "Rename"
+#define EVENT_NAME_SENDFILE "Sendfile"
 #define EVENT_NAME_SOCKET "Socket"
 #define EVENT_NAME_SOCKETPAIR "Socketpair"
 #define EVENT_NAME_SPLICE "Splice"
