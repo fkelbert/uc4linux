@@ -110,6 +110,30 @@ bool getIPsAndPorts(int pid, int inode, char *localIP, char *localPort, char *re
 }
 
 
+int getParentPid(int pid) {
+	char statusFile[sizeof("/proc/%u/status") + 6];
+	snprintf(statusFile, sizeof(statusFile), "/proc/%u/status", pid);
+
+	FILE *stat = fopen(statusFile, "r");
+	if (stat == NULL) {
+		return -1;
+	}
+
+	char *line;
+	ssize_t s = 0;
+	int ppid = -1;
+	bool found = false;
+
+	for (line = NULL; !found && getline(&line, &s, stat) >= 0; line = NULL, s = 0){
+		if (sscanf(line, "PPid: %d", &ppid) == 1) {
+			found = true;
+		}
+	}
+
+	return ppid;
+}
+
+
 
 int *getProcessTasks(long pid, int *count) {
 	return (getIntDirEntries(pid, count, "task"));
@@ -598,15 +622,15 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 	return NULL;
 }
 
-event *ucSemantics_fork(struct tcb *tcp) {
-
-}
-
 event *ucSemantics_execve(struct tcb *tcp) {
-	toPid(pid, tcp->pid);
+	char filename[FILENAME_MAX];
 
-	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 1);
-	if (addParam(ev, createParam("pid", pid))) {
+	toPid(pid, tcp->pid);
+	toString(filename, tcp, tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 2);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("filename", filename))) {
 		return ev;
 	}
 
@@ -656,8 +680,55 @@ event *ucSemantics_dup2(struct tcb *tcp) {
 	return NULL;
 }
 
-event *ucSemantics_clone(struct tcb *tcp) {
 
+event *ucSemantics_clone(struct tcb *tcp) {
+	char childPid[PID_LEN];
+	char parentPid[PID_LEN];
+	char flags[256];
+
+	/*
+	 * The following else-ifs get the parent and child pids.
+	 */
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+	else if (tcp->u_rval == 0) {
+		// the child
+
+		int ppid = getParentPid(tcp->pid);
+		if (ppid < 0) {
+			return NULL;
+		}
+
+		toPid(childPid, tcp->pid);
+		toPid(parentPid, ppid);
+	}
+	else { // tcp->u_rval > 0
+		// the parent
+
+		toPid(childPid, tcp->u_rval);
+		toPid(parentPid, tcp->pid);
+	}
+
+	// process flags
+	if (tcp->scno == SYS_fork) {
+		snprintf(flags,sizeof(flags), "");
+	}
+	else if (tcp->scno == SYS_fork) {
+		snprintf(flags,sizeof(flags), "");
+	}
+	else if (tcp->scno == SYS_clone) {
+		// TODO
+	}
+
+	event *ev = createEventWithStdParams(EVENT_NAME_CLONE, 3);
+	if (addParam(ev, createParam("childPid", childPid))
+		&& addParam(ev, createParam("parentPid", parentPid))
+		&& addParam(ev, createParam("flags", flags))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 event *ucSemantics_close(struct tcb *tcp) {
@@ -710,7 +781,6 @@ event *ucSemantics_connect(struct tcb *tcp) {
 	}
 
 	return NULL;
-
 }
 
 event *ucSemantics_accept(struct tcb *tcp) {
@@ -957,7 +1027,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_flock] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_fork
-	[SYS_fork] = ucSemantics_fork,
+	[SYS_fork] = ucSemantics_clone,
 #endif
 #ifdef SYS_fremovexattr
 	[SYS_fremovexattr] = ucSemantics_IGNORE,
@@ -1839,7 +1909,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_utime] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_vfork
-	[SYS_vfork] = ucSemantics_fork,
+	[SYS_vfork] = ucSemantics_clone,
 #endif
 #ifdef SYS_vhangup
 	[SYS_vhangup] = ucSemantics_IGNORE,

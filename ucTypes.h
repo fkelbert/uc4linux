@@ -2,6 +2,7 @@
 #define UC_TYPES_H
 
 #define EVENT_NAME_ACCEPT "Accept"
+#define EVENT_NAME_CLONE "Clone"
 #define EVENT_NAME_CLOSE "Close"
 #define EVENT_NAME_CONNECT "Connect"
 #define EVENT_NAME_DUP "Dup"
