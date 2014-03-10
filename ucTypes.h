@@ -3,6 +3,7 @@
 
 #define EVENT_NAME_READ "Read"
 #define EVENT_NAME_CLOSE "Close"
+#define EVENT_NAME_CONNECT "Connect"
 #define EVENT_NAME_DUP "Dup"
 #define EVENT_NAME_DUP2 "Dup2"
 #define EVENT_NAME_EXECVE "Execve"

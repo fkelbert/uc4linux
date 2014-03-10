@@ -5,6 +5,7 @@
 #include <sys/fcntl.h>
 #include <limits.h>
 #include <dirent.h>
+#include <stdio.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 
@@ -47,6 +48,7 @@ event *ucSemantics_open(struct tcb *tcp);
 event *ucSemantics_pipe(struct tcb *tcp);
 event *ucSemantics_read(struct tcb *tcp);
 event *ucSemantics_rename(struct tcb *tcp);
+event *ucSemantics_sendfile(struct tcb *tcp);
 event *ucSemantics_shutdown(struct tcb *tcp);
 event *ucSemantics_socketpair(struct tcb *tcp);
 event *ucSemantics_socket(struct tcb *tcp);

@@ -59,6 +59,45 @@ int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 }
 
 
+bool getIPsAndPorts(int pid, int inode, char *localIP, char *localPort, char *remoteIP, char *remotePort) {
+	char conFile[sizeof("/proc/%u/net/tcp") + 6];
+	snprintf(conFile, sizeof(conFile), "/proc/%u/net/tcp", pid);
+
+	FILE *cons = fopen(conFile, "r");
+	if (cons == NULL) {
+		return false;
+	}
+
+	char *line;
+	ssize_t s = 0;
+	int grbg_x;
+	char grbg[6][32];
+	int inodeFound;
+	bool first = true;
+	bool found = false;
+
+	for (line = NULL; !found && getline(&line, &s, cons) >= 0; line = NULL, s = 0){
+		if (first) {
+			first = false;
+			continue;
+		}
+
+		sscanf(line, " %d: %8s:%4s %8s:%4s %31s %31s %31s %31s %31s %31s %d",
+				&grbg_x, localIP, localPort, remoteIP, remotePort,
+				grbg[0], grbg[1], grbg[2], grbg[3], grbg[4], grbg[5],
+				&inodeFound);
+
+		// Have we found the correct entry? If so, break.
+		if (inode == inodeFound) {
+			found = true;
+		}
+	}
+
+	return found;
+}
+
+
+
 int *getProcessTasks(long pid, int *count) {
 	return (getIntDirEntries(pid, count, "task"));
 }
@@ -599,104 +638,73 @@ event *ucSemantics_close(struct tcb *tcp) {
 }
 
 event *ucSemantics_connect(struct tcb *tcp) {
-//	char localIP[128];
-//	char remoteIP[128];
-//	char localPort[6];
-//	char remotePort[6];
+	if (tcp->u_rval || tcp->u_arg[0] < 0) {
+		return NULL;
+	}
+
+	char path[PATH_MAX + 1];
+	int socketInode;
+	char localIP[9];
+	char remoteIP[9];
+	char localPort[5];
+	char remotePort[5];
+
+	getfdpath(tcp, tcp->u_arg[0], path, sizeof(path));
+	sscanf(path,"socket:[%d]", &socketInode);
+
+	if (!getIPsAndPorts(tcp->pid, socketInode, localIP, localPort, remoteIP, remotePort)) {
+		return NULL;
+	}
+
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_CONNECT, 6);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("localIP", localIP))
+		&& addParam(ev, createParam("localPort", localPort))
+		&& addParam(ev, createParam("remoteIP", remoteIP))
+		&& addParam(ev, createParam("remotePort", remotePort))) {
+		return ev;
+	}
+
+	return NULL;
+
+}
+
+event *ucSemantics_accept(struct tcb *tcp) { return NULL;
+//	char sockname1[FILENAME_MAX];
+//	int sfd = tcp->u_rval;
 //
+//	if (sfd < 0) {
+//		return;
+//	}
+//
+//	if (!getSpecialFilename(tcp->pid, sfd, sockname1, sizeof(sockname1))) {
+//		ucSemantics_errorExit("Unable to get socket name.");
+//	}
+//
+//	getIdentifierFD(tcp->pid, sfd, identifier1, sizeof(identifier1), sockname1);
+////	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), sockname1);
+//
+//	ucPIP_addIdentifier(identifier1, identifier2);
+//
+//	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
+}
+
+
+event *ucSemantics_sendfile(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
-//		return NULL;
+//		return;
 //	}
 //
-//	union {
-//		char pad[128];
-//		struct sockaddr sa;
-//		struct sockaddr_in sin;
-//		struct sockaddr_un sau;
-//#ifdef HAVE_INET_NTOP
-//		struct sockaddr_in6 sa6;
-//#endif
-//	} addrbuf;
+//	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier1, sizeof(identifier1), NULL);
+//	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
 //
-//	long addr = tcp->u_arg[1];
-//	int addrlen = tcp->u_arg[2];
+//	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
 //
-//	if (addrlen < 2 || addrlen > sizeof(addrbuf))
-//		addrlen = sizeof(addrbuf);
-//
-//	memset(&addrbuf, 0, sizeof(addrbuf));
-//	if (umoven(tcp, addr, addrlen, addrbuf.pad) < 0) {
-//		return NULL;
-//	}
-//	addrbuf.pad[sizeof(addrbuf.pad) - 1] = '\0';
-//
-//	switch (addrbuf.sa.sa_family) {
-////	case AF_UNIX:
-////		if (addrlen == 2) {
-////			return NULL;
-////		} else if (addrbuf.sau.sun_path[0]) {
-////			tprints("sun_path=");
-////			printpathn(tcp, addr + 2, strlen(addrbuf.sau.sun_path));
-////		} else {
-////			tprints("sun_path=@");
-////			printpathn(tcp, addr + 3, strlen(addrbuf.sau.sun_path + 1));
-////		}
-////		break;
-//	case AF_INET:
-//		snprintf(remoteIP, sizeof(localIP), "%s", inet_ntoa(addrbuf.sin.sin_addr));
-//		snprintf(remoteIP, sizeof(localPort), "%u", ntohs(addrbuf.sin.sin_port));
-//		break;
-//#ifdef HAVE_INET_NTOP
-//	case AF_INET6:
-//		inet_ntop(AF_INET6, &addrbuf.sa6.sin6_addr, string_addr, sizeof(string_addr));
-//		snprintf(remoteIP, sizeof(localIP), "%s", string_addr);
-//		snprintf(remoteIP, sizeof(localPort), "%u", ntohs(addrbuf.sa6.sin6_port));
-//		break;
-//#endif
-//	default:
-//		return NULL;
-//		break;
-//	}
-//
-//	toPid(pid, tcp->pid);
-//	toFd(fd1, tcp->u_arg[0]);
-//
-////	localIP = getParameterValue("localIP");
-////	localPort = getParameterValue("localPort");
-//}
-//
-//event *ucSemantics_accept(struct tcb *tcp) { return NULL;
-////	char sockname1[FILENAME_MAX];
-////	int sfd = tcp->u_rval;
-////
-////	if (sfd < 0) {
-////		return;
-////	}
-////
-////	if (!getSpecialFilename(tcp->pid, sfd, sockname1, sizeof(sockname1))) {
-////		ucSemantics_errorExit("Unable to get socket name.");
-////	}
-////
-////	getIdentifierFD(tcp->pid, sfd, identifier1, sizeof(identifier1), sockname1);
-//////	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), sockname1);
-////
-////	ucPIP_addIdentifier(identifier1, identifier2);
-////
-////	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
-//}
-//
-//
-//event *ucSemantics_sendfile(struct tcb *tcp) { return NULL;
-////	if (tcp->u_rval < 0) {
-////		return;
-////	}
-////
-////	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier1, sizeof(identifier1), NULL);
-////	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
-////
-////	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
-////
-////	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
+//	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
 }
 
 
