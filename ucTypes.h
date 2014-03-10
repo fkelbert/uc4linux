@@ -1,7 +1,7 @@
 #ifndef UC_TYPES_H
 #define UC_TYPES_H
 
-#define EVENT_NAME_READ "Read"
+#define EVENT_NAME_ACCEPT "Accept"
 #define EVENT_NAME_CLOSE "Close"
 #define EVENT_NAME_CONNECT "Connect"
 #define EVENT_NAME_DUP "Dup"
@@ -17,8 +17,10 @@
 #define EVENT_NAME_OPEN "Open"
 #define EVENT_NAME_OPENAT "OpenAt"
 #define EVENT_NAME_PIPE "Pipe"
+#define EVENT_NAME_READ "Read"
 #define EVENT_NAME_RENAME "Rename"
 #define EVENT_NAME_SENDFILE "Sendfile"
+#define EVENT_NAME_SHUTDOWN "Shutdown"
 #define EVENT_NAME_SOCKET "Socket"
 #define EVENT_NAME_SOCKETPAIR "Socketpair"
 #define EVENT_NAME_SPLICE "Splice"

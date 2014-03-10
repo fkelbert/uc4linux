@@ -87,8 +87,21 @@ bool getIPsAndPorts(int pid, int inode, char *localIP, char *localPort, char *re
 				grbg[0], grbg[1], grbg[2], grbg[3], grbg[4], grbg[5],
 				&inodeFound);
 
-		// Have we found the correct entry? If so, break.
+		// Have we found the correct entry?
+		// If so, adjust results and break.
 		if (inode == inodeFound) {
+			long lport = strtol(localPort, NULL, 16);
+			long rport = strtol(remotePort, NULL, 16);
+			snprintf(localPort, 6, "%d", lport);
+			snprintf(remotePort, 6, "%d", rport);
+
+			int a[4];
+			sscanf(localIP, "%02x%02x%02x%02x", &a[0], &a[1], &a[2], &a[3]);
+			snprintf(localIP, 16, "%d.%d.%d.%d", a[3], a[2], a[1], a[0]);
+
+			sscanf(remoteIP, "%02x%02x%02x%02x", &a[0], &a[1], &a[2], &a[3]);
+			snprintf(remoteIP, 16, "%d.%d.%d.%d", a[3], a[2], a[1], a[0]);
+
 			found = true;
 		}
 	}
@@ -158,9 +171,36 @@ event *ucSemantics_tee(struct tcb *tcp) {
 	return NULL;
 }
 
-event *ucSemantics_shutdown(struct tcb *tcp) { return NULL;
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
-	// TODO. man 2 shutdown
+event *ucSemantics_shutdown(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+
+	char *how = "";
+
+	switch (tcp->u_arg[1]) {
+	case SHUT_RD:
+		how = "RD";
+		break;
+	case SHUT_WR:
+		how = "WR";
+		break;
+	case SHUT_RDWR:
+		how = "RDWR";
+		break;
+	}
+
+	event *ev = createEventWithStdParams(EVENT_NAME_SHUTDOWN, 3);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("how", how))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 event *ucSemantics_write(struct tcb *tcp) {
@@ -644,10 +684,10 @@ event *ucSemantics_connect(struct tcb *tcp) {
 
 	char path[PATH_MAX + 1];
 	int socketInode;
-	char localIP[9];
-	char remoteIP[9];
-	char localPort[5];
-	char remotePort[5];
+	char localIP[16];
+	char remoteIP[16];
+	char localPort[6];
+	char remotePort[6];
 
 	getfdpath(tcp, tcp->u_arg[0], path, sizeof(path));
 	sscanf(path,"socket:[%d]", &socketInode);
@@ -674,23 +714,40 @@ event *ucSemantics_connect(struct tcb *tcp) {
 }
 
 event *ucSemantics_accept(struct tcb *tcp) {
-//	char sockname1[FILENAME_MAX];
-//	int sfd = tcp->u_rval;
-//
-//	if (sfd < 0) {
-//		return;
-//	}
-//
-//	if (!getSpecialFilename(tcp->pid, sfd, sockname1, sizeof(sockname1))) {
-//		ucSemantics_errorExit("Unable to get socket name.");
-//	}
-//
-//	getIdentifierFD(tcp->pid, sfd, identifier1, sizeof(identifier1), sockname1);
-////	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), sockname1);
-//
-//	ucPIP_addIdentifier(identifier1, identifier2);
-//
-//	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	char path[PATH_MAX + 1];
+	int socketInode;
+	char localIP[16];
+	char remoteIP[16];
+	char localPort[6];
+	char remotePort[6];
+
+	getfdpath(tcp, tcp->u_rval, path, sizeof(path));
+	sscanf(path,"socket:[%d]", &socketInode);
+
+	if (!getIPsAndPorts(tcp->pid, socketInode, localIP, localPort, remoteIP, remotePort)) {
+		return NULL;
+	}
+
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_rval);
+	toFd(fd2, tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_ACCEPT, 7);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("newfd", fd1))
+		&& addParam(ev, createParam("oldfd", fd2))
+		&& addParam(ev, createParam("localIP", localIP))
+		&& addParam(ev, createParam("localPort", localPort))
+		&& addParam(ev, createParam("remoteIP", remoteIP))
+		&& addParam(ev, createParam("remotePort", remotePort))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 
