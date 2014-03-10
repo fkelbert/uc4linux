@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <jni.h>
 
 struct s_param {
 	char *key;
@@ -55,5 +56,6 @@ event *createEventWithStdParams(char *name, int cntParams);
 void destroyEvent(event *e);
 bool addParam(event *ev, param *p);
 
+#include "usagecontrol.h"
 #endif
 

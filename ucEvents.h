@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <dirent.h>
 #include <sys/mman.h>
+#include <sys/socket.h>
 
 #include "defs.h"
 #include "ucTypes.h"
@@ -35,6 +36,7 @@ event *ucSemantics_dup(struct tcb *tcp);
 event *ucSemantics_execve(struct tcb *tcp);
 event *ucSemantics_exit(struct tcb *tcp);
 event *ucSemantics_exit_group(struct tcb *tcp);
+event *ucSemantics_fork(struct tcb *tcp);
 event *ucSemantics_fcntl(struct tcb *tcp);
 event *ucSemantics_ftruncate(struct tcb *tcp);
 event *ucSemantics_kill(struct tcb *tcp);
@@ -53,8 +55,6 @@ event *ucSemantics_tee(struct tcb *tcp);
 event *ucSemantics_truncate(struct tcb *tcp);
 event *ucSemantics_unlink(struct tcb *tcp);
 event *ucSemantics_write(struct tcb *tcp);
-
-//event *ucSemantics_cloneFirstAction(struct tcb *tcp);
 
 // defined in strace:net.c
 extern const struct xlat domains[];

@@ -45,6 +45,5 @@
 
 bool ucInit();
 
-
 #endif /* USAGECONTROL_H */
 

@@ -519,6 +519,10 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 	return NULL;
 }
 
+event *ucSemantics_fork(struct tcb *tcp) {
+
+}
+
 event *ucSemantics_execve(struct tcb *tcp) {
 	toPid(pid, tcp->pid);
 
@@ -573,6 +577,10 @@ event *ucSemantics_dup2(struct tcb *tcp) {
 	return NULL;
 }
 
+event *ucSemantics_clone(struct tcb *tcp) {
+
+}
+
 event *ucSemantics_close(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return NULL;
@@ -591,44 +599,104 @@ event *ucSemantics_close(struct tcb *tcp) {
 }
 
 event *ucSemantics_connect(struct tcb *tcp) {
-return NULL;
-
-//	ucSemantics_log("%5d: missing semantics for %s (%d)\n", tcp->pid, tcp->s_ent->sys_name, tcp->pid);
-//	// TODO. man 2 connect
-}
-
-event *ucSemantics_accept(struct tcb *tcp) { return NULL;
-//	char sockname1[FILENAME_MAX];
-//	int sfd = tcp->u_rval;
+//	char localIP[128];
+//	char remoteIP[128];
+//	char localPort[6];
+//	char remotePort[6];
 //
-//	if (sfd < 0) {
-//		return;
-//	}
-//
-//	if (!getSpecialFilename(tcp->pid, sfd, sockname1, sizeof(sockname1))) {
-//		ucSemantics_errorExit("Unable to get socket name.");
-//	}
-//
-//	getIdentifierFD(tcp->pid, sfd, identifier1, sizeof(identifier1), sockname1);
-////	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), sockname1);
-//
-//	ucPIP_addIdentifier(identifier1, identifier2);
-//
-//	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
-}
-
-
-event *ucSemantics_sendfile(struct tcb *tcp) { return NULL;
 //	if (tcp->u_rval < 0) {
-//		return;
+//		return NULL;
 //	}
 //
-//	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier1, sizeof(identifier1), NULL);
-//	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
+//	union {
+//		char pad[128];
+//		struct sockaddr sa;
+//		struct sockaddr_in sin;
+//		struct sockaddr_un sau;
+//#ifdef HAVE_INET_NTOP
+//		struct sockaddr_in6 sa6;
+//#endif
+//	} addrbuf;
 //
-//	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
+//	long addr = tcp->u_arg[1];
+//	int addrlen = tcp->u_arg[2];
 //
-//	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
+//	if (addrlen < 2 || addrlen > sizeof(addrbuf))
+//		addrlen = sizeof(addrbuf);
+//
+//	memset(&addrbuf, 0, sizeof(addrbuf));
+//	if (umoven(tcp, addr, addrlen, addrbuf.pad) < 0) {
+//		return NULL;
+//	}
+//	addrbuf.pad[sizeof(addrbuf.pad) - 1] = '\0';
+//
+//	switch (addrbuf.sa.sa_family) {
+////	case AF_UNIX:
+////		if (addrlen == 2) {
+////			return NULL;
+////		} else if (addrbuf.sau.sun_path[0]) {
+////			tprints("sun_path=");
+////			printpathn(tcp, addr + 2, strlen(addrbuf.sau.sun_path));
+////		} else {
+////			tprints("sun_path=@");
+////			printpathn(tcp, addr + 3, strlen(addrbuf.sau.sun_path + 1));
+////		}
+////		break;
+//	case AF_INET:
+//		snprintf(remoteIP, sizeof(localIP), "%s", inet_ntoa(addrbuf.sin.sin_addr));
+//		snprintf(remoteIP, sizeof(localPort), "%u", ntohs(addrbuf.sin.sin_port));
+//		break;
+//#ifdef HAVE_INET_NTOP
+//	case AF_INET6:
+//		inet_ntop(AF_INET6, &addrbuf.sa6.sin6_addr, string_addr, sizeof(string_addr));
+//		snprintf(remoteIP, sizeof(localIP), "%s", string_addr);
+//		snprintf(remoteIP, sizeof(localPort), "%u", ntohs(addrbuf.sa6.sin6_port));
+//		break;
+//#endif
+//	default:
+//		return NULL;
+//		break;
+//	}
+//
+//	toPid(pid, tcp->pid);
+//	toFd(fd1, tcp->u_arg[0]);
+//
+////	localIP = getParameterValue("localIP");
+////	localPort = getParameterValue("localPort");
+//}
+//
+//event *ucSemantics_accept(struct tcb *tcp) { return NULL;
+////	char sockname1[FILENAME_MAX];
+////	int sfd = tcp->u_rval;
+////
+////	if (sfd < 0) {
+////		return;
+////	}
+////
+////	if (!getSpecialFilename(tcp->pid, sfd, sockname1, sizeof(sockname1))) {
+////		ucSemantics_errorExit("Unable to get socket name.");
+////	}
+////
+////	getIdentifierFD(tcp->pid, sfd, identifier1, sizeof(identifier1), sockname1);
+//////	getIdentifierSocket(tcp, tcp->u_arg[1], tcp->u_arg[2], identifier2, sizeof(identifier2), sockname1);
+////
+////	ucPIP_addIdentifier(identifier1, identifier2);
+////
+////	ucSemantics_log("%5d: %s(): %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1);
+//}
+//
+//
+//event *ucSemantics_sendfile(struct tcb *tcp) { return NULL;
+////	if (tcp->u_rval < 0) {
+////		return;
+////	}
+////
+////	getIdentifierFD(tcp->pid, tcp->u_arg[1], identifier1, sizeof(identifier1), NULL);
+////	getIdentifierFD(tcp->pid, tcp->u_arg[0], identifier2, sizeof(identifier2), NULL);
+////
+////	ucPIP_copyData(identifier1, identifier2, UC_COPY_INTO_ALL, NULL);
+////
+////	ucSemantics_log("%5d: %s(): %s --> %s\n", tcp->pid, tcp->s_ent->sys_name, identifier1, identifier2);
 }
 
 
@@ -712,7 +780,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_clock_settime] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_clone
-	[SYS_clone] = ucSemantics_IGNORE,								// we handle clone differently...
+	[SYS_clone] = ucSemantics_clone,
 #endif
 #ifdef SYS_close
 	[SYS_close] = ucSemantics_close,
@@ -823,7 +891,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_flock] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_fork
-	[SYS_fork] = ucSemantics_IGNORE,
+	[SYS_fork] = ucSemantics_fork,
 #endif
 #ifdef SYS_fremovexattr
 	[SYS_fremovexattr] = ucSemantics_IGNORE,
@@ -1705,7 +1773,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_utime] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_vfork
-	[SYS_vfork] = ucSemantics_IGNORE,
+	[SYS_vfork] = ucSemantics_fork,
 #endif
 #ifdef SYS_vhangup
 	[SYS_vhangup] = ucSemantics_IGNORE,
@@ -1775,8 +1843,5 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 #endif
 #ifdef SYS_shmctl
 	[SYS_shmctl] = ucSemantics_IGNORE,
-#endif
-#ifdef SYS_cloneFirstAction
-	[SYS_cloneFirstAction] = ucSemantics_cloneFirstAction
 #endif
 };
