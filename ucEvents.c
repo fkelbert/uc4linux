@@ -13,6 +13,26 @@ char fd2[FD_LEN];
 			exit (1); \
 		}
 
+
+
+bool ignoreFilename(char *fn) {
+	int fnlen = strlen(fn);
+	int ignlen;
+
+	int i = 0;
+	const char *ign = ignoredFiles[0];
+
+	while (ign != NULL) {
+		ignlen = strlen(ign);
+		if (ignlen <= fnlen && strncmp(fn, ign, ignlen) == 0) {
+			return true;
+		}
+		ign = ignoredFiles[++i];
+	}
+
+	return false;
+}
+
 int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 	char procfsPath[PATH_MAX];
 	int ret;
@@ -136,7 +156,7 @@ int getParentPid(int pid) {
 
 
 int *getProcessTasks(long pid, int *count) {
-	return (getIntDirEntries(pid, count, "task"));
+	return getIntDirEntries(pid, count, "task");
 }
 
 
@@ -334,6 +354,7 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 }
 
 
+
 event *ucSemantics_open(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
 	char *trunc = "false";
@@ -342,21 +363,54 @@ event *ucSemantics_open(struct tcb *tcp) {
 		return NULL;
 	}
 
+	int nul_seen = umovestr(tcp, tcp->u_arg[0], FILENAME_MAX, filename);
+	if (nul_seen < 0) {
+		// This happens if internal memory locations are opened for reading/mmaping.
+		// Not interesting for us.
+		return NULL;
+	}
+	filename[FILENAME_MAX - 1] = '\0';
+
+	if (ignoreFilename(filename)) {
+		return NULL;
+	}
+
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_rval);
-	toString(filename, tcp, tcp->u_arg[0]);
 
-	int flags = tcp->u_arg[1];
+	int flags = tcp->u_arg[(tcp->scno == SYS_open) ? 1 : 2];
+
 	if (IS_FLAG_SET(flags, O_TRUNC) && (IS_FLAG_SET(flags, O_RDWR) || IS_FLAG_SET(flags, O_WRONLY))) {
 		trunc = "true";
 	}
 
-	event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
-	if (addParam(ev, createParam("pid", pid))
-		&& addParam(ev, createParam("fd", fd1))
-		&& addParam(ev, createParam("filename", filename))
-		&& addParam(ev, createParam("trunc", trunc))) {
-		return ev;
+	if (tcp->scno == SYS_open) {
+		event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
+		if (addParam(ev, createParam("pid", pid))
+			&& addParam(ev, createParam("fd", fd1))
+			&& addParam(ev, createParam("filename", filename))
+			&& addParam(ev, createParam("trunc", trunc))) {
+			return ev;
+		}
+	}
+	else if (tcp->scno == SYS_openat) {
+		toFd(fd2, tcp->u_arg[0]);
+
+		char *at_fdcwd = "false";
+
+		if (tcp->u_arg[0] == AT_FDCWD) {
+			at_fdcwd = "true";
+		}
+
+		event *ev = createEventWithStdParams(EVENT_NAME_OPENAT, 6);
+		if (addParam(ev, createParam("pid", pid))
+			&& addParam(ev, createParam("newfd", fd1))
+			&& addParam(ev, createParam("dirfd", fd2))
+			&& addParam(ev, createParam("filename", filename))
+			&& addParam(ev, createParam("at_fdcwd", at_fdcwd))
+			&& addParam(ev, createParam("trunc", trunc))) {
+			return ev;
+		}
 	}
 
 	return NULL;
@@ -403,41 +457,6 @@ event *ucSemantics_rename(struct tcb *tcp) {
 }
 
 
-event *ucSemantics_openat(struct tcb *tcp) {
-	char relFilename[FILENAME_MAX];
-	char *trunc = "false";
-	char *at_fdcwd = "false";
-
-	if (tcp->u_rval < 0) {
-		return NULL;
-	}
-
-	toPid(pid, tcp->pid);
-	toFd(fd1, tcp->u_rval);
-	toFd(fd2, tcp->u_arg[0]);
-	toString(relFilename, tcp, tcp->u_arg[1]);
-
-	int flags = tcp->u_arg[2];
-	if (IS_FLAG_SET(flags, O_TRUNC) && (IS_FLAG_SET(flags, O_RDWR) || IS_FLAG_SET(flags, O_WRONLY))) {
-		trunc = "true";
-	}
-
-	if (tcp->u_arg[0] == AT_FDCWD) {
-		at_fdcwd = "true";
-	}
-
-	event *ev = createEventWithStdParams(EVENT_NAME_OPENAT, 6);
-	if (addParam(ev, createParam("pid", pid))
-		&& addParam(ev, createParam("newfd", fd1))
-		&& addParam(ev, createParam("dirfd", fd2))
-		&& addParam(ev, createParam("filename", relFilename))
-		&& addParam(ev, createParam("at_fdcwd", at_fdcwd))
-		&& addParam(ev, createParam("trunc", trunc))) {
-		return ev;
-	}
-
-	return NULL;
-}
 
 event *ucSemantics_munmap(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
@@ -623,10 +642,18 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 }
 
 event *ucSemantics_execve(struct tcb *tcp) {
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
 	char filename[FILENAME_MAX];
+	int nul_seen = umovestr(tcp, tcp->u_arg[0], FILENAME_MAX, filename);
+	if (nul_seen < 0) {
+		return NULL;
+	}
+	filename[FILENAME_MAX - 1] = '\0';
 
 	toPid(pid, tcp->pid);
-	toString(filename, tcp, tcp->u_arg[0]);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 2);
 	if (addParam(ev, createParam("pid", pid))
@@ -680,6 +707,8 @@ event *ucSemantics_dup2(struct tcb *tcp) {
 	return NULL;
 }
 
+// define copied from strace:process.c, cf. comment there
+#define CLONE_FILES     0x00000400
 
 event *ucSemantics_clone(struct tcb *tcp) {
 	char childPid[PID_LEN];
@@ -710,20 +739,22 @@ event *ucSemantics_clone(struct tcb *tcp) {
 		toPid(parentPid, tcp->pid);
 	}
 
+
+	int written = snprintf(flags, sizeof(flags), "");
 	// process flags
-	if (tcp->scno == SYS_fork) {
-		snprintf(flags,sizeof(flags), "");
+	if (tcp->scno == SYS_clone) {
+		if (IS_FLAG_SET(tcp->u_arg[0], CLONE_FILES)) {
+			written += snprintf(flags + written, sizeof(flags) - written, "%s|", "CLONE_FILES");
+		}
 	}
 	else if (tcp->scno == SYS_fork) {
-		snprintf(flags,sizeof(flags), "");
 	}
-	else if (tcp->scno == SYS_clone) {
-		// TODO
+	else if (tcp->scno == SYS_fork) {
 	}
 
 	event *ev = createEventWithStdParams(EVENT_NAME_CLONE, 3);
-	if (addParam(ev, createParam("childPid", childPid))
-		&& addParam(ev, createParam("parentPid", parentPid))
+	if (addParam(ev, createParam("cpid", childPid))
+		&& addParam(ev, createParam("ppid", parentPid))
 		&& addParam(ev, createParam("flags", flags))) {
 		return ev;
 	}
@@ -1411,7 +1442,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_olduname] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_openat
-	[SYS_openat] = ucSemantics_openat,
+	[SYS_openat] = ucSemantics_open,
 #endif
 #ifdef SYS_open_by_handle_at
 	[SYS_open_by_handle_at] = ucSemantics_IGNORE,

@@ -43,7 +43,6 @@ event *ucSemantics_ftruncate(struct tcb *tcp);
 event *ucSemantics_kill(struct tcb *tcp);
 event *ucSemantics_mmap(struct tcb *tcp);
 event *ucSemantics_munmap(struct tcb *tcp);
-event *ucSemantics_openat(struct tcb *tcp);
 event *ucSemantics_open(struct tcb *tcp);
 event *ucSemantics_pipe(struct tcb *tcp);
 event *ucSemantics_read(struct tcb *tcp);

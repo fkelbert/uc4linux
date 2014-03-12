@@ -908,7 +908,9 @@ detach(struct tcb *tcp)
 
  drop:
 	if (!qflag && (tcp->flags & TCB_ATTACHED))
+#ifndef UC_ENABLED
 		fprintf(stderr, "Process %u detached\n", tcp->pid);
+#endif
 
 	droptcb(tcp);
 }
@@ -1035,10 +1037,12 @@ startup_attach(void)
 					continue;
 				}
 				if (!qflag) {
+#ifndef UC_ENABLED
 					fprintf(stderr, ntid > 1
 ? "Process %u attached with %u threads\n"
 : "Process %u attached\n",
 						tcp->pid, ntid);
+#endif
 				}
 				if (!(tcp->flags & TCB_ATTACHED)) {
 					/* -p PID, we failed to attach to PID itself
@@ -1068,10 +1072,12 @@ startup_attach(void)
 			kill(getppid(), SIGKILL);
 		}
 
+#ifndef UC_ENABLED
 		if (!qflag)
 			fprintf(stderr,
 				"Process %u attached\n",
 				tcp->pid);
+#endif
 	} /* for each tcbtab[] */
 
  ret:
@@ -2098,9 +2104,12 @@ trace(void)
 				tcp = alloctcb(pid);
 				tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
 				newoutf(tcp);
+
+#ifndef UC_ENABLED
 				if (!qflag)
 					fprintf(stderr, "Process %d attached\n",
 						pid);
+#endif
 			} else {
 				/* This can happen if a clone call used
 				 * CLONE_PTRACE itself.
@@ -2445,6 +2454,10 @@ main(int argc, char *argv[])
 		   Exit with 128 + signo then.  */
 		exit_code += 128;
 	}
+
+#if UC_ENABLED
+	ucEnd();
+#endif
 
 	return exit_code;
 }

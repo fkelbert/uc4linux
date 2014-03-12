@@ -20,11 +20,13 @@
 #define USER_CLASSPATH "../pdp/PdpCommunicationManager/target/PdpCommunicationManager-1.0-jar-with-dependencies.jar"
 
 #define CLASS_STRING "java/lang/String"
+#define CLASS_OBJECT "java/lang/Object"
 
 #define JNI_TYPE(T)	"L" T ";"
-#define JNI_STRING 	JNI_TYPE(CLASS_STRING)
 #define JNI_VOID 	"V"
 #define JNI_BOOL 	"Z"
+#define JNI_OBJECT 	JNI_TYPE(CLASS_OBJECT)
+#define JNI_STRING 	JNI_TYPE(CLASS_STRING)
 
 #define PKG_PDP_CONTROLLER 			"de/tum/in/i22/pdp/"
 
@@ -43,7 +45,11 @@
 #define METHOD_NOTIFY_NAME 		"notifyEvent"
 #define METHOD_NOTIFY_SIG 		"(" JNI_STRING "[" JNI_STRING "[" JNI_STRING JNI_BOOL ")" JNI_VOID
 
+#define METHOD_GETRESPONSE_NAME "getResponse"
+#define METHOD_GETRESPONSE_SIG 	"(" JNI_STRING "[" JNI_STRING "[" JNI_STRING JNI_BOOL ")" JNI_OBJECT
+
 bool ucInit();
+void ucEnd();
 
 #endif /* USAGECONTROL_H */
 

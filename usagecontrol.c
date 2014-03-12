@@ -11,6 +11,7 @@ volatile JavaVM *jvm = NULL;
 #define JniSetObjectArrayElement(env,arr,pos,elem)			(*env)->SetObjectArrayElement(env, arr, pos, elem);
 #define JniCallStaticVoidMethod(env,class,method,...) 		(*env)->CallStaticVoidMethod(env, class, method, ##__VA_ARGS__);
 #define JniCallStaticBooleanMethod(env,class,method,...)	(*env)->CallStaticBooleanMethod(env, class, method, ##__VA_ARGS__)
+#define JniCallStaticObjectMethod(env,class,method,...)		(*env)->CallStaticObjectMethod(env, class, method, ##__VA_ARGS__)
 #define JniAttachCurrentThread(jvm,env,arg)					(*jvm)->AttachCurrentThread(jvm, env, arg)
 
 JNIEnv *mainJniEnv;
@@ -19,6 +20,7 @@ JNIEnv *mainJniEnv;
 // The following references are only valid within the main thread!
 jclass classPepHandler;
 jmethodID methodNotifyEvent;
+jmethodID methodGetResponse;
 jclass classString;
 
 pthread_t jvmStarter;
@@ -75,7 +77,6 @@ void *threadJvmStarter(void *args) {
 // which will hopefully never happen
 void *threadJvmWaiter(void *args) {
 	void *ret;
-	printf("WAITING for JVM to die!\n");
 	pthread_join(jvmStarter, &ret);
 	printf("JVM died. Exiting.\n");
 	exit(1);
@@ -94,6 +95,10 @@ void notifyEventToPdp(event *ev) {
 	}
 
 	JniCallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, name, paramKeys, paramVals, ev->isActual);
+	if (!ev->isActual) {
+		uc_log("waiting for response... ");
+		jobject response = JniCallStaticObjectMethod(mainJniEnv, classPepHandler, methodGetResponse, name, paramKeys, paramVals, ev->isActual);
+	}
 }
 
 
@@ -142,6 +147,12 @@ bool getMainJniRefs() {
 		return false;
 	}
 
+	methodGetResponse = JniGetStaticMethodID(mainJniEnv, classPepHandler, METHOD_GETRESPONSE_NAME, METHOD_GETRESPONSE_SIG);
+	if (JniExceptionOccurred(mainJniEnv)) {
+		printf("Could not access method " METHOD_GETRESPONSE_NAME " in class " CLASS_PDP_CONTROLLER ".\n");
+		return false;
+	}
+
 	classString = JniFindClass(mainJniEnv, CLASS_STRING);
 	if (JniExceptionOccurred(mainJniEnv)) {
 		printf("Could not find class " CLASS_STRING ".\n");
@@ -151,6 +162,9 @@ bool getMainJniRefs() {
 	return true;
 }
 
+void ucEnd() {
+	while(1);
+}
 
 bool ucInit() {
 	pthread_t jvmWaiter;
@@ -185,16 +199,6 @@ bool ucInit() {
 		printf("Error getting main JNI references. Exiting.\n");
 		exit(1);
 	}
-
-
-	event *ev = createEventWithStdParams("foo", 3);
-	addParam(ev, createParam("k1", "v1"));
-	addParam(ev, createParam("k2", "v2"));
-	addParam(ev, createParam("k3", "v3"));
-	notifyEventToPdp(ev);
-	destroyEvent(ev);
-
-
 
 	// start new thread to wait for JVM to die (which should not happen)
 	if (pthread_create( &jvmWaiter, NULL, threadJvmWaiter, NULL) != 0) {
@@ -245,17 +249,7 @@ bool ucInit() {
 //}
 
 
-/**
- * This function is used by strace to notify our
- * usage control framework about the fact that a system call
- * is happening. This call may be both desired or actual.
- *
- * If firstCall == 0, this method will invoke all
- * corresponding usage control functionality.
- * If firstCall == 1, then
- *
- *
- */
+
 void notifySyscall(struct tcb *tcp) {
 	if (!tcp || !tcp->s_ent || !tcp->s_ent->sys_name) {
 		return;
@@ -270,7 +264,7 @@ void notifySyscall(struct tcb *tcp) {
 	 */
 	bool actual = !exiting(tcp);
 
-	uc_log("%3d (%c) %s ... ", tcp->scno, actual ? 'A' : 'D', tcp->s_ent->sys_name);
+	uc_log("==== %3d (%5d, %c) %s ... ", tcp->scno, tcp->pid, actual ? 'A' : 'D', tcp->s_ent->sys_name);
 
 	if (!ucSemanticsDefined(tcp->scno)) {
 		uc_log("ignoring.\n");
@@ -283,24 +277,22 @@ void notifySyscall(struct tcb *tcp) {
 		return;
 	}
 
-	if (!actual) {
-//		ucDesired(tcp);
-		ev->isActual = false;
-		uc_log("--- DESIRED ---\n");
+	ev->isActual = actual;
 
-		// SYS_exit and SYS_exit_group will never return. Thus always signal as actual event.
-		if (tcp->scno == SYS_exit || tcp->scno == SYS_exit_group) {
-			ev->isActual = true;
-			notifyEventToPdp(ev);
-		}
-	}
-	else {
-		uc_log("--- ACTUAL --- ... executing.\n");
+	/*
+	 * SYS_exit and SYS_exit_group will never return;
+	 * SYS_execve will not return on success.
+	 * Always signal as actual event.
+	 */
+	if (!actual && (tcp->scno == SYS_exit || tcp->scno == SYS_exit_group || tcp->scno == SYS_execve)) {
 		ev->isActual = true;
-		notifyEventToPdp(ev);
-//		ucActual(tcp);
 	}
+
+	uc_log("notifying PDP... ");
+	notifyEventToPdp(ev);
+	uc_log("done.");
 
 	destroyEvent(ev);
+	uc_log("\n");
 }
 
