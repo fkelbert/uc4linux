@@ -11,7 +11,7 @@ OS		= linux
 ARCH		= @arch@
 
 ACLOCAL_AMFLAGS = -I m4
-AM_CFLAGS = $(WARN_CFLAGS)
+AM_CFLAGS = $(WARN_CFLAGS) -Wall -Werror
 AM_CPPFLAGS = -I$(srcdir)/$(OS)/$(ARCH) -I$(srcdir)/$(OS) -I$(builddir)/$(OS) 
 
 
