@@ -20,7 +20,6 @@ JNIEnv *mainJniEnv;
 // The following references are only valid within the main thread!
 jclass classPepHandler;
 jmethodID methodNotifyEvent;
-jmethodID methodGetResponse;
 jclass classString;
 
 pthread_t jvmStarter;
@@ -94,11 +93,7 @@ void notifyEventToPdp(event *ev) {
 		JniSetObjectArrayElement(mainJniEnv, paramVals, i, JniNewStringUTF(mainJniEnv, (const char*) ev->params[i]->val));
 	}
 
-	JniCallStaticVoidMethod(mainJniEnv, classPepHandler, methodNotifyEvent, name, paramKeys, paramVals, ev->isActual);
-	if (!ev->isActual) {
-		uc_log("waiting for response... ");
-		jobject response = JniCallStaticObjectMethod(mainJniEnv, classPepHandler, methodGetResponse, name, paramKeys, paramVals, ev->isActual);
-	}
+	jobject resp = JniCallStaticObjectMethod(mainJniEnv, classPepHandler, methodNotifyEvent, name, paramKeys, paramVals, ev->isActual);
 }
 
 
@@ -144,12 +139,6 @@ bool getMainJniRefs() {
 	methodNotifyEvent = JniGetStaticMethodID(mainJniEnv, classPepHandler, METHOD_NOTIFY_NAME, METHOD_NOTIFY_SIG);
 	if (JniExceptionOccurred(mainJniEnv)) {
 		printf("Could not access method " METHOD_NOTIFY_NAME " in class " CLASS_PDP_CONTROLLER ".\n");
-		return false;
-	}
-
-	methodGetResponse = JniGetStaticMethodID(mainJniEnv, classPepHandler, METHOD_GETRESPONSE_NAME, METHOD_GETRESPONSE_SIG);
-	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("Could not access method " METHOD_GETRESPONSE_NAME " in class " CLASS_PDP_CONTROLLER ".\n");
 		return false;
 	}
 
