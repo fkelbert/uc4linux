@@ -1802,7 +1802,16 @@ init(int argc, char *argv[])
 	}
 
 	if (!followfork)
+// if uc is enabled, we want to make sure to follow forks.
+// Forgot to run strace with '-f' flag more than once...
+#ifdef UC_ENABLED
+	{
+		followfork++;
+	}
+#else
 		followfork = optF;
+#endif
+
 
 	if (followfork >= 2 && cflag) {
 		error_msg_and_die("(-c or -C) and -ff are mutually exclusive");
