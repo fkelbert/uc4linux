@@ -478,28 +478,38 @@ event *ucSemantics_munmap(struct tcb *tcp) {
 }
 
 event *ucSemantics_mmap(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+	char flags[32];
+	char mapaddr[12];
+	int nul_seen;
+	int written = 0;
+
 	if (tcp->u_rval < 0 || tcp->u_arg[4] < 0) {
 		return NULL;
 	}
 
-	char addr[12];
-	snprintf(addr, sizeof(addr), "%#lx", tcp->u_rval);
+	// get & check the filename
+	nul_seen = umovestr(tcp, tcp->u_arg[4], FILENAME_MAX, filename);
+	if (nul_seen < 0) {
+		return NULL;
+	}
+	filename[FILENAME_MAX - 1] = '\0';
 
-	int prots = tcp->u_arg[2];
-	int flags = tcp->u_arg[3];
-
-	// MAP_ANONYMOUS flag is not interesting. Return.
-	if (IS_FLAG_SET(flags, MAP_ANONYMOUS)) {
+	if (ignoreFilename(filename)) {
 		return NULL;
 	}
 
-	int written = 0;
-	char flagsStr[256];
-	if (IS_FLAG_SET(prots, PROT_READ)) {
-		written += snprintf(flagsStr + written, sizeof(flagsStr) - written, "%s|", "PROT_READ");
+	// MAP_ANONYMOUS flag is not interesting. Return.
+	if (IS_FLAG_SET(tcp->u_arg[3], MAP_ANONYMOUS)) {
+		return NULL;
 	}
-	if (IS_FLAG_SET(prots, PROT_WRITE)) {
-		written += snprintf(flagsStr + written, sizeof(flagsStr) - written, "%s|", "PROT_WRITE");
+
+	// check READ/WRITE flags
+	if (IS_FLAG_SET(tcp->u_arg[2], PROT_READ)) {
+		written += snprintf(flags + written, sizeof(flags) - written, "r");
+	}
+	if (IS_FLAG_SET(tcp->u_arg[2], PROT_WRITE)) {
+		written += snprintf(flags + written, sizeof(flags) - written, "w");
 	}
 
 	// if we have not written PROT_READ or PROT_WRITE at this point
@@ -508,18 +518,19 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 		return NULL;
 	}
 
-	if (IS_FLAG_SET(prots, MAP_SHARED)) {
-		written += snprintf(flagsStr + written, sizeof(flagsStr) - written, "%s|", "MAP_SHARED");
+	if (IS_FLAG_SET(tcp->u_arg[2], MAP_SHARED)) {
+		written += snprintf(flags + written, sizeof(flags) - written, "s");
 	}
 
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_arg[4]);
+	snprintf(mapaddr, sizeof(mapaddr), "%#lx", tcp->u_rval);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_MMAP, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
-		&& addParam(ev, createParam("addr", addr))
-		&& addParam(ev, createParam("flags", flagsStr))) {
+		&& addParam(ev, createParam("mapaddr", mapaddr))
+		&& addParam(ev, createParam("flags", flags))) {
 		return ev;
 	}
 
