@@ -1,48 +1,48 @@
 #ifndef UC_TYPES_H
 #define UC_TYPES_H
 
-#define EVENT_NAME_ACCEPT "Accept"
-#define EVENT_NAME_CLONE "Clone"
-#define EVENT_NAME_CLOSE "Close"
-#define EVENT_NAME_CONNECT "Connect"
-#define EVENT_NAME_DUP "Dup"
-#define EVENT_NAME_DUP2 "Dup2"
-#define EVENT_NAME_EXECVE "Execve"
-#define EVENT_NAME_EXIT "Exit"
-#define EVENT_NAME_EXITGROUP "ExitGroup"
-#define EVENT_NAME_FCNTL "Fcntl"
-#define EVENT_NAME_FTRUNCATE "Ftruncate"
-#define EVENT_NAME_KILL "Kill"
-#define EVENT_NAME_MMAP "Mmap"
-#define EVENT_NAME_MUNMAP "Munmap"
-#define EVENT_NAME_OPEN "Open"
-#define EVENT_NAME_OPENAT "OpenAt"
-#define EVENT_NAME_PIPE "Pipe"
-#define EVENT_NAME_READ "Read"
-#define EVENT_NAME_RENAME "Rename"
-#define EVENT_NAME_SENDFILE "Sendfile"
-#define EVENT_NAME_SHUTDOWN "Shutdown"
-#define EVENT_NAME_SOCKET "Socket"
-#define EVENT_NAME_SOCKETPAIR "Socketpair"
-#define EVENT_NAME_SPLICE "Splice"
-#define EVENT_NAME_TEE "Tee"
-#define EVENT_NAME_TRUNCATE "Truncate"
-#define EVENT_NAME_UNLINK "Unlink"
-#define EVENT_NAME_WRITE "Write"
-
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <jni.h>
 
+jstring EVENT_NAME_ACCEPT;
+jstring EVENT_NAME_CLONE;
+jstring EVENT_NAME_CLOSE;
+jstring EVENT_NAME_CONNECT;
+jstring EVENT_NAME_DUP;
+jstring EVENT_NAME_DUP2;
+jstring EVENT_NAME_EXECVE;
+jstring EVENT_NAME_EXIT;
+jstring EVENT_NAME_EXITGROUP;
+jstring EVENT_NAME_FCNTL;
+jstring EVENT_NAME_FTRUNCATE;
+jstring EVENT_NAME_KILL;
+jstring EVENT_NAME_MMAP;
+jstring EVENT_NAME_MUNMAP;
+jstring EVENT_NAME_OPEN;
+jstring EVENT_NAME_OPENAT;
+jstring EVENT_NAME_PIPE;
+jstring EVENT_NAME_READ;
+jstring EVENT_NAME_RENAME;
+jstring EVENT_NAME_SENDFILE;
+jstring EVENT_NAME_SHUTDOWN;
+jstring EVENT_NAME_SOCKET;
+jstring EVENT_NAME_SOCKETPAIR;
+jstring EVENT_NAME_SPLICE;
+jstring EVENT_NAME_TEE;
+jstring EVENT_NAME_TRUNCATE;
+jstring EVENT_NAME_UNLINK;
+jstring EVENT_NAME_WRITE;
+
 struct s_param {
-	char *key;
-	char *val;
+	jstring key;
+	jstring val;
 };
 typedef struct s_param param;
 
 struct s_event {
-	char *name;
+	jstring name;
 	param **params;
 	int cntParams;
 	bool isActual;
@@ -50,17 +50,17 @@ struct s_event {
 };
 typedef struct s_event event;
 
-
-#define EVENT_STD_PARAMS_CNT 2
 extern char *eventStdParams[];
+
+void ucTypesInit(JNIEnv *mainJniEnv);
 
 param *createParam(char *key, char *val);
 void destroyParam(param *p);
-event *createEvent(char *name, int cntParams);
-event *createEventWithStdParams(char *name, int cntParams);
+event *createEvent(jstring name, int cntParams);
+event *createEventWithStdParams(jstring name, int cntParams);
 void destroyEvent(event *e);
 bool addParam(event *ev, param *p);
 
-#include "usagecontrol.h"
+
 #endif
 

@@ -83,17 +83,16 @@ void *threadJvmWaiter(void *args) {
 
 
 void notifyEventToPdp(event *ev) {
-	jstring name = JniNewStringUTF(mainJniEnv, ev->name);
 	jarray paramKeys = JniNewObjectArray(mainJniEnv, ev->cntParams, classString, 0);
 	jarray paramVals = JniNewObjectArray(mainJniEnv, ev->cntParams, classString, 0);
 
 	int i;
 	for (i = 0; i < ev->cntParams; i++) {
-		JniSetObjectArrayElement(mainJniEnv, paramKeys, i, JniNewStringUTF(mainJniEnv, (const char*) ev->params[i]->key));
-		JniSetObjectArrayElement(mainJniEnv, paramVals, i, JniNewStringUTF(mainJniEnv, (const char*) ev->params[i]->val));
+		JniSetObjectArrayElement(mainJniEnv, paramKeys, i, ev->params[i]->key);
+		JniSetObjectArrayElement(mainJniEnv, paramVals, i, ev->params[i]->val);
 	}
 
-	jobject resp = JniCallStaticObjectMethod(mainJniEnv, classPepHandler, methodNotifyEvent, name, paramKeys, paramVals, ev->isActual);
+	jobject resp = JniCallStaticObjectMethod(mainJniEnv, classPepHandler, methodNotifyEvent, ev->name, paramKeys, paramVals, ev->isActual);
 }
 
 
@@ -178,6 +177,7 @@ bool ucInit() {
 		exit(1);
 	}
 
+	ucTypesInit(mainJniEnv);
 
 	if (!waitForStartupCompletion()) {
 		printf("Error while starting up JVM. Exiting.\n");
@@ -253,7 +253,7 @@ void notifySyscall(struct tcb *tcp) {
 	 */
 	bool actual = !exiting(tcp);
 
-	uc_log("==== %3d (%5d, %c) %s ... ", tcp->scno, tcp->pid, actual ? 'A' : 'D', tcp->s_ent->sys_name);
+	uc_log("==== %3d (%05d, %c) %s ... ", tcp->scno, tcp->pid, actual ? 'A' : 'D', tcp->s_ent->sys_name);
 
 	if (!ucSemanticsDefined(tcp->scno)) {
 		uc_log("ignoring.\n");
@@ -278,7 +278,9 @@ void notifySyscall(struct tcb *tcp) {
 	}
 
 	uc_log("notifying PDP... ");
-	notifyEventToPdp(ev);
+	if (!actual) {
+		notifyEventToPdp(ev);
+	}
 	uc_log("done.");
 
 	destroyEvent(ev);

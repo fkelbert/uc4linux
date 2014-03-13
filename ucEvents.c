@@ -248,7 +248,14 @@ event *ucSemantics_shutdown(struct tcb *tcp) {
 }
 
 event *ucSemantics_write(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
 	if (tcp->u_rval <= 0) {
+		return NULL;
+	}
+
+	getfdpath(tcp, tcp->u_arg[0], filename, sizeof(filename));
+	if (ignoreFilename(filename)) {
 		return NULL;
 	}
 
@@ -417,8 +424,15 @@ event *ucSemantics_open(struct tcb *tcp) {
 }
 
 event *ucSemantics_read(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
 	if (tcp->u_rval <= 0) {
 		// if return value is 0, nothing was read.
+		return NULL;
+	}
+
+	getfdpath(tcp, tcp->u_arg[0], filename, sizeof(filename));
+	if (ignoreFilename(filename)) {
 		return NULL;
 	}
 
@@ -484,23 +498,17 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 	int nul_seen;
 	int written = 0;
 
+	// MAP_ANONYMOUS flag is not interesting. Return.
+	if (IS_FLAG_SET(tcp->u_arg[3], MAP_ANONYMOUS)) {
+		return NULL;
+	}
+
 	if (tcp->u_rval < 0 || tcp->u_arg[4] < 0) {
 		return NULL;
 	}
 
-	// get & check the filename
-	nul_seen = umovestr(tcp, tcp->u_arg[4], FILENAME_MAX, filename);
-	if (nul_seen < 0) {
-		return NULL;
-	}
-	filename[FILENAME_MAX - 1] = '\0';
-
+	getfdpath(tcp, tcp->u_arg[4], filename, sizeof(filename));
 	if (ignoreFilename(filename)) {
-		return NULL;
-	}
-
-	// MAP_ANONYMOUS flag is not interesting. Return.
-	if (IS_FLAG_SET(tcp->u_arg[3], MAP_ANONYMOUS)) {
 		return NULL;
 	}
 
@@ -774,7 +782,14 @@ event *ucSemantics_clone(struct tcb *tcp) {
 }
 
 event *ucSemantics_close(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
 	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	getfdpath(tcp, tcp->u_arg[0], filename, sizeof(filename));
+	if (ignoreFilename(filename)) {
 		return NULL;
 	}
 

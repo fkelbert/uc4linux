@@ -1,25 +1,61 @@
 #include "ucTypes.h"
 
+#define EVENT_STD_PARAMS_CNT 2
 char *eventStdParams[] =
 				{ "PEP", "Linux",
 					"host", "machineA" };
 
+#define JniNewStringUTF(env,str)	(*env)->NewStringUTF(env, str)
+
+JNIEnv *jniEnv;
+
+void ucTypesInit(JNIEnv *mainJniEnv) {
+	jniEnv = mainJniEnv;
+
+	EVENT_NAME_ACCEPT = JniNewStringUTF(jniEnv, "Accept");
+	EVENT_NAME_CLONE = JniNewStringUTF(jniEnv, "Clone");
+	EVENT_NAME_CLOSE = JniNewStringUTF(jniEnv, "Close");
+	EVENT_NAME_CONNECT = JniNewStringUTF(jniEnv, "Connect");
+	EVENT_NAME_DUP = JniNewStringUTF(jniEnv, "Dup");
+	EVENT_NAME_DUP2 = JniNewStringUTF(jniEnv, "Dup2");
+	EVENT_NAME_EXECVE = JniNewStringUTF(jniEnv, "Execve");
+	EVENT_NAME_EXIT = JniNewStringUTF(jniEnv, "Exit");
+	EVENT_NAME_EXITGROUP = JniNewStringUTF(jniEnv, "ExitGroup");
+	EVENT_NAME_FCNTL = JniNewStringUTF(jniEnv, "Fcntl");
+	EVENT_NAME_FTRUNCATE = JniNewStringUTF(jniEnv, "Ftruncate");
+	EVENT_NAME_KILL = JniNewStringUTF(jniEnv, "Kill");
+	EVENT_NAME_MMAP = JniNewStringUTF(jniEnv, "Mmap");
+	EVENT_NAME_MUNMAP = JniNewStringUTF(jniEnv, "Munmap");
+	EVENT_NAME_OPEN = JniNewStringUTF(jniEnv, "Open");
+	EVENT_NAME_OPENAT = JniNewStringUTF(jniEnv, "OpenAt");
+	EVENT_NAME_PIPE = JniNewStringUTF(jniEnv, "Pipe");
+	EVENT_NAME_READ = JniNewStringUTF(jniEnv, "Read");
+	EVENT_NAME_RENAME = JniNewStringUTF(jniEnv, "Rename");
+	EVENT_NAME_SENDFILE = JniNewStringUTF(jniEnv, "Sendfile");
+	EVENT_NAME_SHUTDOWN = JniNewStringUTF(jniEnv, "Shutdown");
+	EVENT_NAME_SOCKET = JniNewStringUTF(jniEnv, "Socket");
+	EVENT_NAME_SOCKETPAIR = JniNewStringUTF(jniEnv, "Socketpair");
+	EVENT_NAME_SPLICE = JniNewStringUTF(jniEnv, "Splice");
+	EVENT_NAME_TEE = JniNewStringUTF(jniEnv, "Tee");
+	EVENT_NAME_TRUNCATE = JniNewStringUTF(jniEnv, "Truncate");
+	EVENT_NAME_UNLINK = JniNewStringUTF(jniEnv, "Unlink");
+	EVENT_NAME_WRITE = JniNewStringUTF(jniEnv, "Write");
+}
+
 param *createParam(char *key, char *val) {
 	param *p = malloc(sizeof(param));
-	p->key = strdup(key);
-	p->val = strdup(val);
+	p->key = JniNewStringUTF(jniEnv, key);
+	p->val = JniNewStringUTF(jniEnv, val);
 	return p;
 }
 
 void destroyParam(param *p) {
-	free(p->key);
-	free(p->val);
 	free(p);
 }
 
-event *createEvent(char *name, int cntParams) {
+event *createEvent(jstring name, int cntParams) {
 	event *e = malloc(sizeof(event));
-	e->name = strdup(name);
+	e->name = name;
 	e->isActual = true;
 	e->cntParams = cntParams;
 	e->iterParams = 0;
@@ -27,7 +63,7 @@ event *createEvent(char *name, int cntParams) {
 	return e;
 }
 
-event *createEventWithStdParams(char *name, int cntParams) {
+event *createEventWithStdParams(jstring name, int cntParams) {
 	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);
 
 	int i;
@@ -48,7 +84,6 @@ bool addParam(event *ev, param *p) {
 }
 
 void destroyEvent(event *e) {
-	free(e->name);
 	int i;
 	for (i = 0; i < e->cntParams; i++) {
 		destroyParam(e->params[i]);
