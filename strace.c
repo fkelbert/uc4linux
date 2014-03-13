@@ -2387,7 +2387,8 @@ trace(void)
 #if UC_ENABLED
  /*
   * Florian Kelbert
-  * TODO: Inject usage control here.
+  *
+  * Injecting usage control.
   *
   * Notes:
   *  - Do not comment out the above call to trace_syscall(), as this call
@@ -2397,28 +2398,8 @@ trace(void)
   *  - Below call to ptrace_restart(...) continues the traced process.
   *    We can make a syscall fail by, e.g. modifying its parameters to something invalid.
   *    For an example, have a look at http://alip.github.io/code/ptrace-linux-deny.c
-  *  - For syscalls that we are not interested in, we may skip them both here and their
-  *    call to the above trace_syscall() for performance reason. For the above call I am not sure, though.
-  *    This has not been tested.
   *
  */
-
-
-//	/* This is a hotfix. strace -f did not trace all child process.
-//	 * As far as I found out, this was the case if the parent process
-//	 * exited before the child executed any system call.
-//	 * For this reason we allocate a tcb for a cloned process as soon as
-//	 * we see a clone/fork/vfork.
-//	 * See my entry at the strace-devel mailing list from July 5th, 2013.
-//	 */
-//	if (tcp && (tcp->scno == SYS_clone || tcp->scno == SYS_fork || tcp->scno == SYS_vfork) && tcp->u_rval > 1 && followfork) {
-//		if (!pid2tcb(tcp->pid)) {
-//			tcp = alloctcb(pid);
-//			tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
-//			newoutf(tcp);
-//		}
-//	}
-
 	notifySyscall(tcp);
 
 #endif /* 	 */
