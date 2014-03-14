@@ -35,6 +35,8 @@
 #include <sys/user.h>
 #include <sys/param.h>
 
+#include <ucSettings.h>
+
 #ifdef HAVE_SYS_REG_H
 # include <sys/reg.h>
 #elif defined(HAVE_LINUX_PTRACE_H)
@@ -2038,6 +2040,7 @@ trace_syscall_entering(struct tcb *tcp)
 		goto ret;
 	}
 
+#if !UC_ENABLED
 	printleader(tcp);
 	if (tcp->qual_flg & UNDEFINED_SCNO)
 		tprintf("%s(", undefined_scno_name(tcp));
@@ -2049,6 +2052,7 @@ trace_syscall_entering(struct tcb *tcp)
 		res = tcp->s_ent->sys_func(tcp);
 
 	fflush(tcp->outf);
+#endif
  ret:
 	tcp->flags |= TCB_INSYSCALL;
 	/* Measure the entrance time as late as possible to avoid errors. */

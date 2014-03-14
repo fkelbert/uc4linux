@@ -529,8 +529,8 @@ strace_popen(const char *command)
 
 #if UC_ENABLED
 
-void tprintf(const char *fmt, ...) {}
-void tprints(const char *str) {}
+inline void tprintf(const char *fmt, ...) {}
+inline void tprints(const char *str) {}
 
 #else
 
@@ -908,7 +908,7 @@ detach(struct tcb *tcp)
 
  drop:
 	if (!qflag && (tcp->flags & TCB_ATTACHED))
-#ifndef UC_ENABLED
+#if !UC_ENABLED
 		fprintf(stderr, "Process %u detached\n", tcp->pid);
 #endif
 
@@ -1037,7 +1037,7 @@ startup_attach(void)
 					continue;
 				}
 				if (!qflag) {
-#ifndef UC_ENABLED
+#if !UC_ENABLED
 					fprintf(stderr, ntid > 1
 ? "Process %u attached with %u threads\n"
 : "Process %u attached\n",
@@ -1072,7 +1072,7 @@ startup_attach(void)
 			kill(getppid(), SIGKILL);
 		}
 
-#ifndef UC_ENABLED
+#if !UC_ENABLED
 		if (!qflag)
 			fprintf(stderr,
 				"Process %u attached\n",
@@ -1804,7 +1804,7 @@ init(int argc, char *argv[])
 	if (!followfork)
 // if uc is enabled, we want to make sure to follow forks.
 // Forgot to run strace with '-f' flag more than once...
-#ifdef UC_ENABLED
+#if UC_ENABLED
 	{
 		followfork++;
 	}
@@ -2114,7 +2114,7 @@ trace(void)
 				tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
 				newoutf(tcp);
 
-#ifndef UC_ENABLED
+#if !UC_ENABLED
 				if (!qflag)
 					fprintf(stderr, "Process %d attached\n",
 						pid);

@@ -278,9 +278,7 @@ void notifySyscall(struct tcb *tcp) {
 	}
 
 	uc_log("notifying PDP... ");
-	if (!actual) {
-		notifyEventToPdp(ev);
-	}
+	notifyEventToPdp(ev);
 	uc_log("done.");
 
 	destroyEvent(ev);
