@@ -54,7 +54,6 @@ strace_SOURCES =	\
 	usagecontrol.c	\
 	ucEvents.c 	\
 	ucLog.c 	\
-	ucSettings.c 	\
 	ucTypes.c	#\
 	#ucPIP.c		\
 	#ucPIP_main.c		\
