@@ -17,4 +17,7 @@ static const char *ignoredFiles[] = {
 		NULL
 };
 
+
+#define PROCFS_MNT "/proc"
+
 #endif

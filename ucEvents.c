@@ -4,8 +4,6 @@ char pid[PID_LEN];
 char fd1[FD_LEN];
 char fd2[FD_LEN];
 
-#define PROCFS_MNT "/proc"
-
 #define ucSemantics_errorExit(msg) { \
 			fprintf(stderr, "%s\n", msg); \
 			fprintf(stderr, "Happened in: %s:%d\n", __FILE__, __LINE__); \
@@ -33,6 +31,48 @@ bool ignoreFilename(char *fn) {
 	return false;
 }
 
+char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen) {
+	ssize_t read;
+	char *absNew;
+	char procfsPath[PATH_MAX];
+	char cwd[PATH_MAX];
+	char concatPath[2 * PATH_MAX];
+
+	// we are done!
+	if (isAbsolutePath(relFilename)) {
+		strncpy(absFilename, relFilename, absFilenameLen - 1);
+		absFilename[absFilenameLen - 1] = '\0';
+		return (absFilename);
+	}
+
+	if (absFilenameLen < 1) {
+		return NULL ;
+	}
+
+	// get the processes' current working directory
+	snprintf(procfsPath, sizeof(procfsPath), PROCFS_MNT"/%ld/cwd", pid);
+	if ((read = readlink(procfsPath, cwd, sizeof(cwd) - 1)) == -1) {
+		return NULL ;
+	}
+	cwd[read] = '\0';
+
+	// concatenate cwd and relative filename and convert it to an absolute filename
+	snprintf(concatPath, sizeof(concatPath), "%s/%s", cwd, relFilename);
+
+	// was resolving successful and is the provided buffer large enough?
+	if ((absNew = realpath(concatPath, NULL )) == NULL || strlen(absNew) >= absFilenameLen) {
+		return NULL ;
+	}
+
+	// as we have tested the size before, an additional null byte is written by strncpy()
+	strncpy(absFilename, absNew, absFilenameLen);
+
+	free(absNew);
+
+	return absFilename;
+}
+
+
 int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 	char procfsPath[PATH_MAX];
 	int ret;
@@ -42,7 +82,7 @@ int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 	int size = 8; // do not init to 0!
 	*count = 0;
 
-	ret = snprintf(procfsPath, sizeof(procfsPath), "%s/%ld/%s", PROCFS_MNT, pid, procSubPath);
+	ret = snprintf(procfsPath, sizeof(procfsPath), PROCFS_MNT"/%ld/%s", pid, procSubPath);
 
 	if (ret >= sizeof(procfsPath)) {
 		ucSemantics_errorExit("Buffer overflowed.");
@@ -80,8 +120,8 @@ int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 
 
 bool getIPsAndPorts(int pid, int inode, char *localIP, char *localPort, char *remoteIP, char *remotePort) {
-	char conFile[sizeof("/proc/%u/net/tcp") + 6];
-	snprintf(conFile, sizeof(conFile), "/proc/%u/net/tcp", pid);
+	char conFile[sizeof(PROCFS_MNT"/%u/net/tcp") + 6];
+	snprintf(conFile, sizeof(conFile), PROCFS_MNT"/%u/net/tcp", pid);
 
 	FILE *cons = fopen(conFile, "r");
 	if (cons == NULL) {
@@ -131,8 +171,8 @@ bool getIPsAndPorts(int pid, int inode, char *localIP, char *localPort, char *re
 
 
 int getParentPid(int pid) {
-	char statusFile[sizeof("/proc/%u/status") + 6];
-	snprintf(statusFile, sizeof(statusFile), "/proc/%u/status", pid);
+	char statusFile[sizeof(PROCFS_MNT"/%u/status") + 6];
+	snprintf(statusFile, sizeof(statusFile), PROCFS_MNT"/%u/status", pid);
 
 	FILE *stat = fopen(statusFile, "r");
 	if (stat == NULL) {
@@ -159,30 +199,23 @@ int *getProcessTasks(long pid, int *count) {
 	return getIntDirEntries(pid, count, "task");
 }
 
-
-//ssize_t getCwd(int pid, char *buf, size_t bufsiz) {
-//	const char cwdPath[sizeof("/proc/%u/cwd") + 6];
-//	snprintf(cwdPath, sizeof(cwdPath), "/proc/%u/cwd", pid);
-//
-//	int res;
-//	if ((res = readlink(cwdPath, buf, bufsiz)) >= 0) {
-//		buf[MIN(res,bufsiz-1)] = '\0';
-//	}
-//	return res;
-//}
-
-
 event *ucSemantics_unlink(struct tcb *tcp) {
-	char filename[FILENAME_MAX];
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
 
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
 
-	toString(filename, tcp, tcp->u_arg[0]);
+	toString(relFilename, tcp, tcp->u_arg[0]);
+
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+			|| ignoreFilename(absFilename)) {
+		return NULL;
+	}
 
 	event *ev = createEventWithStdParams(EVENT_NAME_UNLINK, 1);
-	if (addParam(ev, createParam("filename", filename))) {
+	if (addParam(ev, createParam("filename", absFilename))) {
 		return ev;
 	}
 
@@ -382,22 +415,10 @@ event *ucSemantics_open(struct tcb *tcp) {
 		return NULL;
 	}
 
-//	int nul_seen = umovestr(tcp, tcp->u_arg[0], FILENAME_MAX, filename);
-//	if (nul_seen < 0) {
-//		// This happens if internal memory locations are opened for reading/mmaping.
-//		// Not interesting for us.
-//		return NULL;
-//	}
-//	filename[FILENAME_MAX - 1] = '\0';
-
-	getfdpath(tcp, tcp->u_arg[0], filename, sizeof(filename));
+	getfdpath(tcp, tcp->u_rval, filename, sizeof(filename));
 	if (ignoreFilename(filename)) {
 		return NULL;
 	}
-
-//	if (ignoreFilename(filename)) {
-//		return NULL;
-//	}
 
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_rval);
@@ -467,20 +488,33 @@ event *ucSemantics_read(struct tcb *tcp) {
 }
 
 event *ucSemantics_rename(struct tcb *tcp) {
-	char oldFilename[FILENAME_MAX];
-	char newFilename[FILENAME_MAX];
+	char oldRelFilename[FILENAME_MAX];
+	char oldAbsFilename[FILENAME_MAX];
+	char newRelFilename[FILENAME_MAX];
+	char newAbsFilename[FILENAME_MAX];
 
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
 
 	toPid(pid, tcp->pid);
-	toString(oldFilename, tcp, tcp->u_arg[0]);
-	toString(newFilename, tcp, tcp->u_arg[1]);
+
+	toString(oldRelFilename, tcp, tcp->u_arg[0]);
+	toString(newRelFilename, tcp, tcp->u_arg[1]);
+
+	if (!(toAbsFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename)))
+			|| ignoreFilename(oldAbsFilename)) {
+		return NULL;
+	}
+
+	if (!(toAbsFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename)))
+				|| ignoreFilename(newAbsFilename)) {
+		return NULL;
+	}
 
 	event *ev = createEventWithStdParams(EVENT_NAME_RENAME, 2);
-	if (addParam(ev, createParam("old", oldFilename))
-		&& addParam(ev, createParam("new", newFilename))) {
+	if (addParam(ev, createParam("old", oldAbsFilename))
+		&& addParam(ev, createParam("new", newAbsFilename))) {
 		return ev;
 	}
 
@@ -625,17 +659,23 @@ event *ucSemantics_ftruncate(struct tcb *tcp) {
 }
 
 event *ucSemantics_truncate(struct tcb *tcp) {
-	char filename[FILENAME_MAX];
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
 
 	if (tcp->u_rval < 0 || tcp->u_arg[1] != 0) {
 		return NULL;
 	}
 
 	toPid(pid, tcp->pid);
-	toString(filename, tcp, tcp->u_arg[0]);
+	toString(relFilename, tcp, tcp->u_arg[0]);
+
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+			|| ignoreFilename(absFilename)) {
+		return NULL;
+	}
 
 	event *ev = createEventWithStdParams(EVENT_NAME_TRUNCATE, 1);
-	if (addParam(ev, createParam("filename", filename))) {
+	if (addParam(ev, createParam("filename", absFilename))) {
 		return ev;
 	}
 
@@ -678,16 +718,16 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 }
 
 event *ucSemantics_execve(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
 
-	char filename[FILENAME_MAX];
-	int nul_seen = umovestr(tcp, tcp->u_arg[0], FILENAME_MAX, filename);
-	if (nul_seen < 0) {
+	getfdpath(tcp, tcp->u_rval, filename, sizeof(filename));
+	if (ignoreFilename(filename)) {
 		return NULL;
 	}
-	filename[FILENAME_MAX - 1] = '\0';
 
 	toPid(pid, tcp->pid);
 

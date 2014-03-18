@@ -25,6 +25,8 @@
 											str[sizeof(str) - 1] = '\0';\
 									} }
 
+#define isAbsolutePath(string) (string && *string == '/')
+
 #define IS_FLAG_SET(field,flag)	((field & flag) == flag)
 
 extern event *(*ucSemanticsFunct[])(struct tcb *tcp);
