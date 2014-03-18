@@ -319,7 +319,8 @@ if test "x$st_cv_have___builtin_popcount" = xyes; then
 		  [Define to 1 if the system provides __builtin_popcount function])
 fi
 
-PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0 libevent_pthreads])
+#PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0 libevent_pthreads])
+PKG_CHECK_MODULES([DEPS], [libevent_pthreads])
 
 # JNI
 AX_JNI_INCLUDE_DIR

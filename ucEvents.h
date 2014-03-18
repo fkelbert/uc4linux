@@ -19,8 +19,8 @@
 #define PID_LEN 6
 #define FD_LEN 6
 
-#define toPid(str,i) snprintf(str,PID_LEN,"%d",i)
-#define toFd(str,i) snprintf(str,FD_LEN,"%d",i)
+#define toPid(str,i) snprintf(str,PID_LEN,"%u",i)
+#define toFd(str,i) snprintf(str,FD_LEN,"%u",i)
 #define toString(str,tcp,arg)	{ if (!umovestr(tcp, arg, sizeof(str), str)) { \
 											str[sizeof(str) - 1] = '\0';\
 									} }
