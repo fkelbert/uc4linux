@@ -112,8 +112,8 @@ bool getIPsAndPorts(int pid, int inode, char *localIP, char *localPort, char *re
 		if (inode == inodeFound) {
 			long lport = strtol(localPort, NULL, 16);
 			long rport = strtol(remotePort, NULL, 16);
-			snprintf(localPort, 6, "%d", lport);
-			snprintf(remotePort, 6, "%d", rport);
+			snprintf(localPort, 6, "%u", (unsigned int) lport);
+			snprintf(remotePort, 6, "%u", (unsigned int) rport);
 
 			int a[4];
 			sscanf(localIP, "%02x%02x%02x%02x", &a[0], &a[1], &a[2], &a[3]);
