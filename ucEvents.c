@@ -160,6 +160,18 @@ int *getProcessTasks(long pid, int *count) {
 }
 
 
+//ssize_t getCwd(int pid, char *buf, size_t bufsiz) {
+//	const char cwdPath[sizeof("/proc/%u/cwd") + 6];
+//	snprintf(cwdPath, sizeof(cwdPath), "/proc/%u/cwd", pid);
+//
+//	int res;
+//	if ((res = readlink(cwdPath, buf, bufsiz)) >= 0) {
+//		buf[MIN(res,bufsiz-1)] = '\0';
+//	}
+//	return res;
+//}
+
+
 event *ucSemantics_unlink(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
 
@@ -370,17 +382,22 @@ event *ucSemantics_open(struct tcb *tcp) {
 		return NULL;
 	}
 
-	int nul_seen = umovestr(tcp, tcp->u_arg[0], FILENAME_MAX, filename);
-	if (nul_seen < 0) {
-		// This happens if internal memory locations are opened for reading/mmaping.
-		// Not interesting for us.
-		return NULL;
-	}
-	filename[FILENAME_MAX - 1] = '\0';
+//	int nul_seen = umovestr(tcp, tcp->u_arg[0], FILENAME_MAX, filename);
+//	if (nul_seen < 0) {
+//		// This happens if internal memory locations are opened for reading/mmaping.
+//		// Not interesting for us.
+//		return NULL;
+//	}
+//	filename[FILENAME_MAX - 1] = '\0';
 
+	getfdpath(tcp, tcp->u_arg[0], filename, sizeof(filename));
 	if (ignoreFilename(filename)) {
 		return NULL;
 	}
+
+//	if (ignoreFilename(filename)) {
+//		return NULL;
+//	}
 
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_rval);
