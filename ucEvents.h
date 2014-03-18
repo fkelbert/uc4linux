@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
+#include <errno.h>
 
 #include "defs.h"
 #include "ucTypes.h"
