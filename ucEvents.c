@@ -865,7 +865,7 @@ event *ucSemantics_close(struct tcb *tcp) {
 
 event *ucSemantics_connect(struct tcb *tcp) {
 	// connect might succeed if return value is -1 and errno == EINPROGRESS.
-	if (tcp->u_arg[0] < 0 || (tcp->u_rval < 0 && errno != EINPROGRESS)) {
+	if (tcp->u_arg[0] < 0 || (tcp->u_rval < 0 && tcp->u_error != EINPROGRESS)) {
 		return NULL;
 	}
 
