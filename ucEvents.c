@@ -759,7 +759,8 @@ event *ucSemantics_clone(struct tcb *tcp) {
 	}
 
 
-	int written = snprintf(flags, sizeof(flags), "");
+	int written = 0;
+	flags[0] = '\0';
 	// process flags
 	if (tcp->scno == SYS_clone) {
 		if (IS_FLAG_SET(tcp->u_arg[0], CLONE_FILES)) {
