@@ -879,7 +879,7 @@ event *ucSemantics_accept(struct tcb *tcp) {
 }
 
 
-event *ucSemantics_sendfile(struct tcb *tcp) { return NULL;
+event *ucSemantics_sendfile(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
