@@ -37,7 +37,7 @@ bool getCwd(char *cwd, int cwdlen, int pid) {
 	char procfsPath[PATH_MAX];
 	int read;
 
-	snprintf(procfsPath, sizeof(procfsPath), "/proc/%ld/cwd", pid);
+	snprintf(procfsPath, sizeof(procfsPath), "/proc/%d/cwd", pid);
 	if ((read = readlink(procfsPath, cwd,  cwdlen - 1)) == -1) {
 		return false;
 	}
