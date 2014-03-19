@@ -27,7 +27,6 @@ void ucTypesInit(JNIEnv *mainJniEnv) {
 	EVENT_NAME_MMAP = JniNewStringUTF(jniEnv, "Mmap");
 	EVENT_NAME_MUNMAP = JniNewStringUTF(jniEnv, "Munmap");
 	EVENT_NAME_OPEN = JniNewStringUTF(jniEnv, "Open");
-	EVENT_NAME_OPENAT = JniNewStringUTF(jniEnv, "OpenAt");
 	EVENT_NAME_PIPE = JniNewStringUTF(jniEnv, "Pipe");
 	EVENT_NAME_READ = JniNewStringUTF(jniEnv, "Read");
 	EVENT_NAME_RENAME = JniNewStringUTF(jniEnv, "Rename");

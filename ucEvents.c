@@ -31,6 +31,20 @@ bool ignoreFilename(char *fn) {
 	return false;
 }
 
+
+// get the processes' current working directory
+bool getCwd(char *cwd, int cwdlen, int pid) {
+	char procfsPath[PATH_MAX];
+	int read;
+
+	snprintf(procfsPath, sizeof(procfsPath), "/proc/%ld/cwd", pid);
+	if ((read = readlink(procfsPath, cwd,  cwdlen - 1)) == -1) {
+		return false;
+	}
+	cwd[read] = '\0';
+	return true;
+}
+
 char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen) {
 	ssize_t read;
 	char *absNew;
@@ -49,12 +63,9 @@ char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilen
 		return NULL ;
 	}
 
-	// get the processes' current working directory
-	snprintf(procfsPath, sizeof(procfsPath), PROCFS_MNT"/%ld/cwd", pid);
-	if ((read = readlink(procfsPath, cwd, sizeof(cwd) - 1)) == -1) {
-		return NULL ;
+	if (!getCwd(cwd, sizeof(cwd), pid)) {
+		return NULL;
 	}
-	cwd[read] = '\0';
 
 	// concatenate cwd and relative filename and convert it to an absolute filename
 	snprintf(concatPath, sizeof(concatPath), "%s/%s", cwd, relFilename);
@@ -405,61 +416,71 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 }
 
 
-
-event *ucSemantics_open(struct tcb *tcp) {
-	char relFilename[FILENAME_MAX];
-	char absFilename[FILENAME_MAX];
+event *do_open(struct tcb *tcp, char *absFilename, int flags) {
 	char *trunc = "false";
 
-	if (tcp->u_rval < 0) {
-		return NULL;
-	}
-
-	toString(relFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
-			|| ignoreFilename(absFilename)) {
+	if (ignoreFilename(absFilename)) {
 		return NULL;
 	}
 
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_rval);
 
-	int flags = tcp->u_arg[(tcp->scno == SYS_open) ? 1 : 2];	// else case is SYS_openat
-
 	if (IS_FLAG_SET(flags, O_TRUNC) && (IS_FLAG_SET(flags, O_RDWR) || IS_FLAG_SET(flags, O_WRONLY))) {
 		trunc = "true";
 	}
 
-	if (tcp->scno == SYS_open) {
-		event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
-		if (addParam(ev, createParam("pid", pid))
-			&& addParam(ev, createParam("fd", fd1))
-			&& addParam(ev, createParam("filename", absFilename))
-			&& addParam(ev, createParam("trunc", trunc))) {
-			return ev;
-		}
-	}
-	else if (tcp->scno == SYS_openat) {
-		toFd(fd2, tcp->u_arg[0]);
-
-		char *at_fdcwd = "false";
-
-		if (tcp->u_arg[0] == AT_FDCWD) {
-			at_fdcwd = "true";
-		}
-
-		event *ev = createEventWithStdParams(EVENT_NAME_OPENAT, 6);
-		if (addParam(ev, createParam("pid", pid))
-			&& addParam(ev, createParam("newfd", fd1))
-			&& addParam(ev, createParam("dirfd", fd2))
-			&& addParam(ev, createParam("filename", absFilename))
-			&& addParam(ev, createParam("at_fdcwd", at_fdcwd))
-			&& addParam(ev, createParam("trunc", trunc))) {
-			return ev;
-		}
+	event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("filename", absFilename))
+		&& addParam(ev, createParam("trunc", trunc))) {
+		return ev;
 	}
 
 	return NULL;
+}
+
+event *ucSemantics_openat(struct tcb *tcp) {
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX * 2];
+	char dir[FILENAME_MAX];
+
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toString(relFilename, tcp, tcp->u_arg[1]);
+
+	if (tcp->u_arg[0] == AT_FDCWD) {
+		getCwd(dir, sizeof(dir), tcp->pid);
+	}
+	else {
+		getfdpath(tcp, tcp->u_arg[0], dir, sizeof(dir));
+	}
+
+	snprintf(absFilename, sizeof(absFilename), "%s/%s", dir, relFilename);
+
+	return do_open(tcp, absFilename, tcp->u_arg[2]);
+}
+
+
+event *ucSemantics_open(struct tcb *tcp) {
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
+
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toString(relFilename, tcp, tcp->u_arg[0]);
+
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+			|| ignoreFilename(absFilename)) {
+		return NULL;
+	}
+
+	return do_open(tcp, absFilename, tcp->u_arg[1]);
 }
 
 event *ucSemantics_read(struct tcb *tcp) {
@@ -1529,7 +1550,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_olduname] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_openat
-	[SYS_openat] = ucSemantics_open,
+	[SYS_openat] = ucSemantics_openat,
 #endif
 #ifdef SYS_open_by_handle_at
 	[SYS_open_by_handle_at] = ucSemantics_IGNORE,
