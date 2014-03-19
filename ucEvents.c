@@ -208,7 +208,6 @@ event *ucSemantics_unlink(struct tcb *tcp) {
 	}
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
-
 	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
@@ -408,22 +407,24 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 
 
 event *ucSemantics_open(struct tcb *tcp) {
-	char filename[FILENAME_MAX];
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
 	char *trunc = "false";
 
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
 
-	getfdpath(tcp, tcp->u_rval, filename, sizeof(filename));
-	if (ignoreFilename(filename)) {
+	toString(relFilename, tcp, tcp->u_arg[0]);
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
 
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_rval);
 
-	int flags = tcp->u_arg[(tcp->scno == SYS_open) ? 1 : 2];
+	int flags = tcp->u_arg[(tcp->scno == SYS_open) ? 1 : 2];	// else case is SYS_openat
 
 	if (IS_FLAG_SET(flags, O_TRUNC) && (IS_FLAG_SET(flags, O_RDWR) || IS_FLAG_SET(flags, O_WRONLY))) {
 		trunc = "true";
@@ -433,7 +434,7 @@ event *ucSemantics_open(struct tcb *tcp) {
 		event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
 		if (addParam(ev, createParam("pid", pid))
 			&& addParam(ev, createParam("fd", fd1))
-			&& addParam(ev, createParam("filename", filename))
+			&& addParam(ev, createParam("filename", absFilename))
 			&& addParam(ev, createParam("trunc", trunc))) {
 			return ev;
 		}
@@ -451,7 +452,7 @@ event *ucSemantics_open(struct tcb *tcp) {
 		if (addParam(ev, createParam("pid", pid))
 			&& addParam(ev, createParam("newfd", fd1))
 			&& addParam(ev, createParam("dirfd", fd2))
-			&& addParam(ev, createParam("filename", filename))
+			&& addParam(ev, createParam("filename", absFilename))
 			&& addParam(ev, createParam("at_fdcwd", at_fdcwd))
 			&& addParam(ev, createParam("trunc", trunc))) {
 			return ev;
@@ -497,20 +498,19 @@ event *ucSemantics_rename(struct tcb *tcp) {
 		return NULL;
 	}
 
-	toPid(pid, tcp->pid);
-
 	toString(oldRelFilename, tcp, tcp->u_arg[0]);
-	toString(newRelFilename, tcp, tcp->u_arg[1]);
-
 	if (!(toAbsFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename)))
 			|| ignoreFilename(oldAbsFilename)) {
 		return NULL;
 	}
 
+	toString(newRelFilename, tcp, tcp->u_arg[1]);
 	if (!(toAbsFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename)))
 				|| ignoreFilename(newAbsFilename)) {
 		return NULL;
 	}
+
+	toPid(pid, tcp->pid);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_RENAME, 2);
 	if (addParam(ev, createParam("old", oldAbsFilename))
@@ -662,17 +662,17 @@ event *ucSemantics_truncate(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 
-	if (tcp->u_rval < 0 || tcp->u_arg[1] != 0) {
+	if (tcp->u_rval < 0 || tcp->u_arg[1] == 0) {
 		return NULL;
 	}
 
-	toPid(pid, tcp->pid);
 	toString(relFilename, tcp, tcp->u_arg[0]);
-
 	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
+
+	toPid(pid, tcp->pid);
 
 	event *ev = createEventWithStdParams(EVENT_NAME_TRUNCATE, 1);
 	if (addParam(ev, createParam("filename", absFilename))) {
@@ -718,14 +718,16 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 }
 
 event *ucSemantics_execve(struct tcb *tcp) {
-	char filename[FILENAME_MAX];
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
 
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
 
-	getfdpath(tcp, tcp->u_rval, filename, sizeof(filename));
-	if (ignoreFilename(filename)) {
+	toString(relFilename, tcp, tcp->u_arg[0]);
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
 
@@ -733,7 +735,7 @@ event *ucSemantics_execve(struct tcb *tcp) {
 
 	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 2);
 	if (addParam(ev, createParam("pid", pid))
-		&& addParam(ev, createParam("filename", filename))) {
+		&& addParam(ev, createParam("filename", absFilename))) {
 		return ev;
 	}
 
