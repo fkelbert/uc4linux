@@ -444,7 +444,7 @@ event *do_open(struct tcb *tcp, char *absFilename, int flags) {
 event *ucSemantics_openat(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX * 2];
-	char dir[FILENAME_MAX];
+	char dir[FILENAME_MAX] = "";
 
 	if (tcp->u_rval < 0) {
 		return NULL;
@@ -452,13 +452,15 @@ event *ucSemantics_openat(struct tcb *tcp) {
 
 	toString(relFilename, tcp, tcp->u_arg[1]);
 
-	if (tcp->u_arg[0] == AT_FDCWD) {
-		getCwd(dir, sizeof(dir), tcp->pid);
+	if (!isAbsolutePath(relFilename)) {
+		if (tcp->u_arg[0] == AT_FDCWD) {
+			getCwd(dir, sizeof(dir), tcp->pid);
+		}
+		else {
+			getfdpath(tcp, tcp->u_arg[0], dir, sizeof(dir));
+		}
 	}
-	else {
-		getfdpath(tcp, tcp->u_arg[0], dir, sizeof(dir));
-	}
-
+	
 	snprintf(absFilename, sizeof(absFilename), "%s/%s", dir, relFilename);
 
 	return do_open(tcp, absFilename, tcp->u_arg[2]);
