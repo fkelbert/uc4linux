@@ -4,7 +4,6 @@ volatile JavaVM *jvm = NULL;
 
 // Definitions to have all eclipse errors in one place rather than all over the C file...
 #define JniFindClass(env,class) 							(*env)->FindClass(env, class)
-#define JniExceptionOccurred(env)							(*env)->ExceptionOccurred(env)
 #define JniGetStaticMethodID(env,class,name,sig)			(*env)->GetStaticMethodID(env, class, name, sig)
 #define JniNewObjectArray(env,size,class,arg)	 			(*env)->NewObjectArray(env, size, class, arg)
 #define JniNewStringUTF(env,str)							(*env)->NewStringUTF(env, str)
@@ -14,13 +13,21 @@ volatile JavaVM *jvm = NULL;
 #define JniCallStaticObjectMethod(env,class,method,...)		(*env)->CallStaticObjectMethod(env, class, method, ##__VA_ARGS__)
 #define JniAttachCurrentThread(jvm,env,arg)					(*jvm)->AttachCurrentThread(jvm, env, arg)
 
+#define JniGetMethodID(env,class,name,sig)					(*env)->GetMethodID(env, class, name, sig)
+
+#define JniExceptionOccurred(env)							(*env)->ExceptionOccurred(env)
+#define JniExceptionCheck(env)								(*env)->ExceptionCheck(env)
+#define JniExceptionClear(env)								(*env)->ExceptionClear(env)
+#define JniExceptionDescribe(env)							(*env)->ExceptionDescribe(env)
+
 JNIEnv *mainJniEnv;
 
 // CAUTION!
 // The following references are only valid within the main thread!
-jclass classPepHandler;
+jclass classHandler;
 jmethodID methodNotifyEvent;
 jclass classString;
+jclass classThrowable;
 
 pthread_t jvmStarter;
 
@@ -42,10 +49,10 @@ void *threadJvmStarter(void *args) {
     	pthread_exit((void *) false);
     }
 
-    // find the PdpController
-    pdpClass = JniFindClass(env, CLASS_PDP_CONTROLLER);
+    // find the Controller
+    pdpClass = JniFindClass(env, CLASS_CONTROLLER);
 	if (JniExceptionOccurred(env)) {
-		printf("Could not find class " CLASS_PDP_CONTROLLER ".\n");
+		printf("Could not find class " CLASS_CONTROLLER ".\n");
 		exit(1);
 	};
 
@@ -57,10 +64,11 @@ void *threadJvmStarter(void *args) {
 	}
 
 	// call the main method
-	jarray arg = JniNewObjectArray(env, 2, JniFindClass(env, JNI_STRING), 0);
-	JniSetObjectArrayElement(env, arg, 0, JniNewStringUTF(env, "-pp"));
-	JniSetObjectArrayElement(env, arg, 1, JniNewStringUTF(env, "pdp1.properties"));
-	JniCallStaticVoidMethod(env, pdpClass, mainMethod, arg);
+//	jarray arg = JniNewObjectArray(env, 2, JniFindClass(env, JNI_STRING), 0);
+//	JniSetObjectArrayElement(env, arg, 0, JniNewStringUTF(env, "-pp"));
+//	JniSetObjectArrayElement(env, arg, 1, JniNewStringUTF(env, "pdp1.properties"));
+//	JniCallStaticVoidMethod(env, pdpClass, mainMethod, arg);
+	JniCallStaticVoidMethod(env, pdpClass, mainMethod);
 	if (JniExceptionOccurred(env)) {
 		printf("Exception in " METHOD_MAIN_NAME ".\n");
 		exit(1);
@@ -92,36 +100,39 @@ void notifyEventToPdp(event *ev) {
 		JniSetObjectArrayElement(mainJniEnv, paramVals, i, ev->params[i]->val);
 	}
 
-	jobject resp = JniCallStaticObjectMethod(mainJniEnv, classPepHandler, methodNotifyEvent, ev->name, paramKeys, paramVals, ev->isActual);
+	jobject resp = JniCallStaticObjectMethod(mainJniEnv, classHandler, methodNotifyEvent, ev->name, paramKeys, paramVals, ev->isActual);
 }
 
 
 bool waitForStartupCompletion() {
 	// get class pdp controller
-	jclass classPdpController = JniFindClass(mainJniEnv, CLASS_PDP_CONTROLLER);
+	jclass classController = JniFindClass(mainJniEnv, CLASS_CONTROLLER);
 	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("Could not find class " CLASS_PDP_CONTROLLER ".\n");
+		printf("Could not find class " CLASS_CONTROLLER ".\n");
 		return false;
 	}
 
-	jmethodID methodIsStarted = JniGetStaticMethodID(mainJniEnv, classPdpController, METHOD_ISSTARTED_NAME, METHOD_ISSTARTED_SIG);
+	jmethodID methodIsStarted = JniGetStaticMethodID(mainJniEnv, classController, METHOD_ISSTARTED_NAME, METHOD_ISSTARTED_SIG);
 	if (JniExceptionOccurred(mainJniEnv)) {
 		printf("Could not find " METHOD_ISSTARTED_NAME " method.\n");
 		return false;
 	}
 
-	printf("Waiting for PdpController to get started");
+	printf("Waiting for Controller to get started ...");
 	jboolean isStarted = JNI_FALSE;
 	while (isStarted == JNI_FALSE) {
-		isStarted = JniCallStaticBooleanMethod(mainJniEnv, classPdpController, methodIsStarted);
-		if (JniExceptionOccurred(mainJniEnv)) {
-			printf("Could not execute " METHOD_ISSTARTED_NAME " method.\n");
-			return false;
-		}
+		isStarted = JniCallStaticBooleanMethod(mainJniEnv, classController, methodIsStarted);
+//		if (JniExceptionCheck(mainJniEnv)) {
+//			printf("\nException in " METHOD_ISSTARTED_NAME "():\n");
+//			JniExceptionDescribe(mainJniEnv);
+//			return false;
+//		}
 		printf(".");
 		fflush(stdout);
 		sleep(1);
 	}
+	JniExceptionClear(mainJniEnv);
+
 	printf("\n");
 
 	return true;
@@ -129,15 +140,15 @@ bool waitForStartupCompletion() {
 
 
 bool getMainJniRefs() {
-	classPepHandler = JniFindClass(mainJniEnv, CLASS_PEP_NATIVE_HANDLER);
-	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("Could not find class " CLASS_PEP_NATIVE_HANDLER ".\n");
+	classHandler = JniFindClass(mainJniEnv, CLASS_NATIVE_HANDLER);
+	if (JniExceptionCheck(mainJniEnv)) {
+		printf("Could not find class " CLASS_NATIVE_HANDLER ".\n");
 		return false;
 	}
 
-	methodNotifyEvent = JniGetStaticMethodID(mainJniEnv, classPepHandler, METHOD_NOTIFY_NAME, METHOD_NOTIFY_SIG);
+	methodNotifyEvent = JniGetStaticMethodID(mainJniEnv, classHandler, METHOD_NOTIFY_NAME, METHOD_NOTIFY_SIG);
 	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("Could not access method " METHOD_NOTIFY_NAME " in class " CLASS_PDP_CONTROLLER ".\n");
+		printf("Could not access method " METHOD_NOTIFY_NAME " in class " CLASS_CONTROLLER ".\n");
 		return false;
 	}
 
@@ -146,6 +157,9 @@ bool getMainJniRefs() {
 		printf("Could not find class " CLASS_STRING ".\n");
 		return false;
 	}
+
+	classThrowable = JniFindClass(mainJniEnv, CLASS_THROWABLE);
+	jmethodID method = JniGetMethodID(mainJniEnv, classThrowable, METHOD_EXC_MESSAGE_NAME, METHOD_EXC_MESSAGE_SIG);
 
 	return true;
 }

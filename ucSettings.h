@@ -4,7 +4,7 @@
 #define UC_ENABLED 1
 #define UC_DEBUG 1
 
-#define USER_CLASSPATH "../pdp/PdpCommunicationManager/target/PdpCommunicationManager-1.0-jar-with-dependencies.jar"
+#define USER_CLASSPATH "../pdp/CommunicationManager/target/CommunicationManager-1.0-jar-with-dependencies.jar"
 
 static const char *ignoredFiles[] = {
 		"/dev",
