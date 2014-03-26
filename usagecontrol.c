@@ -119,19 +119,22 @@ bool waitForStartupCompletion() {
 	}
 
 	printf("Waiting for Controller to get started ...");
+
+	// Leave the UC framework some time to initialize. Otherwise an exception will occur.
+	// TODO: How can we get rid of this workaroung?
+	sleep(1);
+
 	jboolean isStarted = JNI_FALSE;
 	while (isStarted == JNI_FALSE) {
 		isStarted = JniCallStaticBooleanMethod(mainJniEnv, classController, methodIsStarted);
-//		if (JniExceptionCheck(mainJniEnv)) {
-//			printf("\nException in " METHOD_ISSTARTED_NAME "():\n");
-//			JniExceptionDescribe(mainJniEnv);
-//			return false;
-//		}
+		if (JniExceptionCheck(mainJniEnv)) {
+			printf("\nException in " METHOD_ISSTARTED_NAME "():\n");
+			JniExceptionDescribe(mainJniEnv);
+		}
 		printf(".");
 		fflush(stdout);
 		sleep(1);
 	}
-	JniExceptionClear(mainJniEnv);
 
 	printf("\n");
 

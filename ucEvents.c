@@ -748,9 +748,10 @@ event *ucSemantics_execve(struct tcb *tcp) {
 		return NULL;
 	}
 
+	// Note: Do not ignore filename.
+
 	toString(relFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
-			|| ignoreFilename(absFilename)) {
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))) {
 		return NULL;
 	}
 
