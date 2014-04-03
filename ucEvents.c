@@ -330,7 +330,9 @@ event *ucSemantics_write(struct tcb *tcp) {
 
 	bool allowImpliesActual = false;
 
+	uc_log("xxxxx %s",filename);
 	if (isSocket(filename) || isPipe(filename)) {
+		uc_log("xxxxx yyyy");
 		allowImpliesActual = true;
 	}
 
@@ -352,15 +354,18 @@ event *ucSemantics_write(struct tcb *tcp) {
 //	perror("stat");
 //	printf("\nfoo\n");
 
+
 	// if this event is actual and if allowImpliesActual,
 	// then the previous desired attempt was transformed into
 	// an actual event automatically and we do not need to signal it.
 	if (is_actual(tcp) && allowImpliesActual) {
+		uc_log("xxxxx bbb");
 		return NULL;
 	}
 
 	char *allowImpliesActualString = "false";
 	if (allowImpliesActual) {
+		uc_log("xxxxx aaaa");
 		allowImpliesActualString = "true";
 	}
 
