@@ -331,14 +331,14 @@ event *ucSemantics_write(struct tcb *tcp) {
 	bool allowImpliesActual = false;
 
 	struct stat sb;
-	printf("write::: %s\n", filename);
+	uc_log("write::: %s\n", filename);
 	if (stat(filename, &sb) != -1) {
-		printf("\nxxx a %s\n", filename);
+		uc_log("\nxxx a %s\n", filename);
 		switch (sb.st_mode & S_IFMT) {
 		case S_IFSOCK:
 		case S_IFIFO:
 			allowImpliesActual = true;
-			printf("\nxxx b\n");
+			uc_log("\nxxx b\n");
 		}
 //		if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode)) {
 //			printf("\nxxx b\n");
