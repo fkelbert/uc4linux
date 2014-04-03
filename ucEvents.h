@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <string.h>
 
 #include "defs.h"
 #include "ucTypes.h"
@@ -30,8 +31,8 @@
 
 #define isAbsolutePath(string) (string && *string == '/')
 
-#define isSocket(string) 	(string && strlen(string) == 7 && strncmp(string,"socket:",7) == 0)
-#define isPipe(string) 		(string && strlen(string) == 5 && strncmp(string,"pipe:",5) == 0)
+#define isSocket(string) 	(string && strlen(string) >= 7 && strncmp(string,"socket:",7) == 0)
+#define isPipe(string) 		(string && strlen(string) >= 5 && strncmp(string,"pipe:",5) == 0)
 
 #define IS_FLAG_SET(field,flag)	((field & flag) == flag)
 
