@@ -14,6 +14,7 @@
 #include "defs.h"
 #include "ucTypes.h"
 #include "ucSettings.h"
+#include "ucLog.h"
 
 #define ucSemantics_IGNORE NULL
 #define ucSemanticsDefined(syscallno) (ucSemanticsFunct[syscallno] != NULL)
