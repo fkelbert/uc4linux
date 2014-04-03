@@ -58,7 +58,7 @@ char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilen
 		absFilename[absFilenameLen - 1] = '\0';
 		return (absFilename);
 	}
-
+	
 	if (absFilenameLen < 1) {
 		return NULL ;
 	}
@@ -214,10 +214,22 @@ event *ucSemantics_unlink(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 
+	// TODO: we signal the desired unlink,
+	// because we cannot (easily) retrieve the filename
+	// after execution of unlink.
+	// As unlink might fail, this implementation might be wrong
+	// in this case. 
+	// A correct implementation would save the filename upon syscall
+	// enter and reuse this saved filename upon exiting to in fact
+	// signal the actual unlink. Yet, it might be the case that 
+	// multiple/threads processes unlink different files concurrently,
+	// which is why we cannot use a single variable, but we would need
+	// a synchronized map or somtheing similar... oh dear.
+/*
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
-
+*/
 	toString(relFilename, tcp, tcp->u_arg[0]);
 	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
 			|| ignoreFilename(absFilename)) {
