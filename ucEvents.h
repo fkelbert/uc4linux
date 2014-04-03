@@ -30,6 +30,9 @@
 
 #define isAbsolutePath(string) (string && *string == '/')
 
+#define isSocket(string) 	(string && strlen(string) == 7 && strncmp(string,"socket:",7) == 0)
+#define isPipe(string) 		(string && strlen(string) == 5 && strncmp(string,"pipe:",5) == 0)
+
 #define IS_FLAG_SET(field,flag)	((field & flag) == flag)
 
 extern event *(*ucSemanticsFunct[])(struct tcb *tcp);

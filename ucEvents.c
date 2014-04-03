@@ -330,23 +330,27 @@ event *ucSemantics_write(struct tcb *tcp) {
 
 	bool allowImpliesActual = false;
 
-	struct stat sb;
-	uc_log("write::: %s\n", filename);
-	if (stat(filename, &sb) != -1) {
-		uc_log("\nxxx a %s\n", filename);
-		switch (sb.st_mode & S_IFMT) {
-		case S_IFSOCK:
-		case S_IFIFO:
-			allowImpliesActual = true;
-			uc_log("\nxxx b\n");
-		}
-//		if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode)) {
-//			printf("\nxxx b\n");
-//			allowImpliesActual = true;
-//		}
+	if (isSocket(filename) || isPipe(filename)) {
+		allowImpliesActual = true;
 	}
-	perror("stat");
-	printf("\nfoo\n");
+
+//	struct stat sb;
+//	uc_log("write::: %s\n", filename);
+//	if (stat(filename, &sb) != -1) {
+//		uc_log("\nxxx a %s\n", filename);
+//		switch (sb.st_mode & S_IFMT) {
+//		case S_IFSOCK:
+//		case S_IFIFO:
+//			allowImpliesActual = true;
+//			uc_log("\nxxx b\n");
+//		}
+////		if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode)) {
+////			printf("\nxxx b\n");
+////			allowImpliesActual = true;
+////		}
+//	}
+//	perror("stat");
+//	printf("\nfoo\n");
 
 	// if this event is actual and if allowImpliesActual,
 	// then the previous desired attempt was transformed into
