@@ -332,10 +332,13 @@ event *ucSemantics_write(struct tcb *tcp) {
 
 	struct stat sb;
 	if (stat(filename, &sb) != -1) {
+		printf("\nxxx a %s\n", filename);
 		if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode)) {
+			printf("\nxxx b\n");
 			allowImpliesActual = true;
 		}
 	}
+	perror("stat");
 
 	// if this event is actual and if allowImpliesActual,
 	// then the previous desired attempt was transformed into
