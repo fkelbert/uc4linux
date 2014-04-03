@@ -14,7 +14,7 @@
 #define MAIN_PKG				"de/tum/in/i22/uc/"
 
 #define CLASS_CONTROLLER 		MAIN_PKG "Controller"
-#define CLASS_NATIVE_HANDLER 	MAIN_PKG "cm/in/NativeHandler"
+#define CLASS_NATIVE_HANDLER 	MAIN_PKG "cm/handlers/NativeHandler"
 
 #define FIELD_NATIVE_PEP 		"nativePepHandler"
 #define FIELD_NATIVE_PEP_SIG	JNI_TYPE(CLASS_PEP_NATIVE_HANDLER)
