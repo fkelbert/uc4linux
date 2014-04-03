@@ -71,7 +71,7 @@ void *threadJvmStarter(void *args) {
 	JniCallStaticVoidMethod(env, pdpClass, mainMethod);
 	if (JniExceptionOccurred(env)) {
 		printf("Exception in " METHOD_MAIN_NAME ".\n");
-		JniExceptionDescribe(mainJniEnv);
+		JniExceptionDescribe(env);
 		exit(1);
 	}
 
