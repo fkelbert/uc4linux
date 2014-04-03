@@ -330,42 +330,19 @@ event *ucSemantics_write(struct tcb *tcp) {
 
 	bool allowImpliesActual = false;
 
-	uc_log("xxxxx %s",filename);
 	if (isSocket(filename) || isPipe(filename)) {
-		uc_log("xxxxx yyyy");
 		allowImpliesActual = true;
 	}
-
-//	struct stat sb;
-//	uc_log("write::: %s\n", filename);
-//	if (stat(filename, &sb) != -1) {
-//		uc_log("\nxxx a %s\n", filename);
-//		switch (sb.st_mode & S_IFMT) {
-//		case S_IFSOCK:
-//		case S_IFIFO:
-//			allowImpliesActual = true;
-//			uc_log("\nxxx b\n");
-//		}
-////		if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode)) {
-////			printf("\nxxx b\n");
-////			allowImpliesActual = true;
-////		}
-//	}
-//	perror("stat");
-//	printf("\nfoo\n");
-
 
 	// if this event is actual and if allowImpliesActual,
 	// then the previous desired attempt was transformed into
 	// an actual event automatically and we do not need to signal it.
 	if (is_actual(tcp) && allowImpliesActual) {
-		uc_log("xxxxx bbb");
 		return NULL;
 	}
 
 	char *allowImpliesActualString = "false";
 	if (allowImpliesActual) {
-		uc_log("xxxxx aaaa");
 		allowImpliesActualString = "true";
 	}
 
@@ -1020,18 +997,46 @@ event *ucSemantics_accept(struct tcb *tcp) {
 
 
 event *ucSemantics_sendfile(struct tcb *tcp) {
-	if (tcp->u_rval < 0) {
+	char filename[FILENAME_MAX];
+
+	// Only return NULL if return value <= 0 AND event is actual
+	// Reason: We are interested in desired events in any case
+	if (tcp->u_rval <= 0 && is_actual(tcp)) {
 		return NULL;
+	}
+
+	getfdpath(tcp, tcp->u_arg[0], filename, sizeof(filename));
+	if (ignoreFilename(filename)) {
+		return NULL;
+	}
+
+	bool allowImpliesActual = false;
+
+	if (isSocket(filename) || isPipe(filename)) {
+		allowImpliesActual = true;
+	}
+
+	// if this event is actual and if allowImpliesActual,
+	// then the previous desired attempt was transformed into
+	// an actual event automatically and we do not need to signal it.
+	if (is_actual(tcp) && allowImpliesActual) {
+		return NULL;
+	}
+
+	char *allowImpliesActualString = "false";
+	if (allowImpliesActual) {
+		allowImpliesActualString = "true";
 	}
 
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_arg[0]);
 	toFd(fd2, tcp->u_arg[1]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_SENDFILE, 3);
+	event *ev = createEventWithStdParams(EVENT_NAME_SENDFILE, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("outfd", fd1))
-		&& addParam(ev, createParam("infd", fd2))) {
+		&& addParam(ev, createParam("infd", fd2))
+		&& addParam(ev, createParam("allowImpliesActual", allowImpliesActualString))) {
 		return ev;
 	}
 
