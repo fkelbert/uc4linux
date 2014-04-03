@@ -331,6 +331,7 @@ event *ucSemantics_write(struct tcb *tcp) {
 	bool allowImpliesActual = false;
 
 	struct stat sb;
+	printf("write::: %s\n", filename);
 	if (stat(filename, &sb) != -1) {
 		printf("\nxxx a %s\n", filename);
 		switch (sb.st_mode & S_IFMT) {
