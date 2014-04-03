@@ -333,10 +333,16 @@ event *ucSemantics_write(struct tcb *tcp) {
 	struct stat sb;
 	if (stat(filename, &sb) != -1) {
 		printf("\nxxx a %s\n", filename);
-		if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode)) {
-			printf("\nxxx b\n");
+		switch (sb.st_mode & S_IFMT) {
+		case S_IFSOCK:
+		case S_IFIFO:
 			allowImpliesActual = true;
+			printf("\nxxx b\n");
 		}
+//		if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode)) {
+//			printf("\nxxx b\n");
+//			allowImpliesActual = true;
+//		}
 	}
 	perror("stat");
 
