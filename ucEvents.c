@@ -328,13 +328,35 @@ event *ucSemantics_write(struct tcb *tcp) {
 		return NULL;
 	}
 
+	bool allowImpliesActual = false;
+
+	struct stat sb;
+	if (stat(filename, &sb) != -1) {
+		if (S_ISFIFO(sb.st_mode) || S_ISSOCK(sb.st_mode)) {
+			allowImpliesActual = true;
+		}
+	}
+
+	// if this event is actual and if allowImpliesActual,
+	// then the previous desired attempt was transformed into
+	// an actual event automatically and we do not need to signal it.
+	if (is_actual(tcp) && allowImpliesActual) {
+		return NULL;
+	}
+
+	char *allowImpliesActualString = "false";
+	if (allowImpliesActual) {
+		allowImpliesActualString = "true";
+	}
+
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_arg[0]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_WRITE, 2);
+	event *ev = createEventWithStdParams(EVENT_NAME_WRITE, 3);
 
 	if (addParam(ev, createParam("pid", pid))
-		&& addParam(ev, createParam("fd", fd1))) {
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("allowImpliesActual", allowImpliesActualString))) {
 		return ev;
 	}
 
