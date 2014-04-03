@@ -2,6 +2,7 @@
 #define UC_EVENTS_H
 
 #include <stdbool.h>
+#include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <limits.h>
 #include <dirent.h>
