@@ -345,6 +345,7 @@ event *ucSemantics_write(struct tcb *tcp) {
 //		}
 	}
 	perror("stat");
+	printf("\nfoo\n");
 
 	// if this event is actual and if allowImpliesActual,
 	// then the previous desired attempt was transformed into
