@@ -60,6 +60,9 @@ event *createEventWithStdParams(jstring name, int cntParams);
 void destroyEvent(event *e);
 bool addParam(event *ev, param *p);
 
+#define is_actual(tcp) 		(!exiting(tcp))
+#define is_desired(tcp) 	(exiting(tcp))
+
 
 #endif
 

@@ -122,7 +122,7 @@ bool waitForStartupCompletion() {
 	printf("Waiting for Controller to get started ...");
 
 	// Leave the UC framework some time to initialize. Otherwise an exception will occur.
-	// TODO: How can we get rid of this workaroung?
+	// TODO: How can we get rid of this workaround?
 	sleep(1);
 
 	jboolean isStarted = JNI_FALSE;
@@ -269,7 +269,7 @@ void notifySyscall(struct tcb *tcp) {
 	 * maybe use syscall_fixup_on_sysenter() in syscall.c
 	 * This also needs to be fixed in ucPIP_main.c::ucPIP_update() then.
 	 */
-	bool actual = !exiting(tcp);
+	bool actual = is_actual(tcp);
 
 	uc_log("==== %3d (%05d, %c) %s ... ", tcp->scno, tcp->pid, actual ? 'A' : 'D', tcp->s_ent->sys_name);
 

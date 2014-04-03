@@ -305,7 +305,9 @@ event *ucSemantics_shutdown(struct tcb *tcp) {
 event *ucSemantics_write(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
 
-	if (tcp->u_rval <= 0) {
+	// Only return NULL if return value <= 0 AND event is actual
+	// Reason: We are interested in desired events in any case
+	if (tcp->u_rval <= 0 && is_actual(tcp)) {
 		return NULL;
 	}
 
