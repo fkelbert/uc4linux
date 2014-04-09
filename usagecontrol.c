@@ -14,6 +14,7 @@ volatile JavaVM *jvm = NULL;
 #define JniAttachCurrentThread(jvm,env,arg)					(*jvm)->AttachCurrentThread(jvm, env, arg)
 
 #define JniGetMethodID(env,class,name,sig)					(*env)->GetMethodID(env, class, name, sig)
+#define JniGetFieldID(env,class,name,sig)					(*env)->GetFieldID(env, class, name, sig)
 
 #define JniExceptionOccurred(env)							(*env)->ExceptionOccurred(env)
 #define JniExceptionCheck(env)								(*env)->ExceptionCheck(env)
@@ -24,10 +25,12 @@ JNIEnv *mainJniEnv;
 
 // CAUTION!
 // The following references are only valid within the main thread!
-jclass classHandler;
-jmethodID methodNotifyEvent;
+jclass classNativeHandler;
+jclass classController;
 jclass classString;
 jclass classThrowable;
+jmethodID methodNotifyEvent;
+jfieldID fieldNativeHandler;
 
 pthread_t jvmStarter;
 
@@ -101,13 +104,13 @@ void notifyEventToPdp(event *ev) {
 		JniSetObjectArrayElement(mainJniEnv, paramVals, i, ev->params[i]->val);
 	}
 
-	jobject resp = JniCallStaticObjectMethod(mainJniEnv, classHandler, methodNotifyEvent, ev->name, paramKeys, paramVals, ev->isActual);
+	jobject resp = JniCallStaticObjectMethod(mainJniEnv, classNativeHandler, methodNotifyEvent, ev->name, paramKeys, paramVals, ev->isActual);
 }
 
 
 bool waitForStartupCompletion() {
 	// get class pdp controller
-	jclass classController = JniFindClass(mainJniEnv, CLASS_CONTROLLER);
+	classController = JniFindClass(mainJniEnv, CLASS_CONTROLLER);
 	if (JniExceptionOccurred(mainJniEnv)) {
 		printf("Could not find class " CLASS_CONTROLLER ".\n");
 		return false;
@@ -144,15 +147,21 @@ bool waitForStartupCompletion() {
 
 
 bool getMainJniRefs() {
-	classHandler = JniFindClass(mainJniEnv, CLASS_NATIVE_HANDLER);
+	classNativeHandler = JniFindClass(mainJniEnv, CLASS_NATIVE_HANDLER);
 	if (JniExceptionCheck(mainJniEnv)) {
 		printf("Could not find class " CLASS_NATIVE_HANDLER ".\n");
 		return false;
 	}
 
-	methodNotifyEvent = JniGetStaticMethodID(mainJniEnv, classHandler, METHOD_NOTIFY_NAME, METHOD_NOTIFY_SIG);
+	methodNotifyEvent = JniGetMethodID(mainJniEnv, classNativeHandler, METHOD_NOTIFY_NAME, METHOD_NOTIFY_SIG);
 	if (JniExceptionOccurred(mainJniEnv)) {
 		printf("Could not access method " METHOD_NOTIFY_NAME " in class " CLASS_CONTROLLER ".\n");
+		return false;
+	}
+
+	fieldNativeHandler = JniGetFieldID(mainJniEnv, classController, FIELD_NATIVE_HANDLER, FIELD_NATIVE_HANDLER_SIG);
+	if (JniExceptionOccurred(mainJniEnv)) {
+		printf("Could not access field " FIELD_NATIVE_HANDLER " in class " CLASS_CONTROLLER ".\n");
 		return false;
 	}
 
