@@ -2,7 +2,7 @@
 #define UC_SETTINGS_H
 
 #define UC_ENABLED 1
-#define UC_DEBUG 1
+#define UC_DEBUG 0
 
 #define USER_CLASSPATH "CommunicationManager-1.0-jar-with-dependencies.jar"
 
