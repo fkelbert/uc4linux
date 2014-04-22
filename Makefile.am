@@ -30,6 +30,7 @@ strace_SOURCES =	\
 	ipc.c		\
 	kexec.c		\
 	keyctl.c	\
+	ldt.c		\
 	loop.c		\
 	mem.c		\
 	mtd.c		\
