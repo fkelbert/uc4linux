@@ -7,11 +7,15 @@ volatile JavaVM *jvm = NULL;
 #define JniGetStaticMethodID(env,class,name,sig)			(*env)->GetStaticMethodID(env, class, name, sig)
 #define JniNewObjectArray(env,size,class,arg)	 			(*env)->NewObjectArray(env, size, class, arg)
 #define JniNewStringUTF(env,str)							(*env)->NewStringUTF(env, str)
-#define JniSetObjectArrayElement(env,arr,pos,elem)			(*env)->SetObjectArrayElement(env, arr, pos, elem);
-#define JniCallStaticVoidMethod(env,class,method,...) 		(*env)->CallStaticVoidMethod(env, class, method, ##__VA_ARGS__);
+#define JniSetObjectArrayElement(env,arr,pos,elem)			(*env)->SetObjectArrayElement(env, arr, pos, elem)
+
+#define JniCallStaticVoidMethod(env,class,method,...) 		(*env)->CallStaticVoidMethod(env, class, method, ##__VA_ARGS__)
 #define JniCallStaticBooleanMethod(env,class,method,...)	(*env)->CallStaticBooleanMethod(env, class, method, ##__VA_ARGS__)
 #define JniCallStaticObjectMethod(env,class,method,...)		(*env)->CallStaticObjectMethod(env, class, method, ##__VA_ARGS__)
-#define JniCallObjectMethod(env,object,method,...)		(*env)->CallObjectMethod(env, object, method, ##__VA_ARGS__)
+
+#define JniCallBooleanMethod(env,object,method,...)			(*env)->CallBooleanMethod(env, object, method, ##__VA_ARGS__)
+#define JniCallObjectMethod(env,object,method,...)		(	*env)->CallObjectMethod(env, object, method, ##__VA_ARGS__)
+
 #define JniAttachCurrentThread(jvm,env,arg)					(*jvm)->AttachCurrentThread(jvm, env, arg)
 
 #define JniGetMethodID(env,class,name,sig)					(*env)->GetMethodID(env, class, name, sig)
@@ -28,10 +32,11 @@ JNIEnv *mainJniEnv;
 // CAUTION!
 // The following references are only valid within the main thread!
 jclass classNativeHandler;
-jclass classController;
+jclass classNativeHandler;
 jclass classString;
 jclass classThrowable;
 jmethodID methodNotifyEvent;
+jmethodID methodIsStarted;
 jobject nativeHandler;
 
 pthread_t jvmStarter;
@@ -47,7 +52,7 @@ void *threadJvmStarter(void *args) {
     vm_args.ignoreUnrecognized = 0;
 
     jmethodID mainMethod;
-    jclass pdpClass;
+    jclass mainClass;
 
     // start the JVM
     if (JNI_CreateJavaVM((JavaVM**) &jvm, (void**)&env, &vm_args) < 0) {
@@ -55,25 +60,27 @@ void *threadJvmStarter(void *args) {
     }
 
     // find the Controller
-    pdpClass = JniFindClass(env, CLASS_CONTROLLER);
+    mainClass = JniFindClass(env, CLASS_NATIVE_HANDLER);
 	if (JniExceptionOccurred(env)) {
-		printf("Could not find class " CLASS_CONTROLLER ".\n");
+		printf("Could not find main class " CLASS_NATIVE_HANDLER ".\n");
 		exit(1);
 	};
 
 	// find the main method
-	mainMethod = JniGetStaticMethodID(env, pdpClass, METHOD_MAIN_NAME, METHOD_MAIN_SIG);
+	mainMethod = JniGetStaticMethodID(env, mainClass, METHOD_MAIN_NAME, METHOD_MAIN_SIG);
 	if (JniExceptionOccurred(env)) {
 		printf("Method " METHOD_MAIN_NAME " not found.\n");
 		exit(1);
 	}
+
+
 
 	// call the main method
 //	jarray arg = JniNewObjectArray(env, 2, JniFindClass(env, JNI_STRING), 0);
 //	JniSetObjectArrayElement(env, arg, 0, JniNewStringUTF(env, "-pp"));
 //	JniSetObjectArrayElement(env, arg, 1, JniNewStringUTF(env, "pdp1.properties"));
 //	JniCallStaticVoidMethod(env, pdpClass, mainMethod, arg);
-	JniCallStaticVoidMethod(env, pdpClass, mainMethod);
+	JniCallStaticVoidMethod(env, mainClass, mainMethod);
 	if (JniExceptionOccurred(env)) {
 		printf("Exception in " METHOD_MAIN_NAME ".\n");
 		JniExceptionDescribe(env);
@@ -111,34 +118,19 @@ void notifyEventToPdp(event *ev) {
 
 
 bool waitForStartupCompletion() {
-	// get class pdp controller
-	classController = JniFindClass(mainJniEnv, CLASS_CONTROLLER);
-	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("Could not find class " CLASS_CONTROLLER ".\n");
-		JniExceptionDescribe(mainJniEnv);
-		return false;
-	}
-
-	jmethodID methodIsStarted = JniGetStaticMethodID(mainJniEnv, classController, METHOD_ISSTARTED_NAME, METHOD_ISSTARTED_SIG);
-	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("Could not find " METHOD_ISSTARTED_NAME " method.\n");
-		JniExceptionDescribe(mainJniEnv);
-		return false;
-	}
-
 	printf("Waiting for Controller to get started ...");
 
 	// Leave the UC framework some time to initialize. Otherwise an exception will occur.
 	// TODO: How can we get rid of this workaround?
-	sleep(1);
+	sleep(6);
 
 	jboolean isStarted = JNI_FALSE;
 	while (isStarted == JNI_FALSE) {
-		isStarted = JniCallStaticBooleanMethod(mainJniEnv, classController, methodIsStarted);
-		if (JniExceptionCheck(mainJniEnv)) {
-			printf("\nException in " METHOD_ISSTARTED_NAME "():\n");
-			JniExceptionDescribe(mainJniEnv);
-		}
+		isStarted = JniCallBooleanMethod(mainJniEnv, nativeHandler, methodIsStarted);
+//		if (JniExceptionCheck(mainJniEnv)) {
+//			printf("\nException in " METHOD_ISSTARTED_NAME "():\n");
+//			JniExceptionDescribe(mainJniEnv);
+//		}
 		printf(".");
 		fflush(stdout);
 		sleep(1);
@@ -154,30 +146,42 @@ bool getMainJniRefs() {
 	classNativeHandler = JniFindClass(mainJniEnv, CLASS_NATIVE_HANDLER);
 	if (JniExceptionCheck(mainJniEnv)) {
 		printf("Could not find class " CLASS_NATIVE_HANDLER ".\n");
+		JniExceptionDescribe(mainJniEnv);
 		return false;
 	}
 
 	methodNotifyEvent = JniGetMethodID(mainJniEnv, classNativeHandler, METHOD_NOTIFY_NAME, METHOD_NOTIFY_SIG);
 	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("Could not access method " METHOD_NOTIFY_NAME " in class " CLASS_CONTROLLER ".\n");
+		printf("Could not access method " METHOD_NOTIFY_NAME " in class " CLASS_NATIVE_HANDLER ".\n");
+		JniExceptionDescribe(mainJniEnv);
 		return false;
 	}
 
-	jfieldID fieldNativeHandler = JniGetStaticFieldID(mainJniEnv, classController, FIELD_NATIVE_HANDLER, FIELD_NATIVE_HANDLER_SIG);
+	jfieldID fieldNativeHandler = JniGetStaticFieldID(mainJniEnv, classNativeHandler, FIELD_NATIVE_HANDLER, FIELD_NATIVE_HANDLER_SIG);
 	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("(1) Could not access field " FIELD_NATIVE_HANDLER " in class " CLASS_CONTROLLER ".\n");
+		printf("(1) Could not access field " FIELD_NATIVE_HANDLER " in class " CLASS_NATIVE_HANDLER ".\n");
+		JniExceptionDescribe(mainJniEnv);
 		return false;
 	}
 
-	nativeHandler = JniGetStaticObjectField(mainJniEnv, classController, fieldNativeHandler);
+	nativeHandler = JniGetStaticObjectField(mainJniEnv, classNativeHandler, fieldNativeHandler);
 	if (JniExceptionOccurred(mainJniEnv)) {
-		printf("(2) Could not access field " FIELD_NATIVE_HANDLER " in class " CLASS_CONTROLLER ".\n");
+		printf("(2) Could not access field " FIELD_NATIVE_HANDLER " in class " CLASS_NATIVE_HANDLER ".\n");
+		JniExceptionDescribe(mainJniEnv);
+		return false;
+	}
+
+	methodIsStarted = JniGetMethodID(mainJniEnv, classNativeHandler, METHOD_ISSTARTED_NAME, METHOD_ISSTARTED_SIG);
+	if (JniExceptionOccurred(mainJniEnv)) {
+		printf("Could not find " METHOD_ISSTARTED_NAME " method.\n");
+		JniExceptionDescribe(mainJniEnv);
 		return false;
 	}
 
 	classString = JniFindClass(mainJniEnv, CLASS_STRING);
 	if (JniExceptionOccurred(mainJniEnv)) {
 		printf("Could not find class " CLASS_STRING ".\n");
+		JniExceptionDescribe(mainJniEnv);
 		return false;
 	}
 
@@ -215,13 +219,13 @@ bool ucInit() {
 
 	ucTypesInit(mainJniEnv);
 
-	if (!waitForStartupCompletion()) {
-		printf("Error while starting up JVM. Exiting.\n");
+	if (!getMainJniRefs()) {
+		printf("Error getting main JNI references. Exiting.\n");
 		exit(1);
 	}
 
-	if (!getMainJniRefs()) {
-		printf("Error getting main JNI references. Exiting.\n");
+	if (!waitForStartupCompletion()) {
+		printf("Error while starting up JVM. Exiting.\n");
 		exit(1);
 	}
 
