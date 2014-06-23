@@ -15,6 +15,8 @@ AM_CFLAGS = $(WARN_CFLAGS) -Wall -Werror
 AM_CPPFLAGS = -I$(srcdir)/$(OS)/$(ARCH) -I$(srcdir)/$(OS) -I$(builddir)/$(OS) 
 
 
+include xlat/Makemodule.am
+
 strace_SOURCES =	\
 	aio.c		\
 	bjm.c		\
@@ -60,6 +62,15 @@ strace_SOURCES =	\
 	#ucPIP_main.c		\
 	#ucDataFlowSemantics.c \
 	#ucDeclass.c
+
+if USE_LIBUNWIND
+strace_SOURCES += unwind.c
+strace_CPPFLAGS = $(AM_CPPFLAGS) $(libunwind_CPPFLAGS)
+strace_LDFLAGS = $(libunwind_LDFLAGS)
+strace_LDADD = $(libunwind_LIBS)
+else
+strace_CPPFLAGS = $(AM_CPPFLAGS)
+endif
 
 noinst_HEADERS = defs.h
 # Enable this to get link map generated
@@ -225,7 +236,10 @@ EXTRA_DIST =				\
 	strace-log-merge		\
 	strace.spec			\
 	syscallent.sh			\
-	xlate.el	
+	$(XLAT_INPUT_FILES)		\
+	$(XLAT_HEADER_FILES)		\
+	xlat/gen.sh			\
+	xlate.el
 
 .PHONY: srpm
 srpm: dist-xz
