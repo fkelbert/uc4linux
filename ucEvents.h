@@ -13,6 +13,8 @@
 #include <string.h>
 
 #include "defs.h"
+#include "xlat/domains.h"	// after defs.h
+#include "xlat/socktypes.h"	// after defs.h
 #include "ucTypes.h"
 #include "ucSettings.h"
 #include "ucLog.h"
