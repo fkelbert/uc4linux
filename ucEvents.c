@@ -775,6 +775,9 @@ event *ucSemantics_execve(struct tcb *tcp) {
 	// Note: Do not ignore filename.
 
 	toString(filename, tcp, tcp->u_arg[0]);
+	if (strlen(filename) == 0) {
+		return NULL;
+	}
 
 	toPid(pid, tcp->pid);
 

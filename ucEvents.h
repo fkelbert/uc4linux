@@ -27,8 +27,9 @@
 
 #define toPid(str,i) snprintf(str,PID_LEN,"%u", (unsigned int)i)
 #define toFd(str,i) snprintf(str,FD_LEN,"%u", (unsigned int)i)
-#define toString(str,tcp,arg)	{ if (!umovestr(tcp, arg, sizeof(str), str)) { \
-											str[sizeof(str) - 1] = '\0';\
+#define toString(str,tcp,arg)	{  str[0] = '\0'; 										\
+									if (!umovestr(tcp, arg, sizeof(str), str)) { 		\
+											str[sizeof(str) - 1] = '\0';				\
 									} }
 
 #define isAbsolutePath(string) (string && *string == '/')
