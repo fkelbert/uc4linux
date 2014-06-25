@@ -70,8 +70,4 @@ event *ucSemantics_truncate(struct tcb *tcp);
 event *ucSemantics_unlink(struct tcb *tcp);
 event *ucSemantics_write(struct tcb *tcp);
 
-// defined in strace:net.c
-extern const struct xlat domains[];
-extern const struct xlat socktypes[];
-
 #endif
