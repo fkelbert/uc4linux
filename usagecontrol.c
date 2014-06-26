@@ -238,47 +238,6 @@ bool ucInit() {
 }
 
 
-
-
-
-//int ucDesired(struct tcb *tcp) {
-//	int retval = ucPDPask(tcp);
-//
-//	switch(retval) {
-//		case UC_PDP_ALLOW:
-//		case UC_PDP_MODIFY:
-//			ucPIP_update(tcp);
-//			break;
-//		case UC_PDP_INHIBIT:
-//			break;
-//		case UC_PDP_DELAY:
-//			break;
-//	}
-//
-//	return (retval);
-//}
-
-
-//int ucActual(struct tcb *tcp) {
-//	int retval = ucPDPask(tcp);
-//
-//	switch(retval) {
-//		case UC_PDP_ALLOW:
-//			ucPIP_update(tcp);
-//			break;
-//		case UC_PDP_DELAY:
-//		case UC_PDP_MODIFY:
-//		case UC_PDP_INHIBIT:
-//			// TODO: does it make sense to modify/delay/inhibit
-//			// after the call has been executed???
-//			break;
-//	}
-//
-//	return (retval);
-//}
-
-
-
 void notifySyscall(struct tcb *tcp) {
 	if (!tcp || !tcp->s_ent || !tcp->s_ent->sys_name) {
 		return;
@@ -313,7 +272,7 @@ void notifySyscall(struct tcb *tcp) {
 	 * SYS_execve will not return on success.
 	 * Always signal as actual event.
 	 */
-	if (!actual && (tcp->scno == SYS_exit || tcp->scno == SYS_exit_group || tcp->scno == SYS_execve)) {
+	if (tcp->scno == SYS_exit || tcp->scno == SYS_exit_group || tcp->scno == SYS_execve) {
 		ev->isActual = true;
 	}
 
