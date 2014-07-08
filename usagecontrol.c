@@ -44,11 +44,17 @@ pthread_t jvmStarter;
 void *threadJvmStarter(void *args) {
 	JNIEnv *env;
     JavaVMInitArgs vm_args;
-    JavaVMOption options;
-    options.optionString = "-Djava.class.path=" USER_CLASSPATH; //Path to the java source code
+
+    int nOptions = 4;
+    JavaVMOption options[nOptions];
+    options[0].optionString = "-Djava.class.path=" USER_CLASSPATH; //Path to the java source code
+    options[1].optionString = "-Djava.compiler=NONE";
+    options[2].optionString = "-Xms128m";
+    options[3].optionString = "-Xmx1536m";
+
     vm_args.version = JNI_VERSION_1_6; //JDK version. This indicates version 1.6
-    vm_args.nOptions = 1;
-    vm_args.options = &options;
+    vm_args.nOptions = nOptions;
+    vm_args.options = options;
     vm_args.ignoreUnrecognized = 0;
 
     jmethodID mainMethod;
