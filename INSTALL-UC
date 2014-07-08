@@ -1,0 +1,63 @@
+This guide is based on
+
+[1] Linux Mint 17 Qiana 32bit
+    Kernel 3.13.0-24
+
+[2] PDP/PIP/PMP implementation 
+    https://git46.informatik.tu-muenchen.de/pdp
+    from Mon Jul 7 11:19:12 2014
+    branch dev-fk
+    commit 7d5f2dbceedf9f028d3172ce645f2670e1c0c5de
+   
+[3] strace UC implementation
+    https://git46.informatik.tu-muenchen.de/uc4linux
+    from Tue Jul 8 15:12:29 2014
+    branch ucmaster
+    commit 7a8e0ad9312d63e37063edaa9448a7036b2fb8db
+
+
+*******************************************************************
+* READ! THIS! NOTE!
+* =================
+* 1. These instructions are supposed to be a _GUIDE_ rather than a 
+*    step-by-step tutorial
+* 2. _Think along_  when folloing this guide
+* 3. And always know what you are doing
+* 4. The code is known _NOT_ to work within virtualized environments
+*    (VMWare Workstation, VMWare ESX, Virtualbox), but only on physical
+*    machines. This seems to be due to some incompatability of ptrace
+*    with these virtualization techniques.
+*******************************************************************
+
+
+Compiling and running of [2]
+ * Install Apache Thrift
+   - Install g++, maven, bison, flex
+   - Note: version 0.9.1 did not work for some reason; version 0.9.0 is fine.
+   - http://archive.apache.org/dist/thrift/
+   - ./configure
+   - make
+   - make install
+ * Compile, install, and run [2]
+   - Install Java 7 JDK 
+   - clone git repository [2]
+   - checkout branch dev-fk, commit 7a8e0ad9312d63e37063edaa9448a7036b2fb8db
+   - mvn clean install
+
+
+Compiling and running of [3]
+ * Install automake, autoconf, libtool, libevent-dev, libevent-pthreads
+ * Find the libjvm.so library and link it to some directory where it will be found by the compiler, e.g.
+   # ln -s /usr/lib/jvm/default-java/jre/lib/i386/server/libjvm.so /usr/lib/
+ * clone git repository [3]
+ * checkout branch ucmaster, commit 014b7115f7df7554b02c989a49904530735a9da7
+ * ./bootstrap
+ * ./configure
+ * make
+ * Tell strace where to find the PDP/PIP/PMP:
+   - within the strace directory create a link to <pdp-code>/Gui/Jni/target/Jni-1.0-jar-with-dependencies.jar
+   - the link's name is defined in ucSettings.h (#define USER_CLASSPATH);
+     the link's default name is 'Jni-1.0-jar-with-dependencies.jar'
+   - e.g. ln -s ~/pdp/Gui/Jni/target/Jni-1.0-jar-with-dependencies.jar
+ * Monitor any program by running
+   # ./strace -f </bin/binary/to/execute>
