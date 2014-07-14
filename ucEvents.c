@@ -341,6 +341,98 @@ event *ucSemantics_write(struct tcb *tcp) {
 	return NULL;
 }
 
+event *ucSemantics_sendmsg(struct tcb *tcp) {
+	if (tcp->u_arg < 0) {
+		return NULL;
+	}
+
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+
+	struct msghdr msg;
+
+	if ((umove(tcp, tcp->u_arg[1], &msg) < 0) || !(msg.msg_controllen)) {
+		// fallback to standard write semantics if
+		// this is not a control message
+		return ucSemantics_write(tcp);
+	}
+
+	// allocate memory for control message
+	struct cmsghdr *cmsg = msg.msg_controllen < sizeof(struct cmsghdr) ? NULL : malloc(msg.msg_controllen);
+
+	// convert message into control message
+	if (cmsg == NULL
+			|| umoven(tcp, tcp->u_arg[1], msg.msg_controllen, (char *) cmsg) < 0
+			|| cmsg->cmsg_level != SOL_SOCKET) {
+		// fallback to standard write semantics in
+		// case of error or if not SOL_SOCKET
+		free(cmsg);
+		return ucSemantics_write(tcp);
+	}
+
+	unsigned long cmsg_len = (msg.msg_controllen < cmsg->cmsg_len) ? msg.msg_controllen : cmsg->cmsg_len;
+
+	if (cmsg->cmsg_type != SCM_RIGHTS || CMSG_LEN(sizeof(int)) > cmsg_len) {
+		free(cmsg);
+		return ucSemantics_write(tcp);
+	}
+
+
+
+	int *fds = (int *) CMSG_DATA(cmsg);
+
+	char allFds[PATH_MAX];
+	int ptr = 0;
+	int written = 0;
+
+	while ((char *) fds < ((char *) cmsg + cmsg_len)) {
+		written = snprintf(allFds+ptr, PATH_MAX - ptr - 1, "%u:", *fds++);
+		if (written > 0) {
+			ptr += written;
+		}
+	}
+
+	free(cmsg);
+
+
+	event *ev = createEventWithStdParams(EVENT_NAME_SENDMSG, 3);
+
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("fds", allFds))) {
+		return ev;
+	}
+
+	return NULL;
+}
+
+event *ucSemantics_recvmsg(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
+	// We are interested in desired events only
+	if (is_actual(tcp)) {
+		return NULL;
+	}
+
+	getfdpath(tcp, tcp->u_arg[0], filename, sizeof(filename));
+	if (ignoreFilename(filename)) {
+		return NULL;
+	}
+
+	toPid(pid, tcp->pid);
+	toFd(fd1, tcp->u_arg[0]);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_WRITE, 3);
+
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("allowImpliesActual", "true"))) {
+		return ev;
+	}
+
+	return NULL;
+}
+
 event *ucSemantics_socket(struct tcb *tcp) {
 	if (tcp->u_rval < 0) {
 		return NULL;
@@ -1682,7 +1774,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_recvmmsg] = ucSemantics_read,
 #endif
 #ifdef SYS_recvmsg
-	[SYS_recvmsg] = ucSemantics_read,
+	[SYS_recvmsg] = ucSemantics_recvmsg,
 #endif
 #ifdef SYS_recv
 	[SYS_recv] = ucSemantics_read,
@@ -1778,7 +1870,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_sendmmsg] = ucSemantics_write,
 #endif
 #ifdef SYS_sendmsg
-	[SYS_sendmsg] = ucSemantics_write,
+	[SYS_sendmsg] = ucSemantics_sendmsg,
 #endif
 #ifdef SYS_send
 	[SYS_send] = ucSemantics_write,
