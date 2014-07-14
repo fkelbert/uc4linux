@@ -1,4 +1,5 @@
 #include "ucEvents.h"
+#include "xlat/socketlayers.h"
 
 char pid[PID_LEN];
 char fd1[FD_LEN];
@@ -361,9 +362,13 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 	struct cmsghdr *cmsg = msg.msg_controllen < sizeof(struct cmsghdr) ? NULL : malloc(msg.msg_controllen);
 
 	// convert message into control message
-	if (cmsg == NULL
-			|| umoven(tcp, tcp->u_arg[1], msg.msg_controllen, (char *) cmsg) < 0
-			|| cmsg->cmsg_level != SOL_SOCKET) {
+	if (cmsg == NULL) {
+		return ucSemantics_write(tcp);
+	}
+
+	if (umoven(tcp, (unsigned long) msg.msg_control, msg.msg_controllen, (char *) cmsg) < 0
+		|| cmsg->cmsg_level != SOL_SOCKET) {
+		
 		// fallback to standard write semantics in
 		// case of error or if not SOL_SOCKET
 		free(cmsg);
@@ -376,8 +381,6 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 		free(cmsg);
 		return ucSemantics_write(tcp);
 	}
-
-
 
 	int *fds = (int *) CMSG_DATA(cmsg);
 
@@ -393,7 +396,6 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 	}
 
 	free(cmsg);
-
 
 	event *ev = createEventWithStdParams(EVENT_NAME_SENDMSG, 3);
 
