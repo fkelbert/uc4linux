@@ -343,6 +343,16 @@ event *ucSemantics_write(struct tcb *tcp) {
 }
 
 event *ucSemantics_sendmsg(struct tcb *tcp) {
+	/*
+	 * sendmsg() allows to pass file descriptors between
+	 * processes (control messages) if
+	 * cmsg_level = SOL_SOCKET.
+	 *
+	 * Most code here has been heavily inspired from
+	 * strace::net.c::do_msghdr
+	 * and
+	 * strace::net.c::printcmsghdr
+	 */
 	if (tcp->u_arg < 0) {
 		return NULL;
 	}
@@ -360,12 +370,12 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 
 	// allocate memory for control message
 	struct cmsghdr *cmsg = msg.msg_controllen < sizeof(struct cmsghdr) ? NULL : malloc(msg.msg_controllen);
-
-	// convert message into control message
 	if (cmsg == NULL) {
 		return ucSemantics_write(tcp);
 	}
 
+
+	// convert message into control message
 	if (umoven(tcp, (unsigned long) msg.msg_control, msg.msg_controllen, (char *) cmsg) < 0
 		|| cmsg->cmsg_level != SOL_SOCKET) {
 		
@@ -381,6 +391,8 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 		free(cmsg);
 		return ucSemantics_write(tcp);
 	}
+
+	// gather all passed file descriptors
 
 	int *fds = (int *) CMSG_DATA(cmsg);
 
@@ -401,7 +413,7 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
-		&& addParam(ev, createParam("fds", allFds))) {
+		&& addParam(ev, createParam("shared_fds", allFds))) {
 		return ev;
 	}
 
@@ -1089,10 +1101,11 @@ event *ucSemantics_sendfile(struct tcb *tcp) {
 	toFd(fd1, tcp->u_arg[0]);
 	toFd(fd2, tcp->u_arg[1]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_SENDFILE, 4);
+	event *ev = createEventWithStdParams(EVENT_NAME_SENDFILE, 5);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("outfd", fd1))
 		&& addParam(ev, createParam("infd", fd2))
+		&& addParam(ev, createParam("filename", filename))
 		&& addParam(ev, createParam("allowImpliesActual", "true"))) {
 		return ev;
 	}
