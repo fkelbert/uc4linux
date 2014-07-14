@@ -282,14 +282,9 @@ void notifySyscall(struct tcb *tcp) {
 		ev->isActual = true;
 	}
 
-	if (tcp->scno == SYS_sendmmsg) {
-		uc_log("xxxx");
-	}
-	else {
-		uc_log("notifying PDP... ");
-		notifyEventToPdp(ev);
-		uc_log("done.");
-	}
+	uc_log("notifying PDP... ");
+	notifyEventToPdp(ev);
+	uc_log("done.");
 
 	destroyEvent(ev);
 	uc_log("\n");
