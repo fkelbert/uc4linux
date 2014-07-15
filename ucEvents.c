@@ -1816,7 +1816,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_recvmmsg] = ucSemantics_read,
 #endif
 #ifdef SYS_recvmsg
-	[SYS_recvmsg] = ucSemantics_recvmsg,
+	[SYS_recvmsg] = ucSemantics_read,
 #endif
 #ifdef SYS_recv
 	[SYS_recv] = ucSemantics_read,
@@ -1912,7 +1912,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_sendmmsg] = ucSemantics_write,
 #endif
 #ifdef SYS_sendmsg
-	[SYS_sendmsg] = ucSemantics_sendmsg,
+	[SYS_sendmsg] = ucSemantics_write,
 #endif
 #ifdef SYS_send
 	[SYS_send] = ucSemantics_write,
