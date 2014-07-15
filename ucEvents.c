@@ -359,99 +359,101 @@ event *ucSemantics_write(struct tcb *tcp) {
 	return NULL;
 }
 
-event *ucSemantics_sendmsg(struct tcb *tcp) {
-	/*
-	 * sendmsg() allows to pass file descriptors between
-	 * processes (control messages) if
-	 * cmsg_level = SOL_SOCKET.
-	 *
-	 * Most code here has been heavily inspired from
-	 * strace::net.c::do_msghdr
-	 * and
-	 * strace::net.c::printcmsghdr
-	 */
 
-	char socketname[FILENAME_MAX];
+/*
+ * It seems we do not need to handle cross-process
+ * file descriptor passing via sendmsg.
+ * This has been solved by resolving socketnames
+ * (e.g. socket:[234251]) once they are used _after_ they
+ * have been passed.
+ */
+//event *ucSemantics_sendmsg(struct tcb *tcp) {
+//	/*
+//	 * sendmsg() allows to pass file descriptors between
+//	 * processes (control messages) if
+//	 * cmsg_level = SOL_SOCKET.
+//	 *
+//	 * Most code here has been heavily inspired from
+//	 * strace::net.c::do_msghdr
+//	 * and
+//	 * strace::net.c::printcmsghdr
+//	 */
+//
+//	char socketname[FILENAME_MAX];
+//
+//	if (tcp->u_arg < 0) {
+//		return NULL;
+//	}
+//
+//	getfdpath(tcp, tcp->u_arg[0], socketname, sizeof(socketname));
+//	if (ignoreFilename(socketname)) {
+//		return NULL;
+//	}
+//
+//	toPid(pid, tcp->pid);
+//	toFd(fd1, tcp->u_arg[0]);
+//
+//	struct msghdr msg;
+//
+//	if ((umove(tcp, tcp->u_arg[1], &msg) < 0) || !(msg.msg_controllen)) {
+//		// fallback to standard write semantics if
+//		// this is not a control message
+//		return ucSemantics_write(tcp);
+//	}
+//
+//	// allocate memory for control message
+//	struct cmsghdr *cmsg = msg.msg_controllen < sizeof(struct cmsghdr) ? NULL : malloc(msg.msg_controllen);
+//	if (cmsg == NULL) {
+//		return ucSemantics_write(tcp);
+//	}
+//
+//
+//	// convert message into control message
+//	if (umoven(tcp, (unsigned long) msg.msg_control, msg.msg_controllen, (char *) cmsg) < 0
+//		|| cmsg->cmsg_level != SOL_SOCKET) {
+//
+//		// fallback to standard write semantics in
+//		// case of error or if not SOL_SOCKET
+//		free(cmsg);
+//		return ucSemantics_write(tcp);
+//	}
+//
+//	unsigned long cmsg_len = (msg.msg_controllen < cmsg->cmsg_len) ? msg.msg_controllen : cmsg->cmsg_len;
+//
+//	if (cmsg->cmsg_type != SCM_RIGHTS || CMSG_LEN(sizeof(int)) > cmsg_len) {
+//		free(cmsg);
+//		return ucSemantics_write(tcp);
+//	}
+//
+//	// gather all passed file descriptors
+//
+//	int *fds = (int *) CMSG_DATA(cmsg);
+//
+//	char allFds[PATH_MAX];
+//	int ptr = 0;
+//	int written = 0;
+//
+//	while ((char *) fds < ((char *) cmsg + cmsg_len)) {
+//		written = snprintf(allFds+ptr, PATH_MAX - ptr - 1, "%u:", *fds++);
+//		if (written > 0) {
+//			ptr += written;
+//		}
+//	}
+//
+//	free(cmsg);
+//
+//	event *ev = createEventWithStdParams(EVENT_NAME_SENDMSG, 3);
+//
+//	if (addParam(ev, createParam("pid", pid))
+//		&& addParam(ev, createParam("fd", fd1))
+//		&& addParam(ev, createParam("socketname", fd1))
+//		&& addParam(ev, createParam("shared_fds", allFds))) {
+//		return ev;
+//	}
+//
+//	return NULL;
+//}
 
-	if (tcp->u_arg < 0) {
-		return NULL;
-	}
-
-	getfdpath(tcp, tcp->u_arg[0], socketname, sizeof(socketname));
-	if (ignoreFilename(socketname)) {
-		return NULL;
-	}
-
-	toPid(pid, tcp->pid);
-	toFd(fd1, tcp->u_arg[0]);
-
-	struct msghdr msg;
-
-	if ((umove(tcp, tcp->u_arg[1], &msg) < 0) || !(msg.msg_controllen)) {
-		// fallback to standard write semantics if
-		// this is not a control message
-		return ucSemantics_write(tcp);
-	}
-
-	// allocate memory for control message
-	struct cmsghdr *cmsg = msg.msg_controllen < sizeof(struct cmsghdr) ? NULL : malloc(msg.msg_controllen);
-	if (cmsg == NULL) {
-		return ucSemantics_write(tcp);
-	}
-
-
-	// convert message into control message
-	if (umoven(tcp, (unsigned long) msg.msg_control, msg.msg_controllen, (char *) cmsg) < 0
-		|| cmsg->cmsg_level != SOL_SOCKET) {
-		
-		// fallback to standard write semantics in
-		// case of error or if not SOL_SOCKET
-		free(cmsg);
-		return ucSemantics_write(tcp);
-	}
-
-	unsigned long cmsg_len = (msg.msg_controllen < cmsg->cmsg_len) ? msg.msg_controllen : cmsg->cmsg_len;
-
-	if (cmsg->cmsg_type != SCM_RIGHTS || CMSG_LEN(sizeof(int)) > cmsg_len) {
-		free(cmsg);
-		return ucSemantics_write(tcp);
-	}
-
-	// gather all passed file descriptors
-
-	int *fds = (int *) CMSG_DATA(cmsg);
-
-	char allFds[PATH_MAX];
-	int ptr = 0;
-	int written = 0;
-
-	while ((char *) fds < ((char *) cmsg + cmsg_len)) {
-		written = snprintf(allFds+ptr, PATH_MAX - ptr - 1, "%u:", *fds++);
-		if (written > 0) {
-			ptr += written;
-		}
-	}
-
-	free(cmsg);
-
-	event *ev = createEventWithStdParams(EVENT_NAME_SENDMSG, 3);
-
-	if (addParam(ev, createParam("pid", pid))
-		&& addParam(ev, createParam("fd", fd1))
-		&& addParam(ev, createParam("socketname", fd1))
-		&& addParam(ev, createParam("shared_fds", allFds))) {
-		return ev;
-	}
-
-	return NULL;
-}
-
-event *ucSemantics_recvmsg(struct tcb *tcp) {
-
-	// TODO
-
-	return NULL;
-}
 
 event *ucSemantics_socket(struct tcb *tcp) {
 	char socketname[PATH_MAX];
