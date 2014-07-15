@@ -246,6 +246,8 @@ event *ucSemantics_unlink(struct tcb *tcp) {
 }
 
 event *ucSemantics_splice(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
 	if (tcp->u_rval <= 0) {
 		return NULL;
 	}
@@ -254,10 +256,16 @@ event *ucSemantics_splice(struct tcb *tcp) {
 	toFd(fd1, tcp->u_arg[0]);
 	toFd(fd2, tcp->u_arg[2]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_SPLICE, 3);
+	getfdpath(tcp, tcp->u_arg[2], filename, sizeof(filename));
+	if (ignoreFilename(filename)) {
+		return NULL;
+	}
+
+	event *ev = createEventWithStdParams(EVENT_NAME_SPLICE, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("srcfd", fd1))
-		&& addParam(ev, createParam("dstfd", fd2))) {
+		&& addParam(ev, createParam("dstfd", fd2))
+		&& addParam(ev, createParam("dstfilename", filename))) {
 		return ev;
 	}
 
@@ -265,6 +273,8 @@ event *ucSemantics_splice(struct tcb *tcp) {
 }
 
 event *ucSemantics_tee(struct tcb *tcp) {
+	char filename[FILENAME_MAX];
+
 	if (tcp->u_rval <= 0) {
 		return NULL;
 	}
@@ -273,10 +283,16 @@ event *ucSemantics_tee(struct tcb *tcp) {
 	toFd(fd1, tcp->u_arg[0]);
 	toFd(fd2, tcp->u_arg[1]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_TEE, 3);
+	getfdpath(tcp, tcp->u_arg[1], filename, sizeof(filename));
+	if (ignoreFilename(filename)) {
+		return NULL;
+	}
+
+	event *ev = createEventWithStdParams(EVENT_NAME_TEE, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("srcfd", fd1))
-		&& addParam(ev, createParam("dstfd", fd2))) {
+		&& addParam(ev, createParam("dstfd", fd2))
+		&& addParam(ev, createParam("dstfilename", filename))) {
 		return ev;
 	}
 
@@ -331,10 +347,11 @@ event *ucSemantics_write(struct tcb *tcp) {
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_arg[0]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_WRITE, 3);
+	event *ev = createEventWithStdParams(EVENT_NAME_WRITE, 4);
 
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("filename", filename))
 		&& addParam(ev, createParam("allowImpliesActual", "true"))) {
 		return ev;
 	}
@@ -353,7 +370,15 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 	 * and
 	 * strace::net.c::printcmsghdr
 	 */
+
+	char socketname[FILENAME_MAX];
+
 	if (tcp->u_arg < 0) {
+		return NULL;
+	}
+
+	getfdpath(tcp, tcp->u_arg[0], socketname, sizeof(socketname));
+	if (ignoreFilename(socketname)) {
 		return NULL;
 	}
 
@@ -413,6 +438,7 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("socketname", fd1))
 		&& addParam(ev, createParam("shared_fds", allFds))) {
 		return ev;
 	}
@@ -421,33 +447,15 @@ event *ucSemantics_sendmsg(struct tcb *tcp) {
 }
 
 event *ucSemantics_recvmsg(struct tcb *tcp) {
-	char filename[FILENAME_MAX];
 
-	// We are interested in desired events only
-	if (is_actual(tcp)) {
-		return NULL;
-	}
-
-	getfdpath(tcp, tcp->u_arg[0], filename, sizeof(filename));
-	if (ignoreFilename(filename)) {
-		return NULL;
-	}
-
-	toPid(pid, tcp->pid);
-	toFd(fd1, tcp->u_arg[0]);
-
-	event *ev = createEventWithStdParams(EVENT_NAME_WRITE, 3);
-
-	if (addParam(ev, createParam("pid", pid))
-		&& addParam(ev, createParam("fd", fd1))
-		&& addParam(ev, createParam("allowImpliesActual", "true"))) {
-		return ev;
-	}
+	// TODO
 
 	return NULL;
 }
 
 event *ucSemantics_socket(struct tcb *tcp) {
+	char socketname[PATH_MAX];
+
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
@@ -455,18 +463,21 @@ event *ucSemantics_socket(struct tcb *tcp) {
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_rval);
 
+	getfdpath(tcp, tcp->u_rval, socketname, sizeof(socketname));
+
 	// cf. strace:net.c
 	char *domain = (char*) xlookup(domains, tcp->u_arg[0]);
 
 	// cf. strace:net.c: SOCK_TYPE_MASK == 0xf
 	char *type = (char*) xlookup(socktypes, tcp->u_arg[1] & 0xf);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_SOCKET, 4);
+	event *ev = createEventWithStdParams(EVENT_NAME_SOCKET, 5);
 
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
 		&& addParam(ev, createParam("domain", domain))
-		&& addParam(ev, createParam("type", type))) {
+		&& addParam(ev, createParam("type", type))
+		&& addParam(ev, createParam("socketname", socketname))) {
 		return ev;
 	}
 
@@ -474,6 +485,8 @@ event *ucSemantics_socket(struct tcb *tcp) {
 }
 
 event *ucSemantics_socketpair(struct tcb *tcp) {
+	char socketname1[PATH_MAX];
+	char socketname2[PATH_MAX];
 	int fds[2];
 
 	if (tcp->u_rval < 0) {
@@ -488,17 +501,22 @@ event *ucSemantics_socketpair(struct tcb *tcp) {
 	toFd(fd1, fds[0]);
 	toFd(fd2, fds[1]);
 
+	getfdpath(tcp, fds[0], socketname1, sizeof(socketname1));
+	getfdpath(tcp, fds[1], socketname2, sizeof(socketname2));
+
 	// cf. strace:net.c
 	char *domain = (char*) xlookup(domains, tcp->u_arg[0]);
 
 	// cf. strace:net.c: SOCK_TYPE_MASK == 0xf
 	char *type = (char*) xlookup(socktypes, tcp->u_arg[1] & 0xf);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_SOCKETPAIR, 5);
+	event *ev = createEventWithStdParams(EVENT_NAME_SOCKETPAIR, 7);
 
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd1", fd1))
 		&& addParam(ev, createParam("fd2", fd2))
+		&& addParam(ev, createParam("socketname1", socketname1))
+		&& addParam(ev, createParam("socketname2", socketname2))
 		&& addParam(ev, createParam("domain", domain))
 		&& addParam(ev, createParam("type", type))) {
 		return ev;
@@ -511,6 +529,7 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 	int fds[2];
 	char fd1[FD_LEN];
 	char fd2[FD_LEN];
+	char pipename[FILENAME_MAX];
 
 	if (tcp->u_rval < 0) {
 		return NULL;
@@ -524,11 +543,14 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 	toFd(fd1,fds[0]);
 	toFd(fd2,fds[1]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_PIPE, 3);
+	getfdpath(tcp, fds[0], pipename, sizeof(pipename));
+
+	event *ev = createEventWithStdParams(EVENT_NAME_PIPE, 4);
 
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd1", fd1))
-		&& addParam(ev, createParam("fd2", fd2))) {
+		&& addParam(ev, createParam("fd2", fd2))
+		&& addParam(ev, createParam("pipename", pipename))) {
 		return ev;
 	}
 
@@ -621,10 +643,11 @@ event *ucSemantics_read(struct tcb *tcp) {
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_arg[0]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_READ, 2);
+	event *ev = createEventWithStdParams(EVENT_NAME_READ, 3);
 
 	if (addParam(ev, createParam("pid", pid))
-		&& addParam(ev, createParam("fd", fd1))) {
+		&& addParam(ev, createParam("fd", fd1))
+		&& addParam(ev, createParam("filename", filename))) {
 		return ev;
 	}
 
@@ -1016,15 +1039,15 @@ event *ucSemantics_connect(struct tcb *tcp) {
 		return NULL;
 	}
 
-	char path[PATH_MAX + 1];
+	char socketname[PATH_MAX + 1];
 	int socketInode;
 	char localIP[16];
 	char remoteIP[16];
 	char localPort[6];
 	char remotePort[6];
 
-	getfdpath(tcp, tcp->u_arg[0], path, sizeof(path));
-	sscanf(path,"socket:[%d]", &socketInode);
+	getfdpath(tcp, tcp->u_arg[0], socketname, sizeof(socketname));
+	sscanf(socketname,"socket:[%d]", &socketInode);
 
 	if (!getIPsAndPorts(tcp->pid, socketInode, localIP, localPort, remoteIP, remotePort)) {
 		return NULL;
@@ -1033,13 +1056,14 @@ event *ucSemantics_connect(struct tcb *tcp) {
 	toPid(pid, tcp->pid);
 	toFd(fd1, tcp->u_arg[0]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_CONNECT, 6);
+	event *ev = createEventWithStdParams(EVENT_NAME_CONNECT, 7);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
 		&& addParam(ev, createParam("localIP", localIP))
 		&& addParam(ev, createParam("localPort", localPort))
 		&& addParam(ev, createParam("remoteIP", remoteIP))
-		&& addParam(ev, createParam("remotePort", remotePort))) {
+		&& addParam(ev, createParam("remotePort", remotePort))
+		&& addParam(ev, createParam("socketname", socketname))) {
 		return ev;
 	}
 
@@ -1051,15 +1075,15 @@ event *ucSemantics_accept(struct tcb *tcp) {
 		return NULL;
 	}
 
-	char path[PATH_MAX + 1];
+	char socketname[PATH_MAX + 1];
 	int socketInode;
 	char localIP[16];
 	char remoteIP[16];
 	char localPort[6];
 	char remotePort[6];
 
-	getfdpath(tcp, tcp->u_rval, path, sizeof(path));
-	sscanf(path,"socket:[%d]", &socketInode);
+	getfdpath(tcp, tcp->u_rval, socketname, sizeof(socketname));
+	sscanf(socketname,"socket:[%d]", &socketInode);
 
 	if (!getIPsAndPorts(tcp->pid, socketInode, localIP, localPort, remoteIP, remotePort)) {
 		return NULL;
@@ -1069,14 +1093,15 @@ event *ucSemantics_accept(struct tcb *tcp) {
 	toFd(fd1, tcp->u_rval);
 	toFd(fd2, tcp->u_arg[0]);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_ACCEPT, 7);
+	event *ev = createEventWithStdParams(EVENT_NAME_ACCEPT, 8);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("newfd", fd1))
 		&& addParam(ev, createParam("oldfd", fd2))
 		&& addParam(ev, createParam("localIP", localIP))
 		&& addParam(ev, createParam("localPort", localPort))
 		&& addParam(ev, createParam("remoteIP", remoteIP))
-		&& addParam(ev, createParam("remotePort", remotePort))) {
+		&& addParam(ev, createParam("remotePort", remotePort))
+		&& addParam(ev, createParam("socketname", socketname))) {
 		return ev;
 	}
 
@@ -1105,7 +1130,7 @@ event *ucSemantics_sendfile(struct tcb *tcp) {
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("outfd", fd1))
 		&& addParam(ev, createParam("infd", fd2))
-		&& addParam(ev, createParam("filename", filename))
+		&& addParam(ev, createParam("outfilename", filename))
 		&& addParam(ev, createParam("allowImpliesActual", "true"))) {
 		return ev;
 	}
