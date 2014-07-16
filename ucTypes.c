@@ -3,7 +3,7 @@
 #define EVENT_STD_PARAMS_CNT 2
 char *eventStdParams[] =
 				{ "PEP", "Linux",
-					"host", hostname };
+					"host", "PLACEHOLDER" };
 
 #define JniNewStringUTF(env,str)	(*env)->NewStringUTF(env, str)
 
@@ -12,14 +12,15 @@ JNIEnv *jniEnv;
 void ucTypesInit(JNIEnv *mainJniEnv) {
 	jniEnv = mainJniEnv;
 
+	// get the hostname using uname()
 	struct utsname utsname;
 	if (uname(&utsname) == -1) {
 		perror("uname failed.");
 		exit(1);
 	}
 
-	hostname = utsname.nodename;
-	uc_log("Determined hostname: %s\n", hostname);
+	eventStdParams[3] = strdup(utsname.nodename);
+	uc_log("Determined hostname: %s\n", eventStdParams[3]);
 
 	EVENT_NAME_ACCEPT = JniNewStringUTF(jniEnv, "Accept");
 	EVENT_NAME_CLONE = JniNewStringUTF(jniEnv, "Clone");
