@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <jni.h>
+#include <sys/utsname.h>
+#include "ucLog.h"
 
 jstring EVENT_NAME_ACCEPT;
 jstring EVENT_NAME_CLONE;
@@ -23,10 +25,8 @@ jstring EVENT_NAME_MUNMAP;
 jstring EVENT_NAME_OPEN;
 jstring EVENT_NAME_PIPE;
 jstring EVENT_NAME_READ;
-jstring EVENT_NAME_RECVMSG;
 jstring EVENT_NAME_RENAME;
 jstring EVENT_NAME_SENDFILE;
-jstring EVENT_NAME_SENDMSG;
 jstring EVENT_NAME_SHUTDOWN;
 jstring EVENT_NAME_SOCKET;
 jstring EVENT_NAME_SOCKETPAIR;
@@ -65,6 +65,7 @@ bool addParam(event *ev, param *p);
 #define is_actual(tcp) 		(!exiting(tcp))
 #define is_desired(tcp) 	(exiting(tcp))
 
+char *hostname;
 
 #endif
 

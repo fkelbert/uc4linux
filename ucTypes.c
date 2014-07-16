@@ -3,7 +3,7 @@
 #define EVENT_STD_PARAMS_CNT 2
 char *eventStdParams[] =
 				{ "PEP", "Linux",
-					"host", "machineA" };
+					"host", hostname };
 
 #define JniNewStringUTF(env,str)	(*env)->NewStringUTF(env, str)
 
@@ -11,6 +11,15 @@ JNIEnv *jniEnv;
 
 void ucTypesInit(JNIEnv *mainJniEnv) {
 	jniEnv = mainJniEnv;
+
+	struct utsname utsname;
+	if (uname(&utsname) == -1) {
+		perror("uname failed.");
+		exit(1);
+	}
+
+	hostname = utsname.nodename;
+	uc_log("Determined hostname: %s\n", hostname);
 
 	EVENT_NAME_ACCEPT = JniNewStringUTF(jniEnv, "Accept");
 	EVENT_NAME_CLONE = JniNewStringUTF(jniEnv, "Clone");
@@ -29,10 +38,8 @@ void ucTypesInit(JNIEnv *mainJniEnv) {
 	EVENT_NAME_OPEN = JniNewStringUTF(jniEnv, "Open");
 	EVENT_NAME_PIPE = JniNewStringUTF(jniEnv, "Pipe");
 	EVENT_NAME_READ = JniNewStringUTF(jniEnv, "Read");
-	EVENT_NAME_RECVMSG = JniNewStringUTF(jniEnv, "Recvmsg");
 	EVENT_NAME_RENAME = JniNewStringUTF(jniEnv, "Rename");
 	EVENT_NAME_SENDFILE = JniNewStringUTF(jniEnv, "Sendfile");
-	EVENT_NAME_SENDMSG = JniNewStringUTF(jniEnv, "Sendmsg");
 	EVENT_NAME_SHUTDOWN = JniNewStringUTF(jniEnv, "Shutdown");
 	EVENT_NAME_SOCKET = JniNewStringUTF(jniEnv, "Socket");
 	EVENT_NAME_SOCKETPAIR = JniNewStringUTF(jniEnv, "Socketpair");
