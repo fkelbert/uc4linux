@@ -126,17 +126,16 @@ void notifyEventToPdp(event *ev) {
 bool waitForStartupCompletion() {
 	printf("Waiting for Controller to get started ...");
 
-	// Leave the UC framework some time to initialize. Otherwise an exception will occur.
-	// TODO: How can we get rid of this workaround?
-	sleep(6);
+	// Important: Make this variable volatile
+	volatile jboolean isStarted = JNI_FALSE;
 
-	jboolean isStarted = JNI_FALSE;
 	while (isStarted == JNI_FALSE) {
 		isStarted = JniCallBooleanMethod(mainJniEnv, nativeHandler, methodIsStarted);
-//		if (JniExceptionCheck(mainJniEnv)) {
-//			printf("\nException in " METHOD_ISSTARTED_NAME "():\n");
-//			JniExceptionDescribe(mainJniEnv);
-//		}
+		JniExceptionClear(mainJniEnv);
+		if (JniExceptionCheck(mainJniEnv)) {
+			printf("\nException in " METHOD_ISSTARTED_NAME "():\n");
+			JniExceptionDescribe(mainJniEnv);
+		}
 		printf(".");
 		fflush(stdout);
 		sleep(1);
