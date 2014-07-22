@@ -278,6 +278,7 @@ void notifySyscall(struct tcb *tcp) {
 		case SYS_execve:
 			ignoreExecve = !ignoreExecve;
 			if (ignoreExecve) {
+				uc_log("ignoring.\n");
 				return;
 			}
 			/* no break */
