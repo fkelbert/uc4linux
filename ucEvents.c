@@ -889,7 +889,7 @@ event *ucSemantics_execve(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 
-	if (tcp->u_rval < 0) {
+	if (tcp->u_rval < 0 || is_actual(tcp)) {
 		return NULL;
 	}
 
