@@ -242,6 +242,7 @@ bool ucInit() {
 	return true;
 }
 
+bool ignoreExecve = true;
 
 void notifySyscall(struct tcb *tcp) {
 	if (!tcp || !tcp->s_ent || !tcp->s_ent->sys_name) {
@@ -275,7 +276,10 @@ void notifySyscall(struct tcb *tcp) {
 	 */
 	switch (tcp->scno) {
 		case SYS_execve:
-			uc_log("--%X--", tcp->flags);
+			ignoreExecve = !ignoreExecve;
+			if (ignoreExecve) {
+				return;
+			}
 			/* no break */
 		case SYS_exit:
 		case SYS_exit_group:
