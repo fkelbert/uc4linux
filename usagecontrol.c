@@ -270,15 +270,19 @@ void notifySyscall(struct tcb *tcp) {
 		return;
 	}
 
-	ev->isActual = actual;
-
 	/*
-	 * SYS_exit and SYS_exit_group will never return;
-	 * SYS_execve will not return on success.
-	 * Always signal as actual event.
+	 * Always signal these calls as actual event.
 	 */
-	if (tcp->scno == SYS_exit || tcp->scno == SYS_exit_group || tcp->scno == SYS_execve) {
-		ev->isActual = true;
+	switch (tcp->scno) {
+		case SYS_execve:
+			uc_log("--%X--", tcp->flags);
+			/* no break */
+		case SYS_exit:
+		case SYS_exit_group:
+			ev->isActual = true;
+			break;
+		default:
+			ev->isActual = actual;
 	}
 
 	uc_log("notifying PDP... ");

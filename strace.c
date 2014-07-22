@@ -2451,10 +2451,6 @@ trace(void)
   * Injecting usage control.
   *
   * Notes:
-  *  - Do not comment out the above call to trace_syscall(), as this call
-  *    prepares information that we will most likely need. Instead, comment
-  *    the corresponding content of the output functions of strace;
-  *    most importantly, these are tprintf() and tprints().
   *  - Below call to ptrace_restart(...) continues the traced process.
   *    We can make a syscall fail by, e.g. modifying its parameters to something invalid.
   *    For an example, have a look at http://alip.github.io/code/ptrace-linux-deny.c
