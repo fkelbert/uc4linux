@@ -756,7 +756,7 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 	event *ev = createEventWithStdParams(EVENT_NAME_MMAP, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
-		&& addParam(ev, createParam("mapaddr", mapaddr))
+		&& addParam(ev, createParam("addr", mapaddr))
 		&& addParam(ev, createParam("flags", flags))) {
 		return ev;
 	}
