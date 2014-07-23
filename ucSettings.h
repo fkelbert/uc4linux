@@ -13,7 +13,7 @@ static const char *ignoredFiles[] = {
 		"/opt",
 		"/proc",
 		"/usr",
-		"/var",
+//		"/var",
 		NULL
 };
 
