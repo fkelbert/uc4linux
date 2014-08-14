@@ -607,12 +607,11 @@ event *ucSemantics_openat(struct tcb *tcp) {
 
 	if (strlen(dir) > 0) {
 		snprintf(absFilename, sizeof(absFilename), "%s/%s", dir, relFilename);
+		return do_open(tcp, absFilename, tcp->u_arg[2]);
 	}
 	else {
-		absFilename = relFilename;
+		return do_open(tcp, relFilename, tcp->u_arg[2]);
 	}
-
-	return do_open(tcp, absFilename, tcp->u_arg[2]);
 }
 
 
