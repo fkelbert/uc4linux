@@ -605,7 +605,12 @@ event *ucSemantics_openat(struct tcb *tcp) {
 		}
 	}
 
-	snprintf(absFilename, sizeof(absFilename), "%s/%s", dir, relFilename);
+	if (strlen(dir) > 0) {
+		snprintf(absFilename, sizeof(absFilename), "%s/%s", dir, relFilename);
+	}
+	else {
+		absFilename = relFilename;
+	}
 
 	return do_open(tcp, absFilename, tcp->u_arg[2]);
 }
