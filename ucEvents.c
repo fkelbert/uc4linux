@@ -225,7 +225,7 @@ event *ucSemantics_unlink(struct tcb *tcp) {
 	// signal the actual unlink. Yet, it might be the case that 
 	// multiple/threads processes unlink different files concurrently,
 	// which is why we cannot use a single variable, but we would need
-	// a synchronized map or somtheing similar... oh dear.
+	// a synchronized map or something similar... oh dear.
 /*
 	if (tcp->u_rval < 0) {
 		return NULL;
@@ -237,8 +237,53 @@ event *ucSemantics_unlink(struct tcb *tcp) {
 		return NULL;
 	}
 
+	return do_unlink(absFilename);
+}
+
+event *ucSemantics_unlinkat(struct tcb *tcp) {
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX * 2];
+	char dir[FILENAME_MAX] = "";
+
+	// TODO: we signal the desired unlink,
+	// because we cannot (easily) retrieve the filename
+	// after execution of unlink.
+	// As unlink might fail, this implementation might be wrong
+	// in this case.
+	// A correct implementation would save the filename upon syscall
+	// enter and reuse this saved filename upon exiting to in fact
+	// signal the actual unlink. Yet, it might be the case that
+	// multiple/threads processes unlink different files concurrently,
+	// which is why we cannot use a single variable, but we would need
+	// a synchronized map or something similar... oh dear.
+/*
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+*/
+	toString(relFilename, tcp, tcp->u_arg[1]);
+
+	if (!isAbsolutePath(relFilename)) {
+		if (tcp->u_arg[0] == AT_FDCWD) {
+			getCwd(dir, sizeof(dir), tcp->pid);
+		}
+		else {
+			getfdpath(tcp, tcp->u_arg[0], dir, sizeof(dir));
+		}
+	}
+
+	if (strlen(dir) > 0) {
+		snprintf(absFilename, sizeof(absFilename), "%s/%s", dir, relFilename);
+		return do_unlink(absFilename);
+	}
+	else {
+		return do_unlink(relFilename);
+	}
+}
+
+event *do_unlink(char *filename) {
 	event *ev = createEventWithStdParams(EVENT_NAME_UNLINK, 1);
-	if (addParam(ev, createParam("filename", absFilename))) {
+	if (addParam(ev, createParam("filename", filename))) {
 		return ev;
 	}
 
@@ -2189,7 +2234,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_uname] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_unlinkat
-	[SYS_unlinkat] = ucSemantics_IGNORE,
+	[SYS_unlinkat] = ucSemantics_unlinkat,
 #endif
 #ifdef SYS_unlink
 	[SYS_unlink] = ucSemantics_unlink,

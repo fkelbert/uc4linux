@@ -41,6 +41,8 @@
 
 extern event *(*ucSemanticsFunct[])(struct tcb *tcp);
 
+event *do_unlink(char *filename);
+
 event *ucSemantics_accept(struct tcb *tcp);
 event *ucSemantics_clone(struct tcb *tcp);
 event *ucSemantics_close(struct tcb *tcp);
