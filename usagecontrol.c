@@ -126,19 +126,11 @@ void notifyEventToPdp(event *ev) {
 bool waitForStartupCompletion() {
 	printf("Waiting for Controller to get started ...");
 
-	// Important: Make this variable volatile
-	volatile jboolean isStarted = JNI_FALSE;
-
-	while (isStarted == JNI_FALSE) {
-		isStarted = JniCallBooleanMethod(mainJniEnv, nativeHandler, methodIsStarted);
-		JniExceptionClear(mainJniEnv);
-		if (JniExceptionCheck(mainJniEnv)) {
-			printf("\nException in " METHOD_ISSTARTED_NAME "():\n");
-			JniExceptionDescribe(mainJniEnv);
-		}
+	while (!JniCallBooleanMethod(mainJniEnv, nativeHandler, methodIsStarted)) {
 		printf(".");
 		fflush(stdout);
 		sleep(1);
+		JniExceptionClear(mainJniEnv);
 	}
 
 	printf("\n");
