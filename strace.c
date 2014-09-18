@@ -39,7 +39,6 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
-#include <dirent.h>
 #include <sys/utsname.h>
 #ifdef HAVE_PRCTL
 # include <sys/prctl.h>
@@ -123,6 +122,7 @@ static bool daemonized_tracer = 0;
 static int post_attach_sigstop = TCB_IGNORE_ONE_SIGSTOP;
 # define use_seize (post_attach_sigstop == 0)
 #else
+#include <dirent.h>
 # define post_attach_sigstop TCB_IGNORE_ONE_SIGSTOP
 # define use_seize 0
 #endif
@@ -541,6 +541,9 @@ strace_popen(const char *command)
 
 inline void tprintf(const char *fmt, ...) {}
 inline void tprints(const char *str) {}
+inline void line_ended(void) {}
+inline void printleader(struct tcb *tcp) {}
+inline void tabto(void) {}
 
 #else
 
@@ -578,8 +581,6 @@ tprints(const char *str)
 			perror_msg("%s", outfname);
 	}
 }
-
-#endif
 
 void
 line_ended(void)
@@ -663,6 +664,8 @@ tabto(void)
 	if (current_tcp->curcol < acolumn)
 		tprints(acolumn_spaces + current_tcp->curcol);
 }
+
+#endif
 
 /* Should be only called directly *after successful attach* to a tracee.
  * Otherwise, "strace -oFILE -ff -p<nonexistant_pid>"
