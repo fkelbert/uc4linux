@@ -55,12 +55,12 @@ extern char *eventStdParams[];
 
 void ucTypesInit(JNIEnv *mainJniEnv);
 
-param *createParam(char *key, char *val);
-void destroyParam(param *p);
-event *createEvent(jstring name, int cntParams);
-event *createEventWithStdParams(jstring name, int cntParams);
-void destroyEvent(event *e);
-bool addParam(event *ev, param *p);
+inline param *createParam(char *key, char *val);
+inline void destroyParam(param *p);
+inline event *createEvent(jstring name, int cntParams);
+inline event *createEventWithStdParams(jstring name, int cntParams);
+inline void destroyEvent(event *e);
+inline bool addParam(event *ev, param *p);
 
 #define is_actual(tcp) 		(!exiting(tcp))
 #define is_desired(tcp) 	(exiting(tcp))

@@ -51,18 +51,18 @@ void ucTypesInit(JNIEnv *mainJniEnv) {
 	EVENT_NAME_WRITE = JniNewStringUTF(jniEnv, "Write");
 }
 
-param *createParam(char *key, char *val) {
+inline param *createParam(char *key, char *val) {
 	param *p = malloc(sizeof(param));
 	p->key = JniNewStringUTF(jniEnv, key);
 	p->val = JniNewStringUTF(jniEnv, val);
 	return p;
 }
 
-void destroyParam(param *p) {
+inline void destroyParam(param *p) {
 	free(p);
 }
 
-event *createEvent(jstring name, int cntParams) {
+inline event *createEvent(jstring name, int cntParams) {
 	event *e = malloc(sizeof(event));
 	e->name = name;
 	e->isActual = true;
@@ -72,7 +72,7 @@ event *createEvent(jstring name, int cntParams) {
 	return e;
 }
 
-event *createEventWithStdParams(jstring name, int cntParams) {
+inline event *createEventWithStdParams(jstring name, int cntParams) {
 	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);
 
 	int i;
@@ -83,7 +83,7 @@ event *createEventWithStdParams(jstring name, int cntParams) {
 	return e;
 }
 
-bool addParam(event *ev, param *p) {
+inline bool addParam(event *ev, param *p) {
 	if (ev->iterParams < ev->cntParams) {
 		ev->params[ev->iterParams] = p;
 		ev->iterParams++;
@@ -92,7 +92,7 @@ bool addParam(event *ev, param *p) {
 	return false;
 }
 
-void destroyEvent(event *e) {
+inline void destroyEvent(event *e) {
 	int i;
 	for (i = 0; i < e->cntParams; i++) {
 		destroyParam(e->params[i]);
