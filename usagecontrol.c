@@ -217,6 +217,17 @@ void ucEnd() {
 }
 
 bool ucInit() {
+	initPep2PdpThriftClient(21003);
+
+	if (connectPep2PdpThriftClient()) {
+		printf("success\n");
+	}
+	else {
+		printf("failure\n");
+	}
+
+	return false;
+
 	pthread_t jvmWaiter;
 	void *ret;
 

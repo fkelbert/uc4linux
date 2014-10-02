@@ -54,7 +54,6 @@ strace_SOURCES =	\
 	time.c		\
 	util.c		\
 	vsprintf.c	\
-	usagecontrol.c	\
 	ucEvents.c 	\
 	ucLog.c 	\
 	TPep2Pdp.cpp \
@@ -62,6 +61,8 @@ strace_SOURCES =	\
 	Types_constants.cpp \
 	Services_types.cpp \
 	Services_constants.cpp \
+	ucPep2Pdp.cpp \
+	usagecontrol.c	\
 	ucTypes.c	#\
 	#ucPIP.c		\
 	#ucPIP_main.c		\
