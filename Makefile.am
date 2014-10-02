@@ -57,6 +57,11 @@ strace_SOURCES =	\
 	usagecontrol.c	\
 	ucEvents.c 	\
 	ucLog.c 	\
+	TPep2Pdp.cpp \
+	Types_types.cpp \
+	Types_constants.cpp \
+	Services_types.cpp \
+	Services_constants.cpp \
 	ucTypes.c	#\
 	#ucPIP.c		\
 	#ucPIP_main.c		\
@@ -76,8 +81,9 @@ noinst_HEADERS = defs.h
 # Enable this to get link map generated
 #strace_CFLAGS = $(AM_CFLAGS) -Wl,-Map=strace.mapfile
 strace_CFLAGS = $(DEPS_CFLAGS) 
-# FK: did not find pkg-config for jvm to automate this. Hard-wiring linking of jvm.
-LIBS = $(DEPS_LIBS) -ljvm
+
+# FK: Hard-wiring linking of some libraries
+LIBS = $(DEPS_LIBS) -ljvm -lpthread -lthrift
 
 EXTRA_DIST =				\
 	$(man_MANS)			\

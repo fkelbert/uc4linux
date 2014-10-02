@@ -3,7 +3,7 @@
 #define EVENT_STD_PARAMS_CNT 2
 char *eventStdParams[] =
 				{ "PEP", "Linux",
-					"host", "PLACEHOLDER" };
+					"host", "<<PLACEHOLDER>> (To be filled by function ucTypesInit())" };
 
 #define JniNewStringUTF(env,str)	(*env)->NewStringUTF(env, str)
 
@@ -71,6 +71,8 @@ inline event *createEvent(jstring name, int cntParams) {
 	e->params = malloc(cntParams * sizeof(param*));
 	return e;
 }
+
+
 
 inline event *createEventWithStdParams(jstring name, int cntParams) {
 	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);

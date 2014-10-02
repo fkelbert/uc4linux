@@ -10,6 +10,7 @@ AM_INIT_AUTOMAKE([foreign dist-xz no-dist-gzip silent-rules parallel-tests])
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
 
+AC_PROG_CXX
 AC_PROG_CC
 AC_USE_SYSTEM_EXTENSIONS
 

@@ -57,7 +57,6 @@ void ucTypesInit(JNIEnv *mainJniEnv);
 
 inline param *createParam(char *key, char *val);
 inline void destroyParam(param *p);
-inline event *createEvent(jstring name, int cntParams);
 inline event *createEventWithStdParams(jstring name, int cntParams);
 inline void destroyEvent(event *e);
 inline bool addParam(event *ev, param *p);
