@@ -31,4 +31,28 @@
 #define METHOD_NOTIFY_NAME 		"notifyEvent"
 #define METHOD_NOTIFY_SIG 		"(" JNI_STRING "[" JNI_STRING "[" JNI_STRING JNI_BOOL ")" JNI_OBJECT
 
+// Definitions to have all eclipse errors in one place rather than all over the C file...
+#define JniFindClass(env,class) 							(*env)->FindClass(env, class)
+#define JniGetStaticMethodID(env,class,name,sig)			(*env)->GetStaticMethodID(env, class, name, sig)
+#define JniNewObjectArray(env,size,class,arg)	 			(*env)->NewObjectArray(env, size, class, arg)
+#define JniNewStringUTF(env,str)							(*env)->NewStringUTF(env, str)
+#define JniSetObjectArrayElement(env,arr,pos,elem)			(*env)->SetObjectArrayElement(env, arr, pos, elem)
+
+#define JniCallStaticVoidMethod(env,class,method,...) 		(*env)->CallStaticVoidMethod(env, class, method, ##__VA_ARGS__)
+#define JniCallStaticBooleanMethod(env,class,method,...)	(*env)->CallStaticBooleanMethod(env, class, method, ##__VA_ARGS__)
+#define JniCallStaticObjectMethod(env,class,method,...)		(*env)->CallStaticObjectMethod(env, class, method, ##__VA_ARGS__)
+
+#define JniCallBooleanMethod(env,object,method,...)			(*env)->CallBooleanMethod(env, object, method, ##__VA_ARGS__)
+#define JniCallObjectMethod(env,object,method,...)		(	*env)->CallObjectMethod(env, object, method, ##__VA_ARGS__)
+
+#define JniAttachCurrentThread(jvm,env,arg)					(*jvm)->AttachCurrentThread(jvm, env, arg)
+
+#define JniGetMethodID(env,class,name,sig)					(*env)->GetMethodID(env, class, name, sig)
+#define JniGetStaticFieldID(env,class,name,sig)					(*env)->GetStaticFieldID(env, class, name, sig)
+#define JniGetStaticObjectField(env,class,field)					(*env)->GetStaticObjectField(env, class, field)
+
+#define JniExceptionCheck(env)								(*env)->ExceptionCheck(env)
+#define JniExceptionClear(env)								(*env)->ExceptionClear(env)
+#define JniExceptionDescribe(env)							(*env)->ExceptionDescribe(env)
+
 #endif

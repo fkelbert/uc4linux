@@ -5,8 +5,6 @@ char *eventStdParams[] =
 				{ "PEP", "Linux",
 					"host", "<<PLACEHOLDER>> (To be filled by function ucTypesInit())" };
 
-#define JniNewStringUTF(env,str)	(*env)->NewStringUTF(env, str)
-
 JNIEnv *jniEnv;
 
 void ucTypesInit(JNIEnv *mainJniEnv) {
@@ -22,39 +20,50 @@ void ucTypesInit(JNIEnv *mainJniEnv) {
 	eventStdParams[3] = strdup(utsname.nodename);
 	uc_log("Determined hostname: %s\n", eventStdParams[3]);
 
-	EVENT_NAME_ACCEPT = JniNewStringUTF(jniEnv, "Accept");
-	EVENT_NAME_CLONE = JniNewStringUTF(jniEnv, "Clone");
-	EVENT_NAME_CLOSE = JniNewStringUTF(jniEnv, "Close");
-	EVENT_NAME_CONNECT = JniNewStringUTF(jniEnv, "Connect");
-	EVENT_NAME_DUP = JniNewStringUTF(jniEnv, "Dup");
-	EVENT_NAME_DUP2 = JniNewStringUTF(jniEnv, "Dup2");
-	EVENT_NAME_EXECVE = JniNewStringUTF(jniEnv, "Execve");
-	EVENT_NAME_EXIT = JniNewStringUTF(jniEnv, "Exit");
-	EVENT_NAME_EXITGROUP = JniNewStringUTF(jniEnv, "ExitGroup");
-	EVENT_NAME_FCNTL = JniNewStringUTF(jniEnv, "Fcntl");
-	EVENT_NAME_FTRUNCATE = JniNewStringUTF(jniEnv, "Ftruncate");
-	EVENT_NAME_KILL = JniNewStringUTF(jniEnv, "Kill");
-	EVENT_NAME_MMAP = JniNewStringUTF(jniEnv, "Mmap");
-	EVENT_NAME_MUNMAP = JniNewStringUTF(jniEnv, "Munmap");
-	EVENT_NAME_OPEN = JniNewStringUTF(jniEnv, "Open");
-	EVENT_NAME_PIPE = JniNewStringUTF(jniEnv, "Pipe");
-	EVENT_NAME_READ = JniNewStringUTF(jniEnv, "Read");
-	EVENT_NAME_RENAME = JniNewStringUTF(jniEnv, "Rename");
-	EVENT_NAME_SENDFILE = JniNewStringUTF(jniEnv, "Sendfile");
-	EVENT_NAME_SHUTDOWN = JniNewStringUTF(jniEnv, "Shutdown");
-	EVENT_NAME_SOCKET = JniNewStringUTF(jniEnv, "Socket");
-	EVENT_NAME_SOCKETPAIR = JniNewStringUTF(jniEnv, "Socketpair");
-	EVENT_NAME_SPLICE = JniNewStringUTF(jniEnv, "Splice");
-	EVENT_NAME_TEE = JniNewStringUTF(jniEnv, "Tee");
-	EVENT_NAME_TRUNCATE = JniNewStringUTF(jniEnv, "Truncate");
-	EVENT_NAME_UNLINK = JniNewStringUTF(jniEnv, "Unlink");
-	EVENT_NAME_WRITE = JniNewStringUTF(jniEnv, "Write");
+	EVENT_NAME_ACCEPT = createString("Accept");
+	EVENT_NAME_CLONE = createString("Clone");
+	EVENT_NAME_CLOSE = createString("Close");
+	EVENT_NAME_CONNECT = createString("Connect");
+	EVENT_NAME_DUP = createString("Dup");
+	EVENT_NAME_DUP2 = createString("Dup2");
+	EVENT_NAME_EXECVE = createString("Execve");
+	EVENT_NAME_EXIT = createString("Exit");
+	EVENT_NAME_EXITGROUP = createString("ExitGroup");
+	EVENT_NAME_FCNTL = createString("Fcntl");
+	EVENT_NAME_FTRUNCATE = createString("Ftruncate");
+	EVENT_NAME_KILL = createString("Kill");
+	EVENT_NAME_MMAP = createString("Mmap");
+	EVENT_NAME_MUNMAP = createString("Munmap");
+	EVENT_NAME_OPEN = createString("Open");
+	EVENT_NAME_PIPE = createString("Pipe");
+	EVENT_NAME_READ = createString("Read");
+	EVENT_NAME_RENAME = createString("Rename");
+	EVENT_NAME_SENDFILE = createString("Sendfile");
+	EVENT_NAME_SHUTDOWN = createString("Shutdown");
+	EVENT_NAME_SOCKET = createString("Socket");
+	EVENT_NAME_SOCKETPAIR = createString("Socketpair");
+	EVENT_NAME_SPLICE = createString("Splice");
+	EVENT_NAME_TEE = createString("Tee");
+	EVENT_NAME_TRUNCATE = createString("Truncate");
+	EVENT_NAME_UNLINK = createString("Unlink");
+	EVENT_NAME_WRITE = createString("Write");
+}
+
+inline string createString(char *str) {
+#if UC_JNI
+	return JniNewStringUTF(jniEnv, str);
+#elif UC_THRIFT
+	return str;
+#else
+	printf("Unknown option.\n");
+	return "";
+#endif
 }
 
 inline param *createParam(char *key, char *val) {
 	param *p = malloc(sizeof(param));
-	p->key = JniNewStringUTF(jniEnv, key);
-	p->val = JniNewStringUTF(jniEnv, val);
+	p->key = createString(key);
+	p->val = createString(val);
 	return p;
 }
 
@@ -62,7 +71,7 @@ inline void destroyParam(param *p) {
 	free(p);
 }
 
-inline event *createEvent(jstring name, int cntParams) {
+inline event *createEvent(string name, int cntParams) {
 	event *e = malloc(sizeof(event));
 	e->name = name;
 	e->isActual = true;
@@ -74,7 +83,7 @@ inline event *createEvent(jstring name, int cntParams) {
 
 
 
-inline event *createEventWithStdParams(jstring name, int cntParams) {
+inline event *createEventWithStdParams(string name, int cntParams) {
 	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);
 
 	int i;

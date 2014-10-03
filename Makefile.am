@@ -56,6 +56,8 @@ strace_SOURCES =	\
 	vsprintf.c	\
 	ucEvents.c 	\
 	ucLog.c 	\
+	ucJni.c 	\
+	ucThrift.c 	\
 	TPep2Pdp.cpp \
 	Types_types.cpp \
 	Types_constants.cpp \

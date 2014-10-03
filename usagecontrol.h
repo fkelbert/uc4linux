@@ -9,8 +9,8 @@
 #include "ucLog.h"
 #include "ucSettings.h"
 #include "ucTypes.h"
-#include "ucJniBridge.h"
-#include "ucPep2Pdp.h"
+#include "ucJni.h"
+#include "ucThrift.h"
 
 bool ucInit();
 void ucEnd();
