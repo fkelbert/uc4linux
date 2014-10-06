@@ -7,9 +7,32 @@ char *eventStdParams[] =
 
 JNIEnv *jniEnv;
 
-void ucTypesInit(JNIEnv *mainJniEnv) {
+void ucTypesSetJniEnv(JNIEnv *mainJniEnv) {
 	jniEnv = mainJniEnv;
+}
 
+inline str createString(char *s) {
+#if UC_JNI
+	return JniNewStringUTF(jniEnv, s);
+#elif UC_THRIFT
+	return strdup(s);
+#else
+	printf("Unknown option.\n");
+	return "";
+#endif
+}
+
+inline void destroyString(str s) {
+#if UC_JNI
+	return;
+#elif UC_THRIFT
+	free(s);
+#else
+	printf("Unknown option.\n");
+#endif
+}
+
+void ucTypesInit() {
 	// get the hostname using uname()
 	struct utsname utsname;
 	if (uname(&utsname) == -1) {
@@ -49,17 +72,6 @@ void ucTypesInit(JNIEnv *mainJniEnv) {
 	EVENT_NAME_WRITE = createString("Write");
 }
 
-inline string createString(char *str) {
-#if UC_JNI
-	return JniNewStringUTF(jniEnv, str);
-#elif UC_THRIFT
-	return str;
-#else
-	printf("Unknown option.\n");
-	return "";
-#endif
-}
-
 inline param *createParam(char *key, char *val) {
 	param *p = malloc(sizeof(param));
 	p->key = createString(key);
@@ -68,10 +80,12 @@ inline param *createParam(char *key, char *val) {
 }
 
 inline void destroyParam(param *p) {
+	destroyString(p->key);
+	destroyString(p->val);
 	free(p);
 }
 
-inline event *createEvent(string name, int cntParams) {
+inline event *createEvent(str name, int cntParams) {
 	event *e = malloc(sizeof(event));
 	e->name = name;
 	e->isActual = true;
@@ -83,7 +97,7 @@ inline event *createEvent(string name, int cntParams) {
 
 
 
-inline event *createEventWithStdParams(string name, int cntParams) {
+inline event *createEventWithStdParams(str name, int cntParams) {
 	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);
 
 	int i;

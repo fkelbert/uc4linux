@@ -4,4 +4,4 @@
 #include "ucJniBridge.h"
 
 inline void notifyEventToPdpJni(event *ev);
-bool ucInitJni();
+void ucInitJni();

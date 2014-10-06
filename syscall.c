@@ -2066,8 +2066,10 @@ trace_syscall_entering(struct tcb *tcp)
  ret:
 	tcp->flags |= TCB_INSYSCALL;
 	/* Measure the entrance time as late as possible to avoid errors. */
+#if (!UC_ENABLED)
 	if (Tflag || cflag)
 		gettimeofday(&tcp->etime, NULL);
+#endif
 	return res;
 }
 
@@ -2521,9 +2523,11 @@ trace_syscall_exiting(struct tcb *tcp)
 	int res;
 	long u_error;
 
+#if (!UC_ENABLED)
 	/* Measure the exit time as early as possible to avoid errors. */
 	if (Tflag || cflag)
 		gettimeofday(&tv, NULL);
+#endif
 
 #ifdef USE_LIBUNWIND
 	if (stack_trace_enabled) {
@@ -2545,12 +2549,14 @@ trace_syscall_exiting(struct tcb *tcp)
 			goto ret;
 	}
 
+#if (!UC_ENABLED)
 	if (cflag) {
 		count_syscall(tcp, &tv);
 		if (cflag == CFLAG_ONLY_STATS) {
 			goto ret;
 		}
 	}
+#endif
 
 	/* If not in -ff mode, and printing_tcp != tcp,
 	 * then the log currently does not end with output

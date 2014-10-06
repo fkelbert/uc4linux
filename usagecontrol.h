@@ -12,7 +12,7 @@
 #include "ucJni.h"
 #include "ucThrift.h"
 
-bool ucInit();
+void ucInit();
 void ucEnd();
 
 #endif /* USAGECONTROL_H */

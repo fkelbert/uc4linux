@@ -2,6 +2,7 @@
 #include "defs.h"
 #include "ucTypes.h"
 #include "ucPep2Pdp.h"
+#include "ucLog.h"
 
-bool ucInitThrift();
+void ucInitThrift();
 inline void notifyEventToPdpThrift(event *ev);

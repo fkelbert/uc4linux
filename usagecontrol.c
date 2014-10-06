@@ -15,14 +15,16 @@ void ucEnd() {
 }
 
 
-bool ucInit() {
+void ucInit() {
 #if UC_JNI
-	return ucInitJni();
+	ucInitJni();
+	ucTypesInit();
 #elif UC_THRIFT
-	return ucInitThrift();
+	ucInitThrift();
+	ucTypesInit();
 #else
 	printf("Unknown option.\n");
-	return false;
+	exit(1);
 #endif
 }
 

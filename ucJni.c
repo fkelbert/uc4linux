@@ -203,7 +203,7 @@ bool getMainJniRefs() {
 }
 
 
-bool ucInitJni() {
+void ucInitJni() {
 	pthread_t jvmWaiter;
 	void *ret;
 
@@ -226,7 +226,7 @@ bool ucInitJni() {
 		exit(1);
 	}
 
-	ucTypesInit(mainJniEnv);
+	ucTypesSetJniEnv(mainJniEnv);
 
 	if (!getMainJniRefs()) {
 		printf("Error getting main JNI references. Exiting.\n");
@@ -242,8 +242,6 @@ bool ucInitJni() {
 	if (pthread_create( &jvmWaiter, NULL, threadJvmWaiter, NULL) != 0) {
 		printf("Unable to create JVM waiter thread.\n");
 	}
-
-	return true;
 }
 
 

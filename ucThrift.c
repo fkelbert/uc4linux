@@ -2,23 +2,22 @@
 
 #if UC_THRIFT
 
-bool ucInitThrift() {
+void ucInitThrift() {
 	initPep2PdpThriftClient(21003);
 
 	if (connectPep2PdpThriftClient()) {
-		printf("success\n");
+		uc_log("success\n");
 	}
 	else {
-		printf("failure\n");
+		uc_log("failure\n");
+		exit(1);
 	}
-
-	return false;
 }
 
 
 
 inline void notifyEventToPdpThrift(event *ev) {
-
+	notifyEventToPdpThriftCpp(ev);
 }
 
 
