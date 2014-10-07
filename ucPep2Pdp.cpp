@@ -46,7 +46,7 @@ bool disconnectPep2PdpThriftClient() {
 }
 
 void notifyEventToPdpThriftCpp(event *ev) {
-	TEvent *tev = new TEvent();
+	auto_ptr<TEvent> tev(new TEvent);
 	tev->isActual = ev->isActual;
 	tev->name = string(ev->name);
 
@@ -59,18 +59,9 @@ void notifyEventToPdpThriftCpp(event *ev) {
 		cl->notifyEventAsync(*tev);
 	}
 	else {
-		TResponse *response = new TResponse();
+		auto_ptr<TResponse> response(new TResponse);
 		cl->notifyEventSync(*response, *tev);
 	}
-
-//	string s(ev->name);
-//	tev.name = s;
-//
-//	printf("%s\n", ev->name);
-//
-//	const char *s = "Hello, World!";
-//	std::string str((const char*)  ev->name);
-
 }
 
 #endif
