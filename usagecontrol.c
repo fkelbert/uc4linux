@@ -18,14 +18,13 @@ void ucEnd() {
 void ucInit() {
 #if UC_JNI
 	ucInitJni();
-	ucTypesInit();
 #elif UC_THRIFT
 	ucInitThrift();
-	ucTypesInit();
 #else
 	printf("Unknown option.\n");
 	exit(1);
 #endif
+	ucTypesInit();
 }
 
 bool ignoreExecve = true;

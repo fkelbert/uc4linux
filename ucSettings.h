@@ -8,6 +8,8 @@
 #define UC_JNI 0
 #define UC_THRIFT 1
 
+#define UC_THRIFT_PDP_PORT 21003
+
 #define USER_CLASSPATH "Jni-1.0-jar-with-dependencies.jar"
 
 static const char *ignoredFiles[] = {
