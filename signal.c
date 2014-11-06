@@ -37,7 +37,9 @@
 
 #ifdef HAVE_SYS_REG_H
 # include <sys/reg.h>
-#elif defined(HAVE_LINUX_PTRACE_H)
+#endif
+
+#ifdef HAVE_LINUX_PTRACE_H
 # undef PTRACE_SYSCALL
 # ifdef HAVE_STRUCT_IA64_FPREG
 #  define ia64_fpreg XXX_ia64_fpreg
@@ -144,18 +146,22 @@ struct sigcontext {
  */
 
 const char *
-signame(int sig)
+signame(const int sig)
 {
-	static char buf[sizeof("SIGRT_%d") + sizeof(int)*3];
+	static char buf[sizeof("SIGRT_%u") + sizeof(int)*3];
 
-	if (sig >= 0 && sig < nsignals)
-		return signalent[sig];
+	if (sig >= 0) {
+		const unsigned int s = sig;
+
+		if (s < nsignals)
+			return signalent[s];
 #ifdef SIGRTMIN
-	if (sig >= __SIGRTMIN && sig <= __SIGRTMAX) {
-		sprintf(buf, "SIGRT_%d", (int)(sig - __SIGRTMIN));
-		return buf;
-	}
+		if (s >= __SIGRTMIN && s <= __SIGRTMAX) {
+			sprintf(buf, "SIGRT_%u", s - __SIGRTMIN);
+			return buf;
+		}
 #endif
+	}
 	sprintf(buf, "%d", sig);
 	return buf;
 }
@@ -217,7 +223,7 @@ sprintsigmask_n(const char *prefix, const void *sig_mask, unsigned int bytes)
 	for (i = 0; (i = next_set_bit(mask, i, size * 32)) >= 0; ) {
 		++i;
 		*s++ = sep;
-		if (i < nsignals) {
+		if ((unsigned) i < nsignals) {
 			s = stpcpy(s, signalent[i] + 3);
 		}
 #ifdef SIGRTMIN
@@ -428,7 +434,7 @@ printsiginfo(siginfo_t *sip, int verbose)
 #endif
 	{
 		if (sip->si_errno) {
-			if (sip->si_errno < 0 || sip->si_errno >= nerrnos)
+			if (sip->si_errno < 0 || (unsigned) sip->si_errno >= nerrnos)
 				tprintf(", si_errno=%d", sip->si_errno);
 			else
 				tprintf(", si_errno=%s",
@@ -555,8 +561,10 @@ struct old_sigaction {
 	void (*__sa_handler)(int);
 	unsigned long sa_mask;
 	unsigned long sa_flags;
-	void (*sa_restorer)(void);
 #endif /* !MIPS */
+#ifdef SA_RESTORER
+	void (*sa_restorer)(void);
+#endif
 };
 
 struct old_sigaction32 {
@@ -564,7 +572,9 @@ struct old_sigaction32 {
 	uint32_t __sa_handler;
 	uint32_t sa_mask;
 	uint32_t sa_flags;
+#ifdef SA_RESTORER
 	uint32_t sa_restorer;
+#endif
 };
 
 static void
@@ -590,7 +600,9 @@ decode_old_sigaction(struct tcb *tcp, long addr)
 			memset(&sa, 0, sizeof(sa));
 			sa.__sa_handler = (void*)(uintptr_t)sa32.__sa_handler;
 			sa.sa_flags = sa32.sa_flags;
+#ifdef SA_RESTORER
 			sa.sa_restorer = (void*)(uintptr_t)sa32.sa_restorer;
+#endif
 			sa.sa_mask = sa32.sa_mask;
 		}
 	} else
@@ -1134,10 +1146,10 @@ struct new_sigaction
 #else
 	void (*__sa_handler)(int);
 	unsigned long sa_flags;
-# if !defined(ALPHA) && !defined(HPPA) && !defined(IA64)
-	void (*sa_restorer)(void);
-# endif /* !ALPHA && !HPPA && !IA64 */
 #endif /* !MIPS */
+#ifdef SA_RESTORER
+	void (*sa_restorer)(void);
+#endif
 	/* Kernel treats sa_mask as an array of longs. */
 	unsigned long sa_mask[NSIG / sizeof(long) ? NSIG / sizeof(long) : 1];
 };
@@ -1146,7 +1158,9 @@ struct new_sigaction32
 {
 	uint32_t __sa_handler;
 	uint32_t sa_flags;
+#ifdef SA_RESTORER
 	uint32_t sa_restorer;
+#endif
 	uint32_t sa_mask[2 * (NSIG / sizeof(long) ? NSIG / sizeof(long) : 1)];
 };
 
@@ -1172,7 +1186,9 @@ decode_new_sigaction(struct tcb *tcp, long addr)
 			memset(&sa, 0, sizeof(sa));
 			sa.__sa_handler = (void*)(unsigned long)sa32.__sa_handler;
 			sa.sa_flags     = sa32.sa_flags;
+#ifdef SA_RESTORER
 			sa.sa_restorer  = (void*)(unsigned long)sa32.sa_restorer;
+#endif
 			/* Kernel treats sa_mask as an array of longs.
 			 * For 32-bit process, "long" is uint32_t, thus, for example,
 			 * 32th bit in sa_mask will end up as bit 0 in sa_mask[1].

@@ -46,7 +46,9 @@
 
 #ifdef HAVE_SYS_REG_H
 # include <sys/reg.h>
-#elif defined(HAVE_LINUX_PTRACE_H)
+#endif
+
+#ifdef HAVE_LINUX_PTRACE_H
 # undef PTRACE_SYSCALL
 # ifdef HAVE_STRUCT_IA64_FPREG
 #  define ia64_fpreg XXX_ia64_fpreg
@@ -141,12 +143,30 @@ tv_mul(struct timeval *tv, const struct timeval *a, int n)
 }
 
 const char *
-xlookup(const struct xlat *xlat, int val)
+xlookup(const struct xlat *xlat, const unsigned int val)
 {
 	for (; xlat->str != NULL; xlat++)
 		if (xlat->val == val)
 			return xlat->str;
 	return NULL;
+}
+
+static int
+xlat_bsearch_compare(const void *a, const void *b)
+{
+	const unsigned int val1 = (const unsigned long) a;
+	const unsigned int val2 = ((const struct xlat *) b)->val;
+	return (val1 > val2) ? 1 : (val1 < val2) ? -1 : 0;
+}
+
+const char *
+xlat_search(const struct xlat *xlat, const size_t nmemb, const unsigned int val)
+{
+	const struct xlat *e =
+		bsearch((const void*) (const unsigned long) val,
+			xlat, nmemb, sizeof(*xlat), xlat_bsearch_compare);
+
+	return e ? e->str : NULL;
 }
 
 #if !defined HAVE_STPCPY
@@ -210,7 +230,7 @@ next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits)
  * Print entry in struct xlat table, if there.
  */
 void
-printxval(const struct xlat *xlat, int val, const char *dflt)
+printxval(const struct xlat *xlat, const unsigned int val, const char *dflt)
 {
 	const char *str = xlookup(xlat, val);
 
@@ -404,17 +424,31 @@ void
 printfd(struct tcb *tcp, int fd)
 {
 	char path[PATH_MAX + 1];
+	if (show_fd_path && getfdpath(tcp, fd, path, sizeof(path)) >= 0) {
+		static const char socket_prefix[] = "socket:[";
+		const size_t socket_prefix_len = sizeof(socket_prefix) - 1;
+		size_t path_len;
 
-	if (show_fd_path && getfdpath(tcp, fd, path, sizeof(path)) >= 0)
-		tprintf("%d<%s>", fd, path);
-	else
+		if (show_fd_path > 1 &&
+		    strncmp(path, socket_prefix, socket_prefix_len) == 0 &&
+		    path[(path_len = strlen(path)) - 1] == ']') {
+			unsigned long inodenr;
+			inodenr = strtoul(path + socket_prefix_len, NULL, 10);
+			tprintf("%d<", fd);
+			if (!print_sockaddr_by_inode(inodenr))
+				tprints(path);
+			tprints(">");
+		} else {
+			tprintf("%d<%s>", fd, path);
+		}
+	} else
 		tprintf("%d", fd);
 }
 
 void
 printuid(const char *text, unsigned long uid)
 {
-	tprintf((uid == -1) ? "%s%ld" : "%s%lu", text, uid);
+	tprintf(((long) uid == -1) ? "%s%ld" : "%s%lu", text, uid);
 }
 
 /*
@@ -564,7 +598,7 @@ string_quote(const char *instr, char *outstr, long len, int size)
  * If path length exceeds `n', append `...' to the output.
  */
 void
-printpathn(struct tcb *tcp, long addr, int n)
+printpathn(struct tcb *tcp, long addr, unsigned int n)
 {
 	char path[MAXPATHLEN + 1];
 	int nul_seen;
@@ -612,7 +646,7 @@ printstr(struct tcb *tcp, long addr, long len)
 {
 	static char *str = NULL;
 	static char *outstr;
-	int size;
+	unsigned int size;
 	int ellipsis;
 
 	if (!addr) {
@@ -658,7 +692,7 @@ printstr(struct tcb *tcp, long addr, long len)
 	 * or we were requested to print more than -s NUM chars)...
 	 */
 	ellipsis = (string_quote(str, outstr, len, size) &&
-			(len < 0 || len > max_strlen));
+			(len < 0 || (unsigned long) len > max_strlen));
 
 	tprints(outstr);
 	if (ellipsis)
@@ -1480,7 +1514,7 @@ setbpt(struct tcb *tcp)
 	 * godforsaken tables.
 	 */
 	if (clone_scno[current_personality] == 0) {
-		int i;
+		unsigned int i;
 		for (i = 0; i < nsyscalls; ++i)
 			if (sysent[i].sys_func == sys_clone) {
 				clone_scno[current_personality] = i;

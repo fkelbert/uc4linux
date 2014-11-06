@@ -90,6 +90,13 @@
 #if defined(HAVE_LINUX_ICMP_H)
 # include <linux/icmp.h>
 #endif
+#ifdef HAVE_BLUETOOTH_BLUETOOTH_H
+# include <bluetooth/bluetooth.h>
+# include <bluetooth/hci.h>
+# include <bluetooth/l2cap.h>
+# include <bluetooth/rfcomm.h>
+# include <bluetooth/sco.h>
+#endif
 #ifndef PF_UNSPEC
 # define PF_UNSPEC AF_UNSPEC
 #endif
@@ -108,6 +115,10 @@
 
 #ifdef PF_NETLINK
 #include "xlat/netlink_protocols.h"
+#endif
+
+#if defined(HAVE_BLUETOOTH_BLUETOOTH_H)
+# include "xlat/bt_protocols.h"
 #endif
 
 #include "xlat/msg_flags.h"
@@ -177,6 +188,12 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 #ifdef AF_NETLINK
 		struct sockaddr_nl nl;
 #endif
+#ifdef HAVE_BLUETOOTH_BLUETOOTH_H
+		struct sockaddr_hci hci;
+		struct sockaddr_l2 l2;
+		struct sockaddr_rc rc;
+		struct sockaddr_sco sco;
+#endif
 	} addrbuf;
 	char string_addr[100];
 
@@ -189,7 +206,7 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 		return;
 	}
 
-	if (addrlen < 2 || addrlen > sizeof(addrbuf))
+	if (addrlen < 2 || addrlen > (int) sizeof(addrbuf))
 		addrlen = sizeof(addrbuf);
 
 	memset(&addrbuf, 0, sizeof(addrbuf));
@@ -273,7 +290,7 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 			tprintf("proto=%#04x, if%d, pkttype=",
 					ntohs(addrbuf.ll.sll_protocol),
 					addrbuf.ll.sll_ifindex);
-			printxval(af_packet_types, addrbuf.ll.sll_pkttype, "?");
+			printxval(af_packet_types, addrbuf.ll.sll_pkttype, "PACKET_???");
 			tprintf(", addr(%d)={%d, ",
 					addrbuf.ll.sll_halen,
 					addrbuf.ll.sll_hatype);
@@ -288,6 +305,26 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 		tprintf("pid=%d, groups=%08x", addrbuf.nl.nl_pid, addrbuf.nl.nl_groups);
 		break;
 #endif /* AF_NETLINK */
+#if defined(AF_BLUETOOTH) && defined(HAVE_BLUETOOTH_BLUETOOTH_H)
+	case AF_BLUETOOTH:
+		tprintf("{sco_bdaddr=%02X:%02X:%02X:%02X:%02X:%02X} or "
+			"{rc_bdaddr=%02X:%02X:%02X:%02X:%02X:%02X, rc_channel=%d} or "
+			"{l2_psm=htobs(%d), l2_bdaddr=%02X:%02X:%02X:%02X:%02X:%02X, l2_cid=htobs(%d)} or "
+			"{hci_dev=htobs(%d)}",
+			addrbuf.sco.sco_bdaddr.b[0], addrbuf.sco.sco_bdaddr.b[1],
+			addrbuf.sco.sco_bdaddr.b[2], addrbuf.sco.sco_bdaddr.b[3],
+			addrbuf.sco.sco_bdaddr.b[4], addrbuf.sco.sco_bdaddr.b[5],
+			addrbuf.rc.rc_bdaddr.b[0], addrbuf.rc.rc_bdaddr.b[1],
+			addrbuf.rc.rc_bdaddr.b[2], addrbuf.rc.rc_bdaddr.b[3],
+			addrbuf.rc.rc_bdaddr.b[4], addrbuf.rc.rc_bdaddr.b[5],
+			addrbuf.rc.rc_channel,
+			btohs(addrbuf.l2.l2_psm), addrbuf.l2.l2_bdaddr.b[0],
+			addrbuf.l2.l2_bdaddr.b[1], addrbuf.l2.l2_bdaddr.b[2],
+			addrbuf.l2.l2_bdaddr.b[3], addrbuf.l2.l2_bdaddr.b[4],
+			addrbuf.l2.l2_bdaddr.b[5], btohs(addrbuf.l2.l2_cid),
+			btohs(addrbuf.hci.hci_dev));
+		break;
+#endif /* AF_BLUETOOTH && HAVE_BLUETOOTH_BLUETOOTH_H */
 	/* AF_AX25 AF_APPLETALK AF_NETROM AF_BRIDGE AF_AAL5
 	AF_X25 AF_ROSE etc. still need to be done */
 
@@ -392,33 +429,47 @@ struct mmsghdr32 {
 	uint32_t /* unsigned */ msg_len;
 };
 
+static bool
+extractmsghdr(struct tcb *tcp, long addr, struct msghdr *msg)
+{
+#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
+	if (current_wordsize == 4) {
+		struct msghdr32 msg32;
+
+		if (umove(tcp, addr, &msg32) < 0)
+			return false;
+		msg->msg_name       = (void*)(long)msg32.msg_name;
+		msg->msg_namelen    =              msg32.msg_namelen;
+		msg->msg_iov        = (void*)(long)msg32.msg_iov;
+		msg->msg_iovlen     =              msg32.msg_iovlen;
+		msg->msg_control    = (void*)(long)msg32.msg_control;
+		msg->msg_controllen =              msg32.msg_controllen;
+		msg->msg_flags      =              msg32.msg_flags;
+	} else
+#endif
+	if (umove(tcp, addr, msg) < 0)
+		return false;
+	return true;
+}
+
 static void
 printmsghdr(struct tcb *tcp, long addr, unsigned long data_size)
 {
 	struct msghdr msg;
 
-#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
-	if (current_wordsize == 4) {
-		struct msghdr32 msg32;
-
-		if (umove(tcp, addr, &msg32) < 0) {
-			tprintf("%#lx", addr);
-			return;
-		}
-		msg.msg_name       = (void*)(long)msg32.msg_name;
-		msg.msg_namelen    =              msg32.msg_namelen;
-		msg.msg_iov        = (void*)(long)msg32.msg_iov;
-		msg.msg_iovlen     =              msg32.msg_iovlen;
-		msg.msg_control    = (void*)(long)msg32.msg_control;
-		msg.msg_controllen =              msg32.msg_controllen;
-		msg.msg_flags      =              msg32.msg_flags;
-	} else
-#endif
-	if (umove(tcp, addr, &msg) < 0) {
+	if (extractmsghdr(tcp, addr, &msg))
+		do_msghdr(tcp, &msg, data_size);
+	else
 		tprintf("%#lx", addr);
-		return;
-	}
-	do_msghdr(tcp, &msg, data_size);
+}
+
+void
+dumpiov_in_msghdr(struct tcb *tcp, long addr)
+{
+	struct msghdr msg;
+
+	if (extractmsghdr(tcp, addr, &msg))
+		dumpiov(tcp, msg.msg_iovlen, (long)msg.msg_iov);
 }
 
 static void
@@ -491,7 +542,7 @@ decode_mmsg(struct tcb *tcp, unsigned long msg_len)
  * other bits are socket type flags.
  */
 static void
-tprint_sock_type(struct tcb *tcp, int flags)
+tprint_sock_type(int flags)
 {
 	const char *str = xlookup(socktypes, flags & SOCK_TYPE_MASK);
 
@@ -511,7 +562,7 @@ sys_socket(struct tcb *tcp)
 	if (entering(tcp)) {
 		printxval(domains, tcp->u_arg[0], "PF_???");
 		tprints(", ");
-		tprint_sock_type(tcp, tcp->u_arg[1]);
+		tprint_sock_type(tcp->u_arg[1]);
 		tprints(", ");
 		switch (tcp->u_arg[0]) {
 		case PF_INET:
@@ -531,6 +582,11 @@ sys_socket(struct tcb *tcp)
 #ifdef PF_NETLINK
 		case PF_NETLINK:
 			printxval(netlink_protocols, tcp->u_arg[2], "NETLINK_???");
+			break;
+#endif
+#if defined(PF_BLUETOOTH) && defined(HAVE_BLUETOOTH_BLUETOOTH_H)
+		case PF_BLUETOOTH:
+			printxval(bt_protocols, tcp->u_arg[2], "BTPROTO_???");
 			break;
 #endif
 		default:
@@ -886,7 +942,7 @@ sys_socketpair(struct tcb *tcp)
 	if (entering(tcp)) {
 		printxval(domains, tcp->u_arg[0], "PF_???");
 		tprints(", ");
-		tprint_sock_type(tcp, tcp->u_arg[1]);
+		tprint_sock_type(tcp->u_arg[1]);
 		tprintf(", %lu", tcp->u_arg[2]);
 	} else {
 		if (syserror(tcp)) {

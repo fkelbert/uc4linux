@@ -23,6 +23,7 @@ strace_SOURCES =	\
 	block.c		\
 	count.c		\
 	desc.c		\
+	dirent.c	\
 	fanotify.c	\
 	file.c		\
 	inotify.c	\
@@ -46,13 +47,17 @@ strace_SOURCES =	\
 	scsi.c		\
 	signal.c	\
 	sock.c		\
+	socketutils.c	\
+	statfs.c	\
 	strace.c	\
 	stream.c	\
 	syscall.c	\
+	sysinfo.c	\
 	system.c	\
 	term.c		\
 	time.c		\
 	util.c		\
+	v4l2.c		\
 	vsprintf.c	\
 	ucEvents.c 	\
 	ucLog.c 	\
@@ -142,8 +147,8 @@ EXTRA_DIST =				\
 	linux/ia64/ioctlent.h.in	\
 	linux/ia64/signalent.h		\
 	linux/ia64/syscallent.h		\
+	linux/inet_diag.h		\
 	linux/inotify.h			\
-	linux/ioctlent-filter.awk	\
 	linux/ioctlent.h.in		\
 	linux/ioctlent.sh		\
 	linux/ioctlsort.c		\
@@ -185,6 +190,7 @@ EXTRA_DIST =				\
 	linux/sh64/ioctlent.h.in	\
 	linux/sh64/syscallent.h		\
 	linux/signalent.h		\
+	linux/sock_diag.h		\
 	linux/sparc/dummy2.h		\
 	linux/sparc/errnoent.h		\
 	linux/sparc/errnoent1.h		\
@@ -331,5 +337,5 @@ $(ioctlent_h): $(top_builddir)/config.status $(ioctlent_h_deps)
 	$(MKDIR_P) $(builddir)/$(OS)
 	cat $(ioctlent_h_deps) | \
 		$(COMPILE) -E -P - | \
-		LC_ALL=C sort -u -k3,3 -k2,2 | \
-		awk -f $(srcdir)/linux/ioctlent-filter.awk > $@
+		sed 's/^\([[:space:]]*{\)"[^"]\+",[[:space:]]*/\1/' | \
+		LC_ALL=C sort -u -k2,2 -k1,1 > $@
