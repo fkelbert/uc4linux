@@ -11,7 +11,7 @@ void notifyEventToPdp(event *ev) {
 }
 
 void ucEnd() {
-	while(1);
+//	while(1);
 }
 
 
