@@ -251,8 +251,8 @@ AC_CHECK_HEADERS(m4_normalize([
 	sys/poll.h
 	sys/ptrace.h
 	sys/reg.h
-	sys/uio.h
 	sys/vfs.h
+	sys/xattr.h
 ]))
 AC_CHECK_HEADERS([linux/icmp.h linux/in6.h linux/netlink.h linux/if_packet.h],
                  [], [], [#include <stddef.h>
