@@ -38,3 +38,4 @@ Makefile.in
 /linux/ioctlent.h
 
 /strace-*.tar.xz
+/Debug/
