@@ -66,19 +66,6 @@ void *threadJvmStarter(void *args) {
 	JniCallStaticVoidMethod(env, mainClass, mainMethod);
 	if (JniExceptionCheck(env) == JNI_TRUE) {
 		printf("Exception in " METHOD_MAIN_NAME ".\n");
-
-		bool ucInitThrift() {
-			initPep2PdpThriftClient(21003);
-
-			if (connectPep2PdpThriftClient()) {
-				printf("success\n");
-			}
-			else {
-				printf("failure\n");
-			}
-
-			return false;
-		}
 		JniExceptionDescribe(env);
 		exit(1);
 	}
