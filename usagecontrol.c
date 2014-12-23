@@ -76,14 +76,7 @@ void notifySyscall(struct tcb *tcp) {
 	}
 
 	uc_log("notifying PDP... ");
-#if UC_ONLY_EXECVE
-	if (tcp->scno == SYS_execve) {
-		ev->isActual = false;
-		notifyEventToPdp(ev);
-	}
-#else
 	notifyEventToPdp(ev);
-#endif
 	uc_log("done.");
 
 	destroyEvent(ev);

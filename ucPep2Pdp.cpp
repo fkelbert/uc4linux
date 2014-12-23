@@ -56,7 +56,12 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	}
 
 	if (ev->isActual) {
+#if UC_ONLY_EXECVE
+		auto_ptr<TResponse> response(new TResponse);
+		cl->notifyEventSync(*response, *tev);
+#else
 		cl->notifyEventAsync(*tev);
+#endif
 	}
 	else {
 		auto_ptr<TResponse> response(new TResponse);
