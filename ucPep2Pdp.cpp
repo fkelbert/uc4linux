@@ -62,10 +62,10 @@ void initPep2PdpThriftClient(int port) {
 
 
 
-	sock = factory->createSocket(utsname.nodename, port);
+	sock = factory->createSocket("localhost", port);
 
 #else
-	sock = boost::shared_ptr<TSocket>(new TSocket(utsname.nodename, port));
+	sock = boost::shared_ptr<TSocket>(new TSocket("localhost", port));
 #endif
 
 	boost::shared_ptr<TTransport> transport(new TBufferedTransport(sock));

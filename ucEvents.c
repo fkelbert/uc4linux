@@ -122,8 +122,10 @@ int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 				(*count)++;
 			}
 		}
+		close(dir);
 	}
 	else {
+		perror("opendir");
 		ucSemantics_errorExit("Failed to open procfs directory");
 	}
 
@@ -178,6 +180,8 @@ bool getIPsAndPorts(int pid, int inode, char *localIP, char *localPort, char *re
 		}
 	}
 
+	close(cons);
+
 	return found;
 }
 
@@ -202,6 +206,7 @@ int getParentPid(int pid) {
 		}
 	}
 
+	fclose(stat);
 	return ppid;
 }
 
