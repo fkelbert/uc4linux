@@ -101,10 +101,8 @@ void notifyEventToPdpThriftCpp(event *ev) {
 
 	if (ev->isActual) {
 #if UC_ONLY_EXECVE
-		printf("foo\n");
 		auto_ptr<TResponse> response(new TResponse);
 		cl->notifyEventSync(*response, *tev);
-		printf("bar\n");
 #else
 		cl->notifyEventAsync(*tev);
 #endif
