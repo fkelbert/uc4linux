@@ -12,7 +12,14 @@ boost::shared_ptr<TTransport> tr;
 TPep2PdpClient *cl;
 
 void initPep2PdpThriftClient(int port) {
-boost::shared_ptr<TSocket> sock;
+	boost::shared_ptr<TSocket> sock;
+
+	// get the hostname using uname()
+	struct utsname utsname;
+	if (uname(&utsname) == -1) {
+		perror("uname failed.");
+		exit(1);
+	}
 
 #if UC_THRIFT_SSL_ENABLED
 	boost::shared_ptr<TSSLSocketFactory> factory = boost::shared_ptr<TSSLSocketFactory>(new TSSLSocketFactory());
@@ -53,10 +60,12 @@ boost::shared_ptr<TSocket> sock;
 //		exit(1);
 //	}
 
-	sock = factory->createSocket("localhost", port);
+
+
+	sock = factory->createSocket(utsname.nodename, port);
 
 #else
-	sock = boost::shared_ptr<TSocket>(new TSocket("localhost", port));
+	sock = boost::shared_ptr<TSocket>(new TSocket(utsname.nodename, port));
 #endif
 
 	boost::shared_ptr<TTransport> transport(new TBufferedTransport(sock));

@@ -14,8 +14,6 @@ void ucInitThrift() {
 	}
 }
 
-
-
 inline void notifyEventToPdpThrift(event *ev) {
 	notifyEventToPdpThriftCpp(ev);
 }
