@@ -1,3 +1,6 @@
+#ifndef UCTHRIFT_H_
+#define UCTHRIFT_H_
+
 #include <stdbool.h>
 #include "defs.h"
 #include "ucTypes.h"
@@ -6,3 +9,5 @@
 
 void ucInitThrift();
 inline void notifyEventToPdpThrift(event *ev);
+
+#endif

@@ -12,8 +12,54 @@ boost::shared_ptr<TTransport> tr;
 TPep2PdpClient *cl;
 
 void initPep2PdpThriftClient(int port) {
-	boost::shared_ptr<TTransport> socket(new TSocket("localhost", port));
-	boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+boost::shared_ptr<TSocket> sock;
+
+#if UC_THRIFT_SSL_ENABLED
+	boost::shared_ptr<TSSLSocketFactory> factory = boost::shared_ptr<TSSLSocketFactory>(new TSSLSocketFactory());
+
+	factory->loadTrustedCertificates(UC_THRIFT_SSL_CA);
+
+//	factory->authenticate(false);
+//
+//	char hostname[128];
+//	if (gethostname(hostname, sizeof(hostname)) != 0) {
+//		printf("Unable to get Hostname.");
+//		exit(1);
+//	}
+
+//	char privateCertificate[512];
+//	char privateKey[512];
+////	snprintf(privateCertificate, sizeof(privateCertificate), "%s/%s.pem", UC_THRIFT_SSL_CERTIFICATE_DIRECTORY, hostname);
+////	snprintf(privateKey, sizeof(privateKey), "%s/%s-private.pem", UC_THRIFT_SSL_CERTIFICATE_DIRECTORY, hostname);
+//	snprintf(privateCertificate, sizeof(privateCertificate), "/home/florian/client.crt");
+//	snprintf(privateKey, sizeof(privateKey), "/home/florian/client.key");
+
+//	try {
+//		printf("Loading %s ... ", privateCertificate);
+//		factory->loadCertificate(privateCertificate);
+//		printf("OK\n");
+//	}
+//	catch (exception& e) {
+//		printf("FAILED\n");
+//		exit(1);
+//	}
+//	try {
+//		printf("Loading %s ... ", privateKey);
+//		factory->loadPrivateKey(privateKey);
+//		printf("OK\n");
+//	}
+//	catch (exception& e) {
+//		printf("FAILED\n");
+//		exit(1);
+//	}
+
+	sock = factory->createSocket("localhost", port);
+
+#else
+	sock = boost::shared_ptr<TSocket>(new TSocket("localhost", port));
+#endif
+
+	boost::shared_ptr<TTransport> transport(new TBufferedTransport(sock));
 	boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
 	TPep2PdpClient *client = new TPep2PdpClient(protocol);
 
@@ -22,7 +68,6 @@ void initPep2PdpThriftClient(int port) {
 }
 
 bool connectPep2PdpThriftClient() {
-
 	try {
 		tr->open();
 	} catch (TException& tx) {
@@ -50,15 +95,16 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	tev->isActual = ev->isActual;
 	tev->name = string(ev->name);
 
-	int i;
-	for (i = 0; i < ev->cntParams; i++) {
+	for (int i = 0; i < ev->cntParams; i++) {
 		tev->parameters.insert(make_pair(string(ev->params[i]->key), string(ev->params[i]->val)));
 	}
 
 	if (ev->isActual) {
 #if UC_ONLY_EXECVE
+		printf("foo\n");
 		auto_ptr<TResponse> response(new TResponse);
 		cl->notifyEventSync(*response, *tev);
+		printf("bar\n");
 #else
 		cl->notifyEventAsync(*tev);
 #endif
