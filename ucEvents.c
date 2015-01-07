@@ -122,7 +122,7 @@ int *getIntDirEntries(long pid, int *count, char *procSubPath) {
 				(*count)++;
 			}
 		}
-		close(dir);
+		closedir(dir);
 	}
 	else {
 		perror("opendir");
@@ -180,7 +180,7 @@ bool getIPsAndPorts(int pid, int inode, char *localIP, char *localPort, char *re
 		}
 	}
 
-	close(cons);
+	fclose(cons);
 
 	return found;
 }
