@@ -9,6 +9,7 @@
 #define UC_THRIFT 1
 
 #define UC_ONLY_EXECVE 1
+#define UC_ONLY_EXECVE_TWICE 1 // send execve as desired and as actual
 
 #define UC_THRIFT_SSL_ENABLED 1
 #define UC_THRIFT_PDP_PORT 21003
