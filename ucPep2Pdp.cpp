@@ -102,7 +102,7 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	}
 
 	if (ev->isActual) {
-#if UC_ONLY_EXECVE
+#if UC_ONLY_EXECVE && ! UC_ONLY_EXECVE_TWICE
 		auto_ptr<TResponse> response(new TResponse);
 		cl->notifyEventSync(*response, *tev);
 #else
