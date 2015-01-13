@@ -20,40 +20,6 @@ void initPep2PdpThriftClient(int port) {
 	factory->loadTrustedCertificates(UC_THRIFT_SSL_CA);
 
 	factory->authenticate(true);
-//
-//	char hostname[128];
-//	if (gethostname(hostname, sizeof(hostname)) != 0) {
-//		printf("Unable to get Hostname.");
-//		exit(1);
-//	}
-
-//	char privateCertificate[512];
-//	char privateKey[512];
-////	snprintf(privateCertificate, sizeof(privateCertificate), "%s/%s.pem", UC_THRIFT_SSL_CERTIFICATE_DIRECTORY, hostname);
-////	snprintf(privateKey, sizeof(privateKey), "%s/%s-private.pem", UC_THRIFT_SSL_CERTIFICATE_DIRECTORY, hostname);
-//	snprintf(privateCertificate, sizeof(privateCertificate), "/home/florian/client.crt");
-//	snprintf(privateKey, sizeof(privateKey), "/home/florian/client.key");
-
-//	try {
-//		printf("Loading %s ... ", privateCertificate);
-//		factory->loadCertificate(privateCertificate);
-//		printf("OK\n");
-//	}
-//	catch (exception& e) {
-//		printf("FAILED\n");
-//		exit(1);
-//	}
-//	try {
-//		printf("Loading %s ... ", privateKey);
-//		factory->loadPrivateKey(privateKey);
-//		printf("OK\n");
-//	}
-//	catch (exception& e) {
-//		printf("FAILED\n");
-//		exit(1);
-//	}
-
-
 
 	sock = factory->createSocket("localhost", port);
 
@@ -102,7 +68,7 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	}
 
 	if (ev->isActual) {
-#if UC_ONLY_EXECVE && ! UC_ONLY_EXECVE_TWICE
+#if UC_ONLY_EXECVE
 		auto_ptr<TResponse> response(new TResponse);
 		cl->notifyEventSync(*response, *tev);
 #else
