@@ -4,6 +4,7 @@
 #ifdef __cplusplus
 
 #include <iostream>
+#include <unistd.h>
 #include <thrift/transport/TSocket.h>
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/transport/TSSLSocket.h>

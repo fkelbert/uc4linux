@@ -11,6 +11,18 @@ using namespace de::tum::in::i22::uc::thrift::types;
 boost::shared_ptr<TTransport> tr;
 TPep2PdpClient *cl;
 
+#if !defined(_WIN32) && !defined(_WIN64) // Linux - Unix
+    #  include <sys/time.h>
+    typedef timeval sys_time_t;
+    inline void system_time(sys_time_t* t) {
+        gettimeofday(t, NULL);
+    }
+    inline long long time_to_msec(const sys_time_t& t) {
+        return t.tv_sec * 1000LL + t.tv_usec / 1000;
+    }
+#endif
+
+
 void initPep2PdpThriftClient(int port) {
 	boost::shared_ptr<TSocket> sock;
 
@@ -70,7 +82,18 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	if (ev->isActual) {
 #if UC_ONLY_EXECVE
 		auto_ptr<TResponse> response(new TResponse);
+
+		sys_time_t t;
+
+        system_time(&t);
+        long long start = time_to_msec(t);
+
 		cl->notifyEventSync(*response, *tev);
+
+		system_time(&t);
+		long long end = time_to_msec(t);
+
+		cout << "millis" << (end - start) << endl;
 #else
 		cl->notifyEventAsync(*tev);
 #endif
