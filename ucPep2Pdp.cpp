@@ -79,29 +79,40 @@ void notifyEventToPdpThriftCpp(event *ev) {
 		tev->parameters.insert(make_pair(string(ev->params[i]->key), string(ev->params[i]->val)));
 	}
 
+	sys_time_t t;
+	long long start;
+	long long end;
+
 	if (ev->isActual) {
 #if UC_ONLY_EXECVE
+
 		auto_ptr<TResponse> response(new TResponse);
 
-		sys_time_t t;
-
-        system_time(&t);
-        long long start = time_to_msec(t);
+	        system_time(&t);
+		start = time_to_msec(t);
 
 		cl->notifyEventSync(*response, *tev);
 
 		system_time(&t);
-		long long end = time_to_msec(t);
+		end = time_to_msec(t);
 
-		cout << "millis" << (end - start) << endl;
 #else
 		cl->notifyEventAsync(*tev);
 #endif
 	}
 	else {
 		auto_ptr<TResponse> response(new TResponse);
+	        
+		system_time(&t);
+		start = time_to_msec(t);
+		
 		cl->notifyEventSync(*response, *tev);
+		
+		system_time(&t);
+		end = time_to_msec(t);
 	}
+	
+	cout << "millis" << (end - start) << endl;
 }
 
 #endif
