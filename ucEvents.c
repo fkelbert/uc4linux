@@ -1,5 +1,6 @@
 #include "ucEvents.h"
 #include "xlat/socketlayers.h"
+#include <string.h>
 
 char pid[PID_LEN];
 char fd1[FD_LEN];
@@ -44,6 +45,46 @@ bool getCwd(char *cwd, int cwdlen, int pid) {
 	}
 	cwd[read] = '\0';
 	return true;
+}
+
+// get the processes' command Line parameters
+int getCmdline(char *cmdline, int len, int pid) {
+	char procfsPath[PATH_MAX];
+	int read;
+
+	snprintf(procfsPath, sizeof(procfsPath), "/proc/%d/cmdline", pid);
+
+	FILE *f = fopen(procfsPath, "r");
+	if (f == NULL) {
+		return false;
+	}
+	ssize_t s = 0;
+	int res=0;
+	char* line=NULL;
+// use a while loop for multiple lines.
+// for on eline it works smoothly. never found a command with more than one line.
+// not sure if it works in case command line is longer than one line.
+// not even sure if that is possible at all.
+
+	cmdline[0] = '\0';
+	while ((res=getline(&line, &s, f)) > 0){
+		int i=0;
+		for (i=0;i<res-1;i++){
+			if ((line[i]=='\0')||
+				(line[i]=='\n')||
+				(line[i]=='\r')){
+				line[i]=' ';
+			}
+		}
+		strcat(cmdline,line);
+//		printf ("line = [%s], cmdline = [%s], res=%d\n",line, cmdline, res);		
+		line=NULL;
+		s=0;
+	}
+
+	fclose(f);
+
+	return res;
 }
 
 char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen) {
@@ -610,7 +651,7 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 }
 
 
-event *do_open(struct tcb *tcp, char *absFilename, int flags) {
+event *do_open(struct tcb *tcp, str evName, char *absFilename, int flags) {
 	char *trunc = "false";
 
 	if (ignoreFilename(absFilename)) {
@@ -624,7 +665,7 @@ event *do_open(struct tcb *tcp, char *absFilename, int flags) {
 		trunc = "true";
 	}
 
-	event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
+	event *ev = createEventWithStdParams(evName, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
 		&& addParam(ev, createParam("filename", absFilename))
@@ -657,10 +698,10 @@ event *ucSemantics_openat(struct tcb *tcp) {
 
 	if (strlen(dir) > 0) {
 		snprintf(absFilename, sizeof(absFilename), "%s/%s", dir, relFilename);
-		return do_open(tcp, absFilename, tcp->u_arg[2]);
+		return do_open(tcp, EVENT_NAME_OPEN, absFilename, tcp->u_arg[2]);
 	}
 	else {
-		return do_open(tcp, relFilename, tcp->u_arg[2]);
+		return do_open(tcp, EVENT_NAME_OPEN, relFilename, tcp->u_arg[2]);
 	}
 }
 
@@ -680,8 +721,29 @@ event *ucSemantics_open(struct tcb *tcp) {
 		return NULL;
 	}
 
-	return do_open(tcp, absFilename, tcp->u_arg[1]);
+	return do_open(tcp, EVENT_NAME_OPEN, absFilename, tcp->u_arg[1]);
 }
+
+
+
+event *ucSemantics_creat(struct tcb *tcp) {
+	char relFilename[FILENAME_MAX];
+	char absFilename[FILENAME_MAX];
+
+	if (tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toString(relFilename, tcp, tcp->u_arg[0]);
+
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+			|| ignoreFilename(absFilename)) {
+		return NULL;
+	}
+
+	return do_open(tcp, EVENT_NAME_CREAT, absFilename, O_CREAT|O_WRONLY|O_TRUNC);
+}
+
 
 event *ucSemantics_read(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
@@ -942,6 +1004,9 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 event *ucSemantics_execve(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
+	char cmdline[FILENAME_MAX];
+
+	cmdline[0]='\0';
 
 	if (is_actual(tcp)) {
 		return NULL;
@@ -957,9 +1022,18 @@ event *ucSemantics_execve(struct tcb *tcp) {
 
 	toPid(pid, tcp->pid);
 
-	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 2);
-	if (addParam(ev, createParam("pid", pid))
-		&& addParam(ev, createParam("filename", absFilename))) {
+	int l=getCmdline(cmdline, FILENAME_MAX, tcp->pid);
+
+	//it shouldn't be needed, but just in case	
+	cmdline[l]='\0';
+
+	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 3);
+	
+	bool bpid=addParam(ev, createParam("pid", pid));	
+	bool bfile=addParam(ev, createParam("filename", absFilename));
+	bool bcmd=addParam(ev, createParam("cmdline", cmdline));
+	
+	if (bpid && bfile && bcmd) {
 		return ev;
 	}
 
@@ -1282,7 +1356,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_create_module] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_creat
-	[SYS_creat] = ucSemantics_IGNORE,
+	[SYS_creat] = ucSemantics_creat,
 #endif
 #ifdef SYS_delete_module
 	[SYS_delete_module] = ucSemantics_IGNORE,

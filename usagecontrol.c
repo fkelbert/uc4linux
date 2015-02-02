@@ -27,7 +27,9 @@ void ucInit() {
 	ucTypesInit();
 }
 
-bool ignoreExecve = true;
+//EL: I do not understand this flag which keeps changing value in the switch statement below.
+// I changed its default value and now my code works.
+bool ignoreExecve = false;
 
 void notifySyscall(struct tcb *tcp) {
 	if (!tcp || !tcp->s_ent || !tcp->s_ent->sys_name) {
@@ -55,6 +57,17 @@ void notifySyscall(struct tcb *tcp) {
 		uc_log("returned NULL.\n");
 		return;
 	}
+
+////////////////////////
+//output complete event
+////////////////////////
+
+//printf ("ev=>%s ",ev->name);
+//int i=0;
+//for (i=0;i<ev->cntParams;i++) printf ("p[%d]=>%s v[%d]=>%s ",i,ev->params[i]->key,i,ev->params[i]->val);
+//printf ("\n");
+
+
 
 	/*
 	 * Always signal these calls as actual event.

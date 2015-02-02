@@ -47,6 +47,7 @@ event *ucSemantics_accept(struct tcb *tcp);
 event *ucSemantics_clone(struct tcb *tcp);
 event *ucSemantics_close(struct tcb *tcp);
 event *ucSemantics_connect(struct tcb *tcp);
+event *ucSemantics_creat(struct tcb *tcp);
 event *ucSemantics_dup2(struct tcb *tcp);
 event *ucSemantics_dup(struct tcb *tcp);
 event *ucSemantics_execve(struct tcb *tcp);

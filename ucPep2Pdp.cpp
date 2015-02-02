@@ -95,7 +95,7 @@ void notifyEventToPdpThriftCpp(event *ev) {
 
 		system_time(&t);
 		end = time_to_msec(t);
-		cout << (end - start) << endl;
+//		cout << (end - start) << endl;
 
 #else
 		cl->notifyEventAsync(*tev);
@@ -111,7 +111,7 @@ void notifyEventToPdpThriftCpp(event *ev) {
 		
 		system_time(&t);
 		end = time_to_msec(t);
-		cout << (end - start) << endl;
+//		cout << (end - start) << endl;
 	}
 }
 

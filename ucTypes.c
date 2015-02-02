@@ -47,6 +47,7 @@ void ucTypesInit() {
 	EVENT_NAME_CLONE = createString("Clone");
 	EVENT_NAME_CLOSE = createString("Close");
 	EVENT_NAME_CONNECT = createString("Connect");
+	EVENT_NAME_CREAT = createString("Creat");
 	EVENT_NAME_DUP = createString("Dup");
 	EVENT_NAME_DUP2 = createString("Dup2");
 	EVENT_NAME_EXECVE = createString("Execve");
