@@ -122,10 +122,6 @@ char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilen
 			 */
 			char *file = strrchr(concatPath, '/') + 1;
 
-			if (index == NULL) {
-				return NULL;
-			}
-
 			char relPath[sizeof(concatPath)];
 			char *absPath;
 
