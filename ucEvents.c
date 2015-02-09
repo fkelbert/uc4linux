@@ -62,7 +62,7 @@ int getCmdline(char *cmdline, int len, int pid) {
 	int res=0;
 	char* line=NULL;
 // use a while loop for multiple lines.
-// for on eline it works smoothly. never found a command with more than one line.
+// for on line it works smoothly. never found a command with more than one line.
 // not sure if it works in case command line is longer than one line.
 // not even sure if that is possible at all.
 
@@ -87,7 +87,7 @@ int getCmdline(char *cmdline, int len, int pid) {
 	return res;
 }
 
-char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen) {
+char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen, bool tryIfNonexistent) {
 	ssize_t read;
 	char *absNew;
 	char procfsPath[PATH_MAX];
@@ -113,9 +113,36 @@ char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilen
 	snprintf(concatPath, sizeof(concatPath), "%s/%s", cwd, relFilename);
 
 	// was resolving successful and is the provided buffer large enough?
-	if ((absNew = realpath(concatPath, NULL )) == NULL || strlen(absNew) >= absFilenameLen) {
-		return NULL ;
+	if ((absNew = realpath(concatPath, NULL)) == NULL || strlen(absNew) >= absFilenameLen) {
+		if (tryIfNonexistent) {
+			/*
+			 * For rename(), realpath() fails because one of the arguments does (very likely)
+			 * not exist. Thus, resolve the path independently and append the filename. This
+			 * is what happens within in this block.
+			 */
+			char *file = strrchr(concatPath, '/') + 1;
+
+			if (index == NULL) {
+				return NULL;
+			}
+
+			char relPath[sizeof(concatPath)];
+			char *absPath;
+
+			memcpy(relPath, concatPath, strlen(concatPath) - strlen(file));
+
+			if ((absPath = realpath(relPath, NULL)) == NULL || strlen(absPath) + strlen(file) >= absFilenameLen) {
+				return NULL ;
+			}
+
+			absNew = calloc(absFilenameLen, sizeof(char));
+			snprintf(absNew, absFilenameLen, "%s/%s", absPath, file);
+
+			free(absPath);
+		}
 	}
+
+
 
 	// as we have tested the size before, an additional null byte is written by strncpy()
 	strncpy(absFilename, absNew, absFilenameLen);
@@ -278,7 +305,7 @@ event *ucSemantics_unlink(struct tcb *tcp) {
 	}
 */
 	toString(relFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
@@ -716,7 +743,7 @@ event *ucSemantics_open(struct tcb *tcp) {
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
 
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
@@ -736,7 +763,7 @@ event *ucSemantics_creat(struct tcb *tcp) {
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
 
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
@@ -783,13 +810,13 @@ event *ucSemantics_rename(struct tcb *tcp) {
 	}
 
 	toString(oldRelFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename)))
+	if (!(toAbsFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename), true))
 			|| ignoreFilename(oldAbsFilename)) {
 		return NULL;
 	}
 
 	toString(newRelFilename, tcp, tcp->u_arg[1]);
-	if (!(toAbsFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename)))
+	if (!(toAbsFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), true))
 				|| ignoreFilename(newAbsFilename)) {
 		return NULL;
 	}
@@ -951,7 +978,7 @@ event *ucSemantics_truncate(struct tcb *tcp) {
 	}
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
@@ -1015,7 +1042,7 @@ event *ucSemantics_execve(struct tcb *tcp) {
 	// Note: Do not ignore filename.
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))) {
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))) {
 		return NULL;
 	}
 
