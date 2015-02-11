@@ -51,7 +51,7 @@ void notifySyscall(struct tcb *tcp) {
 		uc_log("ignoring.\n");
 		return;
 	}
-
+	
 	event *ev = ucSemanticsFunct[tcp->scno](tcp);
 	if (ev == NULL) {
 		uc_log("returned NULL.\n");
@@ -66,7 +66,6 @@ void notifySyscall(struct tcb *tcp) {
 //int i=0;
 //for (i=0;i<ev->cntParams;i++) printf ("p[%d]=>%s v[%d]=>%s ",i,ev->params[i]->key,i,ev->params[i]->val);
 //printf ("\n");
-
 
 
 	/*

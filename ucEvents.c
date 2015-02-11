@@ -87,7 +87,7 @@ int getCmdline(char *cmdline, int len, int pid) {
 	return res;
 }
 
-char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen, bool tryIfNonexistent) {
+char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilenameLen) {
 	ssize_t read;
 	char *absNew;
 	char procfsPath[PATH_MAX];
@@ -114,30 +114,28 @@ char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilen
 
 	// was resolving successful and is the provided buffer large enough?
 	if ((absNew = realpath(concatPath, NULL)) == NULL || strlen(absNew) >= absFilenameLen) {
-		if (tryIfNonexistent) {
-			/*
-			 * For rename(), realpath() fails because one of the arguments does (very likely)
-			 * not exist. Thus, resolve the path independently and append the filename. This
-			 * is what happens within in this block.
-			 */
-			char *file = strrchr(concatPath, '/') + 1;
+		/*
+		 * For rename(), realpath() fails because one of the arguments does (very likely)
+		 * not exist. Thus, resolve the path independently and append the filename. This
+		 * is what happens within in this block.
+		 */
+		char *file = strrchr(concatPath, '/') + 1;
 
-			char relPath[sizeof(concatPath)];
-			char *absPath;
+		char relPath[sizeof(concatPath)];
+		char *absPath;
 
-			memcpy(relPath, concatPath, strlen(concatPath) - strlen(file));
+		memcpy(relPath, concatPath, strlen(concatPath) - strlen(file));
+		relPath[strlen(concatPath) - strlen(file)] = '\0';
 
-			if ((absPath = realpath(relPath, NULL)) == NULL || strlen(absPath) + strlen(file) >= absFilenameLen) {
-				return NULL ;
-			}
-
-			absNew = calloc(absFilenameLen, sizeof(char));
-			snprintf(absNew, absFilenameLen, "%s/%s", absPath, file);
-
-			free(absPath);
+		if ((absPath = realpath(relPath, NULL)) == NULL || strlen(absPath) + strlen(file) >= absFilenameLen) {
+			return NULL ;
 		}
-	}
 
+		absNew = calloc(absFilenameLen, sizeof(char));
+		snprintf(absNew, absFilenameLen, "%s/%s", absPath, file);
+
+		free(absPath);
+	}
 
 
 	// as we have tested the size before, an additional null byte is written by strncpy()
@@ -283,25 +281,13 @@ int *getProcessTasks(long pid, int *count) {
 event *ucSemantics_unlink(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
-
-	// TODO: we signal the desired unlink,
-	// because we cannot (easily) retrieve the filename
-	// after execution of unlink.
-	// As unlink might fail, this implementation might be wrong
-	// in this case. 
-	// A correct implementation would save the filename upon syscall
-	// enter and reuse this saved filename upon exiting to in fact
-	// signal the actual unlink. Yet, it might be the case that 
-	// multiple/threads processes unlink different files concurrently,
-	// which is why we cannot use a single variable, but we would need
-	// a synchronized map or something similar... oh dear.
-/*
+	
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
-*/
+	
 	toString(relFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
@@ -314,22 +300,10 @@ event *ucSemantics_unlinkat(struct tcb *tcp) {
 	char absFilename[FILENAME_MAX * 2];
 	char dir[FILENAME_MAX] = "";
 
-	// TODO: we signal the desired unlink,
-	// because we cannot (easily) retrieve the filename
-	// after execution of unlink.
-	// As unlink might fail, this implementation might be wrong
-	// in this case.
-	// A correct implementation would save the filename upon syscall
-	// enter and reuse this saved filename upon exiting to in fact
-	// signal the actual unlink. Yet, it might be the case that
-	// multiple/threads processes unlink different files concurrently,
-	// which is why we cannot use a single variable, but we would need
-	// a synchronized map or something similar... oh dear.
-/*
 	if (tcp->u_rval < 0) {
 		return NULL;
 	}
-*/
+	
 	toString(relFilename, tcp, tcp->u_arg[1]);
 
 	if (!isAbsolutePath(relFilename)) {
@@ -674,9 +648,8 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 }
 
 
-event *do_open(struct tcb *tcp, str evName, char *absFilename, int flags) {
+event *do_open(struct tcb *tcp, char *absFilename, int flags) {
 	char *trunc = "false";
-
 	if (ignoreFilename(absFilename)) {
 		return NULL;
 	}
@@ -688,7 +661,7 @@ event *do_open(struct tcb *tcp, str evName, char *absFilename, int flags) {
 		trunc = "true";
 	}
 
-	event *ev = createEventWithStdParams(evName, 4);
+	event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("fd", fd1))
 		&& addParam(ev, createParam("filename", absFilename))
@@ -721,10 +694,10 @@ event *ucSemantics_openat(struct tcb *tcp) {
 
 	if (strlen(dir) > 0) {
 		snprintf(absFilename, sizeof(absFilename), "%s/%s", dir, relFilename);
-		return do_open(tcp, EVENT_NAME_OPEN, absFilename, tcp->u_arg[2]);
+		return do_open(tcp, absFilename, tcp->u_arg[2]);
 	}
 	else {
-		return do_open(tcp, EVENT_NAME_OPEN, relFilename, tcp->u_arg[2]);
+		return do_open(tcp, relFilename, tcp->u_arg[2]);
 	}
 }
 
@@ -738,13 +711,12 @@ event *ucSemantics_open(struct tcb *tcp) {
 	}
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
-
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
 
-	return do_open(tcp, EVENT_NAME_OPEN, absFilename, tcp->u_arg[1]);
+	return do_open(tcp, absFilename, tcp->u_arg[1]);
 }
 
 
@@ -759,12 +731,12 @@ event *ucSemantics_creat(struct tcb *tcp) {
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
 
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
 
-	return do_open(tcp, EVENT_NAME_CREAT, absFilename, O_CREAT|O_WRONLY|O_TRUNC);
+	return do_open(tcp, absFilename, O_CREAT|O_WRONLY|O_TRUNC);
 }
 
 
@@ -806,13 +778,13 @@ event *ucSemantics_rename(struct tcb *tcp) {
 	}
 
 	toString(oldRelFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename), true))
+	if (!(toAbsFilename(tcp->pid, oldRelFilename, oldAbsFilename, sizeof(oldAbsFilename)))
 			|| ignoreFilename(oldAbsFilename)) {
 		return NULL;
 	}
 
 	toString(newRelFilename, tcp, tcp->u_arg[1]);
-	if (!(toAbsFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename), true))
+	if (!(toAbsFilename(tcp->pid, newRelFilename, newAbsFilename, sizeof(newAbsFilename)))
 				|| ignoreFilename(newAbsFilename)) {
 		return NULL;
 	}
@@ -974,7 +946,7 @@ event *ucSemantics_truncate(struct tcb *tcp) {
 	}
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))
 			|| ignoreFilename(absFilename)) {
 		return NULL;
 	}
@@ -1038,7 +1010,7 @@ event *ucSemantics_execve(struct tcb *tcp) {
 	// Note: Do not ignore filename.
 
 	toString(relFilename, tcp, tcp->u_arg[0]);
-	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))) {
+	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))) {
 		return NULL;
 	}
 
