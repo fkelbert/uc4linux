@@ -83,6 +83,17 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	long long start;
 	long long end;
 
+
+	/* 
+	 * Always send events synchronously.
+	 * Otherwise, they might end up in the wrong
+	 * order at the PDP side.
+	 */
+
+	auto_ptr<TResponse> response(new TResponse);
+	cl->notifyEventSync(*response, *tev);
+
+/*
 	if (ev->isActual) {
 #if UC_ONLY_EXECVE
 
@@ -113,6 +124,7 @@ void notifyEventToPdpThriftCpp(event *ev) {
 		end = time_to_msec(t);
 //		cout << (end - start) << endl;
 	}
+*/
 }
 
 #endif
