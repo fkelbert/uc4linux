@@ -11,7 +11,7 @@
 #define UC_ONLY_EXECVE 0
 #define UC_ONLY_EXECVE_TWICE 0 // send execve as desired and as actual
 
-#define UC_THRIFT_SSL_ENABLED 1
+#define UC_THRIFT_SSL_ENABLED 0
 #define UC_THRIFT_PDP_PORT 21003
 
 #define USER_CLASSPATH "Jni-1.0-jar-with-dependencies.jar"

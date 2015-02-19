@@ -116,7 +116,7 @@ char *toAbsFilename(long pid, char *relFilename, char *absFilename, int absFilen
 	if ((absNew = realpath(concatPath, NULL)) == NULL || strlen(absNew) >= absFilenameLen) {
 		if (tryIfNonexistent) {
 			/*
-			 * For rename(), realpath() fails because one of the arguments does (very likely)
+			 * For rename() and unlink(), realpath() fails because one of the arguments does (very likely)
 			 * not exist. Thus, resolve the path independently and append the filename. This
 			 * is what happens within in this block.
 			 */
@@ -284,22 +284,10 @@ event *ucSemantics_unlink(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 
-	// TODO: we signal the desired unlink,
-	// because we cannot (easily) retrieve the filename
-	// after execution of unlink.
-	// As unlink might fail, this implementation might be wrong
-	// in this case. 
-	// A correct implementation would save the filename upon syscall
-	// enter and reuse this saved filename upon exiting to in fact
-	// signal the actual unlink. Yet, it might be the case that 
-	// multiple/threads processes unlink different files concurrently,
-	// which is why we cannot use a single variable, but we would need
-	// a synchronized map or something similar... oh dear.
-/*
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
-*/
+
 	toString(relFilename, tcp, tcp->u_arg[0]);
 	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename), false))
 			|| ignoreFilename(absFilename)) {
@@ -314,22 +302,10 @@ event *ucSemantics_unlinkat(struct tcb *tcp) {
 	char absFilename[FILENAME_MAX * 2];
 	char dir[FILENAME_MAX] = "";
 
-	// TODO: we signal the desired unlink,
-	// because we cannot (easily) retrieve the filename
-	// after execution of unlink.
-	// As unlink might fail, this implementation might be wrong
-	// in this case.
-	// A correct implementation would save the filename upon syscall
-	// enter and reuse this saved filename upon exiting to in fact
-	// signal the actual unlink. Yet, it might be the case that
-	// multiple/threads processes unlink different files concurrently,
-	// which is why we cannot use a single variable, but we would need
-	// a synchronized map or something similar... oh dear.
-/*
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
-*/
+
 	toString(relFilename, tcp, tcp->u_arg[1]);
 
 	if (!isAbsolutePath(relFilename)) {
@@ -362,7 +338,7 @@ event *do_unlink(char *filename) {
 event *ucSemantics_splice(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
 
-	if (tcp->u_rval <= 0) {
+	if (is_actual(tcp) && tcp->u_rval <= 0) {
 		return NULL;
 	}
 
@@ -389,7 +365,7 @@ event *ucSemantics_splice(struct tcb *tcp) {
 event *ucSemantics_tee(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
 
-	if (tcp->u_rval <= 0) {
+	if (is_actual(tcp) && tcp->u_rval <= 0) {
 		return NULL;
 	}
 
@@ -414,7 +390,7 @@ event *ucSemantics_tee(struct tcb *tcp) {
 }
 
 event *ucSemantics_shutdown(struct tcb *tcp) {
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -572,7 +548,7 @@ event *ucSemantics_write(struct tcb *tcp) {
 event *ucSemantics_socket(struct tcb *tcp) {
 	char socketname[PATH_MAX];
 
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -605,7 +581,7 @@ event *ucSemantics_socketpair(struct tcb *tcp) {
 	char socketname2[PATH_MAX];
 	int fds[2];
 
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -647,7 +623,7 @@ event *ucSemantics_pipe(struct tcb *tcp) {
 	char fd2[FD_LEN];
 	char pipename[FILENAME_MAX];
 
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -704,7 +680,7 @@ event *ucSemantics_openat(struct tcb *tcp) {
 	char absFilename[FILENAME_MAX * 2];
 	char dir[FILENAME_MAX] = "";
 
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -733,7 +709,7 @@ event *ucSemantics_open(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -753,7 +729,7 @@ event *ucSemantics_creat(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -771,7 +747,7 @@ event *ucSemantics_creat(struct tcb *tcp) {
 event *ucSemantics_read(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
 
-	if (tcp->u_rval <= 0) {
+	if ((is_actual(tcp) && tcp->u_rval < 0) || tcp->u_rval == 0) {
 		// if return value is 0, nothing was read.
 		return NULL;
 	}
@@ -801,7 +777,7 @@ event *ucSemantics_rename(struct tcb *tcp) {
 	char newRelFilename[FILENAME_MAX];
 	char newAbsFilename[FILENAME_MAX];
 
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -831,7 +807,7 @@ event *ucSemantics_rename(struct tcb *tcp) {
 
 
 event *ucSemantics_munmap(struct tcb *tcp) {
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -861,7 +837,7 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 		return NULL;
 	}
 
-	if (tcp->u_rval < 0 || tcp->u_arg[4] < 0) {
+	if ((is_actual(tcp) && tcp->u_rval < 0) || tcp->u_arg[4] < 0) {
 		return NULL;
 	}
 
@@ -905,7 +881,7 @@ event *ucSemantics_mmap(struct tcb *tcp) {
 
 // todo: kill may imply exit (do CTRL+F4 while the monitored gnome-terminal is booting up)
 event *ucSemantics_kill(struct tcb *tcp) {
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -924,7 +900,7 @@ event *ucSemantics_kill(struct tcb *tcp) {
 }
 
 event *ucSemantics_fcntl(struct tcb *tcp) {
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -949,7 +925,7 @@ event *ucSemantics_fcntl(struct tcb *tcp) {
 
 
 event *ucSemantics_ftruncate(struct tcb *tcp) {
-	if (tcp->u_rval < 0 || tcp->u_arg[1] != 0) {
+	if ((is_actual(tcp) &&  tcp->u_rval < 0) || tcp->u_arg[1] != 0) {
 		return NULL;
 	}
 
@@ -969,7 +945,7 @@ event *ucSemantics_truncate(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 
-	if (tcp->u_rval < 0 || tcp->u_arg[1] == 0) {
+	if ((is_actual(tcp) && tcp->u_rval < 0) || tcp->u_arg[1] == 0) {
 		return NULL;
 	}
 
@@ -1045,18 +1021,13 @@ event *ucSemantics_execve(struct tcb *tcp) {
 
 	toPid(pid, tcp->pid);
 
-	int l=getCmdline(cmdline, FILENAME_MAX, tcp->pid);
-
-	//it shouldn't be needed, but just in case	
-	cmdline[l]='\0';
+	int l = getCmdline(cmdline, FILENAME_MAX, tcp->pid);
+	cmdline[l] = '\0';
 
 	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 3);
-	
-	bool bpid=addParam(ev, createParam("pid", pid));	
-	bool bfile=addParam(ev, createParam("filename", absFilename));
-	bool bcmd=addParam(ev, createParam("cmdline", cmdline));
-	
-	if (bpid && bfile && bcmd) {
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("filename", absFilename))
+		&& addParam(ev, createParam("cmdline", cmdline))) {
 		return ev;
 	}
 
@@ -1064,7 +1035,7 @@ event *ucSemantics_execve(struct tcb *tcp) {
 }
 
 event *ucSemantics_dup(struct tcb *tcp) {
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -1083,7 +1054,7 @@ event *ucSemantics_dup(struct tcb *tcp) {
 }
 
 event *ucSemantics_dup2(struct tcb *tcp) {
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -1117,7 +1088,7 @@ event *ucSemantics_clone(struct tcb *tcp) {
 	/*
 	 * The following else-ifs get the parent and child pids.
 	 */
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 	else if (tcp->u_rval == 0) {
@@ -1147,10 +1118,6 @@ event *ucSemantics_clone(struct tcb *tcp) {
 			written += snprintf(flags + written, sizeof(flags) - written, "%s|", "CLONE_FILES");
 		}
 	}
-	else if (tcp->scno == SYS_fork) {
-	}
-	else if (tcp->scno == SYS_fork) {
-	}
 
 	event *ev = createEventWithStdParams(EVENT_NAME_CLONE, 3);
 	if (addParam(ev, createParam("cpid", childPid))
@@ -1165,7 +1132,7 @@ event *ucSemantics_clone(struct tcb *tcp) {
 event *ucSemantics_close(struct tcb *tcp) {
 	char filename[FILENAME_MAX];
 
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
@@ -1188,7 +1155,7 @@ event *ucSemantics_close(struct tcb *tcp) {
 
 event *ucSemantics_connect(struct tcb *tcp) {
 	// connect might succeed if return value is -1 and errno == EINPROGRESS.
-	if (tcp->u_arg[0] < 0 || (tcp->u_rval < 0 && tcp->u_error != EINPROGRESS)) {
+	if (tcp->u_arg[0] < 0 || (is_actual(tcp) && tcp->u_rval < 0 && tcp->u_error != EINPROGRESS)) {
 		return NULL;
 	}
 
@@ -1224,7 +1191,7 @@ event *ucSemantics_connect(struct tcb *tcp) {
 }
 
 event *ucSemantics_accept(struct tcb *tcp) {
-	if (tcp->u_rval < 0) {
+	if (is_actual(tcp) && tcp->u_rval < 0) {
 		return NULL;
 	}
 
