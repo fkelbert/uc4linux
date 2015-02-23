@@ -6,16 +6,22 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#define SUN_PATH "local-stream"
-int main(void)
+int main(int ac, const char **av)
 {
 	struct sockaddr_un addr = {
 		.sun_family = AF_UNIX,
-		.sun_path = SUN_PATH
 	};
-	socklen_t len = offsetof(struct sockaddr_un, sun_path) + sizeof SUN_PATH;
+	socklen_t len;
 
-	unlink(SUN_PATH);
+	assert(ac == 2);
+	assert(strlen(av[1]) > 0);
+
+	strncpy(addr.sun_path, av[1], sizeof(addr.sun_path));
+	len = offsetof(struct sockaddr_un, sun_path) + strlen(av[1]) + 1;
+	if (len > sizeof(addr))
+		len = sizeof(addr);
+
+	unlink(av[1]);
 	close(0);
 	close(1);
 
@@ -25,6 +31,8 @@ int main(void)
 
 	memset(&addr, 0, sizeof addr);
 	assert(getsockname(0, (struct sockaddr *) &addr, &len) == 0);
+	if (len > sizeof(addr))
+		len = sizeof(addr);
 
 	pid_t pid = fork();
 	assert(pid >= 0);
@@ -44,6 +52,6 @@ int main(void)
 		return 0;
 	}
 
-	unlink(SUN_PATH);
+	unlink(av[1]);
 	return 0;
 }

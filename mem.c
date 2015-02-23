@@ -244,8 +244,6 @@ sys_mlockall(struct tcb *tcp)
 	return 0;
 }
 
-#ifdef MS_ASYNC
-
 #include "xlat/mctl_sync.h"
 
 int
@@ -261,46 +259,6 @@ sys_msync(struct tcb *tcp)
 	}
 	return 0;
 }
-
-#endif /* MS_ASYNC */
-
-#ifdef MC_SYNC
-
-#include "xlat/mctl_funcs.h"
-#include "xlat/mctl_lockas.h"
-
-int
-sys_mctl(struct tcb *tcp)
-{
-	int arg, function;
-
-	if (entering(tcp)) {
-		/* addr */
-		tprintf("%#lx", tcp->u_arg[0]);
-		/* len */
-		tprintf(", %lu, ", tcp->u_arg[1]);
-		/* function */
-		function = tcp->u_arg[2];
-		printflags(mctl_funcs, function, "MC_???");
-		/* arg */
-		arg = tcp->u_arg[3];
-		tprints(", ");
-		switch (function) {
-		case MC_SYNC:
-			printflags(mctl_sync, arg, "MS_???");
-			break;
-		case MC_LOCKAS:
-			printflags(mctl_lockas, arg, "MCL_???");
-			break;
-		default:
-			tprintf("%#x", arg);
-			break;
-		}
-	}
-	return 0;
-}
-
-#endif /* MC_SYNC */
 
 int
 sys_mincore(struct tcb *tcp)
@@ -559,7 +517,7 @@ sys_subpage_prot(struct tcb *tcp)
 		}
 		cur = tcp->u_arg[2];
 		end = cur + (sizeof(int) * entries);
-		if (!verbose(tcp) || end < tcp->u_arg[2]) {
+		if (!verbose(tcp) || end < (unsigned long) tcp->u_arg[2]) {
 			tprintf("%#lx", tcp->u_arg[2]);
 			return 0;
 		}
@@ -572,7 +530,7 @@ sys_subpage_prot(struct tcb *tcp)
 			abbrev_end = end;
 		tprints("{");
 		for (; cur < end; cur += sizeof(int)) {
-			if (cur > tcp->u_arg[2])
+			if (cur > (unsigned long) tcp->u_arg[2])
 				tprints(", ");
 			if (cur >= abbrev_end) {
 				tprints("...");

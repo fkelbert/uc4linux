@@ -32,7 +32,6 @@
  */
 
 #include "defs.h"
-#include <sys/user.h>
 #include <sys/param.h>
 #include <fcntl.h>
 #if HAVE_SYS_XATTR_H
@@ -40,31 +39,8 @@
 #endif
 #include <sys/uio.h>
 
-#if defined(IA64)
-# include <asm/ptrace_offsets.h>
-# include <asm/rse.h>
-#endif
-
-#ifdef HAVE_SYS_REG_H
-# include <sys/reg.h>
-#endif
-
-#ifdef HAVE_LINUX_PTRACE_H
-# undef PTRACE_SYSCALL
-# ifdef HAVE_STRUCT_IA64_FPREG
-#  define ia64_fpreg XXX_ia64_fpreg
-# endif
-# ifdef HAVE_STRUCT_PT_ALL_USER_REGS
-#  define pt_all_user_regs XXX_pt_all_user_regs
-# endif
-# ifdef HAVE_STRUCT_PTRACE_PEEKSIGINFO_ARGS
-#  define ptrace_peeksiginfo_args XXX_ptrace_peeksiginfo_args
-# endif
-# include <linux/ptrace.h>
-# undef ptrace_peeksiginfo_args
-# undef ia64_fpreg
-# undef pt_all_user_regs
-#endif
+#include "ptrace.h"
+#include "regs.h"
 
 int
 string_to_uint(const char *str)
@@ -242,39 +218,39 @@ printxval(const struct xlat *xlat, const unsigned int val, const char *dflt)
 }
 
 /*
- * Print 64bit argument at position arg_no and return the index of the next
- * argument.
+ * Fetch 64bit argument at position arg_no and
+ * return the index of the next argument.
  */
 int
-printllval(struct tcb *tcp, const char *format, int arg_no)
+getllval(struct tcb *tcp, unsigned long long *val, int arg_no)
 {
 #if SIZEOF_LONG > 4 && SIZEOF_LONG == SIZEOF_LONG_LONG
 # if SUPPORTED_PERSONALITIES > 1
 	if (current_wordsize > 4) {
 # endif
-		tprintf(format, tcp->u_arg[arg_no]);
+		*val = tcp->u_arg[arg_no];
 		arg_no++;
 # if SUPPORTED_PERSONALITIES > 1
 	} else {
 #  if defined(AARCH64) || defined(POWERPC64)
 		/* Align arg_no to the next even number. */
 		arg_no = (arg_no + 1) & 0xe;
-#  endif
-		tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+#  endif /* AARCH64 || POWERPC64 */
+		*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 		arg_no += 2;
 	}
-# endif /* SUPPORTED_PERSONALITIES */
+# endif /* SUPPORTED_PERSONALITIES > 1 */
 #elif SIZEOF_LONG > 4
 #  error Unsupported configuration: SIZEOF_LONG > 4 && SIZEOF_LONG_LONG > SIZEOF_LONG
 #elif defined LINUX_MIPSN32
-	tprintf(format, tcp->ext_arg[arg_no]);
+	*val = tcp->ext_arg[arg_no];
 	arg_no++;
 #elif defined X32
 	if (current_personality == 0) {
-		tprintf(format, tcp->ext_arg[arg_no]);
+		*val = tcp->ext_arg[arg_no];
 		arg_no++;
 	} else {
-		tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+		*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 		arg_no += 2;
 	}
 #else
@@ -285,10 +261,24 @@ printllval(struct tcb *tcp, const char *format, int arg_no)
 	/* Align arg_no to the next even number. */
 	arg_no = (arg_no + 1) & 0xe;
 # endif
-	tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+	*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 	arg_no += 2;
 #endif
 
+	return arg_no;
+}
+
+/*
+ * Print 64bit argument at position arg_no and
+ * return the index of the next argument.
+ */
+int
+printllval(struct tcb *tcp, const char *format, int arg_no)
+{
+	unsigned long long val = 0;
+
+	arg_no = getllval(tcp, &val, arg_no);
+	tprintf(format, val);
 	return arg_no;
 }
 
@@ -386,7 +376,7 @@ printflags(const struct xlat *xlat, int flags, const char *dflt)
 }
 
 void
-printnum(struct tcb *tcp, long addr, const char *fmt)
+printnum_long(struct tcb *tcp, long addr, const char *fmt)
 {
 	long num;
 
@@ -419,6 +409,27 @@ printnum_int(struct tcb *tcp, long addr, const char *fmt)
 	tprints("[");
 	tprintf(fmt, num);
 	tprints("]");
+}
+
+const char *
+sprinttime(time_t t)
+{
+	struct tm *tmp;
+	static char buf[sizeof(int) * 3 * 6];
+
+	if (t == 0) {
+		strcpy(buf, "0");
+		return buf;
+	}
+	tmp = localtime(&t);
+	if (tmp)
+		snprintf(buf, sizeof buf, "%02d/%02d/%02d-%02d:%02d:%02d",
+			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday,
+			tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+	else
+		snprintf(buf, sizeof buf, "%lu", (unsigned long) t);
+
+	return buf;
 }
 
 static char *
@@ -455,60 +466,60 @@ printfd(struct tcb *tcp, int fd)
 	if (show_fd_path && getfdpath(tcp, fd, path, sizeof(path)) >= 0) {
 		static const char socket_prefix[] = "socket:[";
 		const size_t socket_prefix_len = sizeof(socket_prefix) - 1;
-		size_t path_len;
+		const size_t path_len = strlen(path);
 
+		tprintf("%d<", fd);
 		if (show_fd_path > 1 &&
 		    strncmp(path, socket_prefix, socket_prefix_len) == 0 &&
-		    path[(path_len = strlen(path)) - 1] == ']') {
+		    path[path_len - 1] == ']') {
 			unsigned long inodenr;
-			inodenr = strtoul(path + socket_prefix_len, NULL, 10);
-			tprintf("%d<", fd);
-			if (!print_sockaddr_by_inode(inodenr)) {
 #define PROTO_NAME_LEN 32
-				char proto_buf[PROTO_NAME_LEN];
-				const char *proto =
-					getfdproto(tcp, fd, proto_buf, PROTO_NAME_LEN);
-
+			char proto_buf[PROTO_NAME_LEN];
+			const char *proto =
+				getfdproto(tcp, fd, proto_buf, PROTO_NAME_LEN);
+			inodenr = strtoul(path + socket_prefix_len, NULL, 10);
+			if (!print_sockaddr_by_inode(inodenr, proto)) {
 				if (proto)
 					tprintf("%s:[%lu]", proto, inodenr);
 				else
 					tprints(path);
 			}
-			tprints(">");
 		} else {
-			tprintf("%d<%s>", fd, path);
+			print_quoted_string(path, path_len,
+					    QUOTE_OMIT_LEADING_TRAILING_QUOTES);
 		}
+		tprints(">");
 	} else
 		tprintf("%d", fd);
-}
-
-void
-printuid(const char *text, unsigned long uid)
-{
-	tprintf(((long) uid == -1) ? "%s%ld" : "%s%lu", text, uid);
 }
 
 /*
  * Quote string `instr' of length `size'
  * Write up to (3 + `size' * 4) bytes to `outstr' buffer.
- * If `len' is -1, treat `instr' as a NUL-terminated string
- * and quote at most (`size' - 1) bytes.
  *
- * Returns 0 if len == -1 and NUL was seen, 1 otherwise.
- * Note that if len >= 0, always returns 1.
+ * If QUOTE_0_TERMINATED `style' flag is set,
+ * treat `instr' as a NUL-terminated string,
+ * checking up to (`size' + 1) bytes of `instr'.
+ *
+ * If QUOTE_OMIT_LEADING_TRAILING_QUOTES `style' flag is set,
+ * do not add leading and trailing quoting symbols.
+ *
+ * Returns 0 if QUOTE_0_TERMINATED is set and NUL was seen, 1 otherwise.
+ * Note that if QUOTE_0_TERMINATED is not set, always returns 1.
  */
-int
-string_quote(const char *instr, char *outstr, long len, int size)
+static int
+string_quote(const char *instr, char *outstr, const unsigned int size,
+	     const unsigned int style)
 {
 	const unsigned char *ustr = (const unsigned char *) instr;
 	char *s = outstr;
-	int usehex, c, i, eol;
+	unsigned int i;
+	int usehex, c, eol;
 
-	eol = 0x100; /* this can never match a char */
-	if (len == -1) {
-		size--;
+	if (style & QUOTE_0_TERMINATED)
 		eol = '\0';
-	}
+	else
+		eol = 0x100; /* this can never match a char */
 
 	usehex = 0;
 	if (xflag > 1)
@@ -537,7 +548,8 @@ string_quote(const char *instr, char *outstr, long len, int size)
 		}
 	}
 
-	*s++ = '\"';
+	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
+		*s++ = '\"';
 
 	if (usehex) {
 		/* Hex-quote the whole string. */
@@ -610,11 +622,12 @@ string_quote(const char *instr, char *outstr, long len, int size)
 		}
 	}
 
-	*s++ = '\"';
+	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
+		*s++ = '\"';
 	*s = '\0';
 
 	/* Return zero if we printed entire ASCIZ string (didn't truncate it) */
-	if (len == -1 && ustr[i] == '\0') {
+	if (style & QUOTE_0_TERMINATED && ustr[i] == '\0') {
 		/* We didn't see NUL yet (otherwise we'd jump to 'asciz_ended')
 		 * but next char is NUL.
 		 */
@@ -624,10 +637,68 @@ string_quote(const char *instr, char *outstr, long len, int size)
 	return 1;
 
  asciz_ended:
-	*s++ = '\"';
+	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
+		*s++ = '\"';
 	*s = '\0';
 	/* Return zero: we printed entire ASCIZ string (didn't truncate it) */
 	return 0;
+}
+
+#ifndef ALLOCA_CUTOFF
+# define ALLOCA_CUTOFF	4032
+#endif
+#define use_alloca(n) ((n) <= ALLOCA_CUTOFF)
+
+/*
+ * Quote string `str' of length `size' and print the result.
+ *
+ * If QUOTE_0_TERMINATED `style' flag is set,
+ * treat `str' as a NUL-terminated string and
+ * quote at most (`size' - 1) bytes.
+ *
+ * If QUOTE_OMIT_LEADING_TRAILING_QUOTES `style' flag is set,
+ * do not add leading and trailing quoting symbols.
+ *
+ * Returns 0 if QUOTE_0_TERMINATED is set and NUL was seen, 1 otherwise.
+ * Note that if QUOTE_0_TERMINATED is not set, always returns 1.
+ */
+int
+print_quoted_string(const char *str, unsigned int size,
+		    const unsigned int style)
+{
+	char *buf;
+	char *outstr;
+	unsigned int alloc_size;
+	int rc;
+
+	if (size && style & QUOTE_0_TERMINATED)
+		--size;
+
+	alloc_size = 4 * size;
+	if (alloc_size / 4 != size) {
+		error_msg("Out of memory");
+		tprints("???");
+		return -1;
+	}
+	alloc_size += 1 + (style & QUOTE_OMIT_LEADING_TRAILING_QUOTES ? 0 : 2);
+
+	if (use_alloca(alloc_size)) {
+		outstr = alloca(alloc_size);
+		buf = NULL;
+	} else {
+		outstr = buf = malloc(alloc_size);
+		if (!buf) {
+			error_msg("Out of memory");
+			tprints("???");
+			return -1;
+		}
+	}
+
+	rc = string_quote(str, outstr, size, style);
+	tprints(outstr);
+
+	free(buf);
+	return rc;
 }
 
 /*
@@ -654,13 +725,8 @@ printpathn(struct tcb *tcp, long addr, unsigned int n)
 	if (nul_seen < 0)
 		tprintf("%#lx", addr);
 	else {
-		char *outstr;
-
-		path[n] = '\0';
-		n++;
-		outstr = alloca(4 * n); /* 4*(n-1) + 3 for quotes and NUL */
-		string_quote(path, outstr, -1, n);
-		tprints(outstr);
+		path[n++] = '\0';
+		print_quoted_string(path, n, QUOTE_0_TERMINATED);
 		if (!nul_seen)
 			tprints("...");
 	}
@@ -684,6 +750,7 @@ printstr(struct tcb *tcp, long addr, long len)
 	static char *str = NULL;
 	static char *outstr;
 	unsigned int size;
+	unsigned int style;
 	int ellipsis;
 
 	if (!addr) {
@@ -704,31 +771,32 @@ printstr(struct tcb *tcp, long addr, long len)
 			die_out_of_memory();
 	}
 
+	size = max_strlen;
 	if (len == -1) {
 		/*
 		 * Treat as a NUL-terminated string: fetch one byte more
-		 * because string_quote() quotes one byte less.
+		 * because string_quote may look one byte ahead.
 		 */
-		size = max_strlen + 1;
-		if (umovestr(tcp, addr, size, str) < 0) {
+		if (umovestr(tcp, addr, size + 1, str) < 0) {
 			tprintf("%#lx", addr);
 			return;
 		}
+		style = QUOTE_0_TERMINATED;
 	}
 	else {
-		size = max_strlen;
 		if (size > (unsigned long)len)
 			size = (unsigned long)len;
 		if (umoven(tcp, addr, size, str) < 0) {
 			tprintf("%#lx", addr);
 			return;
 		}
+		style = 0;
 	}
 
 	/* If string_quote didn't see NUL and (it was supposed to be ASCIZ str
 	 * or we were requested to print more than -s NUM chars)...
 	 */
-	ellipsis = (string_quote(str, outstr, len, size) &&
+	ellipsis = (string_quote(str, outstr, size, style) &&
 			(len < 0 || (unsigned long) len > max_strlen));
 
 	tprints(outstr);
@@ -901,10 +969,10 @@ static bool process_vm_readv_not_supported = 1;
  * at address `addr' to our space at `laddr'
  */
 int
-umoven(struct tcb *tcp, long addr, int len, char *laddr)
+umoven(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 {
 	int pid = tcp->pid;
-	int n, m, nread;
+	unsigned int n, m, nread;
 	union {
 		long val;
 		char x[sizeof(long)];
@@ -923,11 +991,11 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
 		remote[0].iov_base = (void*)addr;
 		local[0].iov_len = remote[0].iov_len = len;
 		r = process_vm_readv(pid, local, 1, remote, 1, 0);
-		if (r == len)
+		if ((unsigned int) r == len)
 			return 0;
 		if (r >= 0) {
-			error_msg("umoven: short read (%d < %d) @0x%lx",
-				  r, len, addr);
+			error_msg("umoven: short read (%u < %u) @0x%lx",
+				  (unsigned int) r, len, addr);
 			return -1;
 		}
 		switch (errno) {
@@ -950,8 +1018,8 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
 	nread = 0;
 	if (addr & (sizeof(long) - 1)) {
 		/* addr not a multiple of sizeof(long) */
-		n = addr - (addr & -sizeof(long)); /* residue */
-		addr &= -sizeof(long); /* residue */
+		n = addr & (sizeof(long) - 1);	/* residue */
+		addr &= -sizeof(long);		/* aligned address */
 		errno = 0;
 		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *) addr, 0);
 		switch (errno) {
@@ -988,7 +1056,7 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
 			case EFAULT: case EIO: case EPERM:
 				/* address space is inaccessible */
 				if (nread) {
-					perror_msg("umoven: short read (%d < %d) @0x%lx",
+					perror_msg("umoven: short read (%u < %u) @0x%lx",
 						   nread, nread + len, addr - nread);
 				}
 				return -1;
@@ -1022,7 +1090,7 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
  * we never write past laddr[len-1]).
  */
 int
-umovestr(struct tcb *tcp, long addr, int len, char *laddr)
+umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 {
 #if SIZEOF_LONG == 4
 	const unsigned long x01010101 = 0x01010101ul;
@@ -1035,7 +1103,7 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 #endif
 
 	int pid = tcp->pid;
-	int n, m, nread;
+	unsigned int n, m, nread;
 	union {
 		unsigned long val;
 		char x[sizeof(long)];
@@ -1054,9 +1122,9 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 		remote[0].iov_base = (void*)addr;
 
 		while (len > 0) {
-			int end_in_page;
+			unsigned int chunk_len;
+			unsigned int end_in_page;
 			int r;
-			int chunk_len;
 
 			/* Don't read kilobytes: most strings are short */
 			chunk_len = len;
@@ -1068,9 +1136,8 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 			 * (I hope there aren't arches with pages < 4K)
 			 */
 			end_in_page = ((addr + chunk_len) & 4095);
-			r = chunk_len - end_in_page;
-			if (r > 0) /* if chunk_len > end_in_page */
-				chunk_len = r; /* chunk_len -= end_in_page */
+			if (chunk_len > end_in_page) /* crosses to the next page */
+				chunk_len -= end_in_page;
 
 			local[0].iov_len = remote[0].iov_len = chunk_len;
 			r = process_vm_readv(pid, local, 1, remote, 1, 0);
@@ -1109,8 +1176,8 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 
 	if (addr & (sizeof(long) - 1)) {
 		/* addr not a multiple of sizeof(long) */
-		n = addr - (addr & -sizeof(long)); /* residue */
-		addr &= -sizeof(long); /* residue */
+		n = addr & (sizeof(long) - 1);	/* residue */
+		addr &= -sizeof(long);		/* aligned address */
 		errno = 0;
 		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *)addr, 0);
 		switch (errno) {

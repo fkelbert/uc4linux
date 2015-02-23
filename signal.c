@@ -32,33 +32,10 @@
  */
 
 #include "defs.h"
-#include <sys/user.h>
 #include <fcntl.h>
 
-#ifdef HAVE_SYS_REG_H
-# include <sys/reg.h>
-#endif
-
-#ifdef HAVE_LINUX_PTRACE_H
-# undef PTRACE_SYSCALL
-# ifdef HAVE_STRUCT_IA64_FPREG
-#  define ia64_fpreg XXX_ia64_fpreg
-# endif
-# ifdef HAVE_STRUCT_PT_ALL_USER_REGS
-#  define pt_all_user_regs XXX_pt_all_user_regs
-# endif
-# ifdef HAVE_STRUCT_PTRACE_PEEKSIGINFO_ARGS
-#  define ptrace_peeksiginfo_args XXX_ptrace_peeksiginfo_args
-# endif
-# include <linux/ptrace.h>
-# undef ptrace_peeksiginfo_args
-# undef ia64_fpreg
-# undef pt_all_user_regs
-#endif
-
-#ifdef IA64
-# include <asm/ptrace_offsets.h>
-#endif
+#include "ptrace.h"
+#include "regs.h"
 
 #if defined(SPARC) || defined(SPARC64) || defined(MIPS)
 typedef struct {
@@ -378,7 +355,7 @@ printsigval(const siginfo_t *sip, int verbose)
 }
 
 void
-printsiginfo(siginfo_t *sip, int verbose)
+printsiginfo(const siginfo_t *sip, int verbose)
 {
 	const char *code;
 
@@ -453,7 +430,8 @@ printsiginfo(siginfo_t *sip, int verbose)
 				printsigsource(sip);
 				break;
 #endif
-#ifdef SI_TIMER
+#if defined SI_TIMER \
+ && defined HAVE_SIGINFO_T_SI_TIMERID && defined HAVE_SIGINFO_T_SI_OVERRUN
 			case SI_TIMER:
 				tprintf(", si_timerid=%#x, si_overrun=%d",
 					sip->si_timerid, sip->si_overrun);
@@ -888,27 +866,17 @@ sys_sigreturn(struct tcb *tcp)
 	/* This decodes rt_sigreturn.  The 64-bit ABIs do not have
 	   sigreturn.  */
 	if (entering(tcp)) {
-		long sp;
 		struct ucontext uc;
-		if (upeek(tcp->pid, REG_SP, &sp) < 0)
-			return 0;
 		/* There are six words followed by a 128-byte siginfo.  */
-		sp = sp + 6 * 4 + 128;
+		long sp = mips_REG_SP + 6 * 4 + 128;
 		if (umove(tcp, sp, &uc) < 0)
 			return 0;
 		tprintsigmask_val(") (mask ", uc.uc_sigmask);
 	}
-#elif defined(MIPS)
+#elif defined(LINUX_MIPSO32)
 	if (entering(tcp)) {
-		long sp;
-		struct pt_regs regs;
 		m_siginfo_t si;
-		if (ptrace(PTRACE_GETREGS, tcp->pid, (char *)&regs, 0) < 0) {
-			perror_msg("sigreturn: PTRACE_GETREGS");
-			return 0;
-		}
-		sp = regs.regs[29];
-		if (umove(tcp, sp, &si) < 0)
+		if (umove(tcp, mips_REG_SP, &si) < 0)
 			return 0;
 		tprintsigmask_val(") (mask ", si.si_mask);
 	}
