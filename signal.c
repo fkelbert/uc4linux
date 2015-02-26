@@ -411,11 +411,12 @@ printsiginfo(const siginfo_t *sip, int verbose)
 #endif
 	{
 		if (sip->si_errno) {
-			if (sip->si_errno < 0 || (unsigned) sip->si_errno >= nerrnos)
-				tprintf(", si_errno=%d", sip->si_errno);
+			tprints(", si_errno=");
+			if ((unsigned) sip->si_errno < nerrnos
+			    && errnoent[sip->si_errno])
+				tprints(errnoent[sip->si_errno]);
 			else
-				tprintf(", si_errno=%s",
-					errnoent[sip->si_errno]);
+				tprintf("%d", sip->si_errno);
 		}
 #ifdef SI_FROMUSER
 		if (SI_FROMUSER(sip)) {
@@ -734,9 +735,10 @@ sys_sigreturn(struct tcb *tcp)
 			return 0;
 		tprintsigmask_addr(") (mask ", sc.oldmask);
 	}
-#elif defined(I386) || defined(X86_64)
-# if defined(X86_64)
-	if (current_personality == 0) /* 64-bit */
+#elif defined I386 || defined X86_64 || defined X32
+# ifndef I386
+	/* sys_sigreturn is i386 personality only */
+	if (current_personality != 1)
 		return 0;
 # endif
 	if (entering(tcp)) {

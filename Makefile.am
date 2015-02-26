@@ -264,10 +264,13 @@ EXTRA_DIST =				\
 	linux/or1k/userent.h		\
 	linux/personality.h		\
 	linux/powerpc/arch_regs.h	\
+	linux/powerpc/errnoent.h	\
 	linux/powerpc/ioctls_arch0.h	\
 	linux/powerpc/ioctls_inc0.h	\
 	linux/powerpc/syscallent.h	\
 	linux/powerpc/userent.h		\
+	linux/powerpc64/arch_regs.h	\
+	linux/powerpc64/errnoent.h	\
 	linux/powerpc64/errnoent1.h	\
 	linux/powerpc64/ioctls_arch0.h	\
 	linux/powerpc64/ioctls_arch1.h	\
@@ -348,13 +351,11 @@ EXTRA_DIST =				\
 	linux/unix_diag.h		\
 	linux/userent.h			\
 	linux/userent0.h		\
-	linux/x32/errnoent.h		\
 	linux/x32/errnoent1.h		\
 	linux/x32/ioctls_arch0.h	\
 	linux/x32/ioctls_arch1.h	\
 	linux/x32/ioctls_inc0.h		\
 	linux/x32/ioctls_inc1.h		\
-	linux/x32/signalent.h		\
 	linux/x32/signalent1.h		\
 	linux/x32/syscallent.h		\
 	linux/x32/syscallent1.h		\

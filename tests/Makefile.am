@@ -41,7 +41,6 @@ stack_fcall_SOURCES = stack-fcall.c \
 	stack-fcall-0.c stack-fcall-1.c stack-fcall-2.c stack-fcall-3.c
 
 TESTS = \
-	ptrace_setoptions.test \
 	strace-f.test \
 	qual_syscall.test \
 	bexecve.test \
@@ -86,6 +85,8 @@ EXTRA_DIST = init.sh run.sh \
 	     caps.awk \
 	     dumpio.expected \
 	     getdents.awk \
+	     getdents.out \
+	     getrandom.awk \
 	     mmsg.expected \
 	     net-yy-accept.awk \
 	     net-yy-connect.awk \
