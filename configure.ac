@@ -12,6 +12,7 @@ AC_CANONICAL_HOST
 
 AC_PROG_CXX
 AC_PROG_CC
+AX_PROG_CC_FOR_BUILD
 AC_USE_SYSTEM_EXTENSIONS
 
 AC_MSG_CHECKING([for supported architecture])
@@ -730,15 +731,11 @@ if test "x$st_cv_have___builtin_popcount" = xyes; then
 		  [Define to 1 if the system provides __builtin_popcount function])
 fi
 
-#PKG_CHECK_MODULES([DEPS], [glib-2.0 >= 2.36.0 libevent_pthreads])
-PKG_CHECK_MODULES([DEPS], [libevent_pthreads])
-
-# JNI
-AX_JNI_INCLUDE_DIR
-for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
-do
-	CPPFLAGS="$CPPFLAGS -I$JNI_INCLUDE_DIR"
-done
+AC_CHECK_LIB([dl], [dladdr], [dl_LIBS='-ldl'], [dl_LIBS=])
+if test "x$ac_cv_lib_dl_dladdr" = xyes; then
+	AC_DEFINE([HAVE_DLADDR], [1], [Define to 1 if the system provides dladdr])
+fi
+AC_SUBST(dl_LIBS)
 
 AC_PATH_PROG([PERL], [perl])
 

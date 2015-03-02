@@ -40,6 +40,7 @@
 #define sys_break		printargs
 #define sys_oldstat		printargs
 #define sys_lseek		printargs
+#undef sys_stime
 #define sys_stime		printargs
 #define sys_ptrace		printargs
 #define sys_oldfstat		printargs
@@ -232,11 +233,7 @@
 /* You must be careful to check ../i386/syscallent.h so that this table
    starts where that one leaves off.
 */
-#if SYS_ipc_subcall + SYS_ipc_nsubcalls != 445
-# error fix me
-#endif
-
-[445 ... 1023] = { },
+[(SYS_ipc_subcall + SYS_ipc_nsubcalls) ... 1023] = { },
 [1024] = { 0,	0,		printargs,			"ni_syscall"		},
 [1025] = { 1,	TP|SE,		sys_exit,			"exit"			},
 [1026] = { 3,	TD,		sys_read,			"read"			},
@@ -286,10 +283,10 @@
 [1070] = { 2,	TD,		sys_dup2,			"dup2"			},
 [1071] = { 2,	0,		sys_setreuid,			"setreuid"		},
 [1072] = { 2,	0,		sys_setregid,			"setregid"		},
-[1073] = { 3,	0,		printargs,			"getresuid"		},
+[1073] = { 3,	0,		sys_getresuid,			"getresuid"		},
 [1074] = { 3,	0,		sys_setresuid,			"setresuid"		},
-[1075] = { 3,	0,		sys_getresuid,			"getresgid"		},
-[1076] = { 3,	0,		printargs,			"setresgid"		},
+[1075] = { 3,	0,		sys_getresgid,			"getresgid"		},
+[1076] = { 3,	0,		sys_setresgid,			"setresgid"		},
 [1077] = { 2,	0,		sys_getgroups,			"getgroups"		},
 [1078] = { 2,	0,		sys_setgroups,			"setgroups"		},
 [1079] = { 1,	0,		sys_getpgid,			"getpgid"		},

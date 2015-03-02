@@ -39,6 +39,7 @@
 /* for struct iovec */
 #include <sys/uio.h>
 
+#include "regs.h"
 #include "ptrace.h"
 
 #if defined(SPARC64)
@@ -47,8 +48,6 @@
 # undef PTRACE_SETREGS
 # define PTRACE_SETREGS PTRACE_SETREGS64
 #endif
-
-#include "regs.h"
 
 #if defined SPARC64
 # include <asm/psrcompat.h>
@@ -884,6 +883,11 @@ print_pc(struct tcb *tcp)
 		return;
 	}
 	tprintf(fmt, pc);
+#elif defined(AARCH64)
+	if (aarch64_io.iov_len == sizeof(arm_regs))
+		tprintf(fmt, (unsigned long) arm_regs.ARM_pc);
+	else
+		tprintf(fmt, (unsigned long) aarch64_regs.pc);
 #elif defined(ARM)
 	tprintf(fmt, arm_regs.ARM_pc);
 #elif defined(AVR32)
@@ -2462,7 +2466,13 @@ trace_syscall_exiting(struct tcb *tcp)
 		else {
 			switch (sys_res & RVAL_MASK) {
 			case RVAL_HEX:
-				tprintf("= %#lx", tcp->u_rval);
+#if SUPPORTED_PERSONALITIES > 1
+				if (current_wordsize < sizeof(long))
+					tprintf("= %#x",
+						(unsigned int) tcp->u_rval);
+				else
+#endif
+					tprintf("= %#lx", tcp->u_rval);
 				break;
 			case RVAL_OCTAL:
 				tprintf("= %#lo", tcp->u_rval);

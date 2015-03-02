@@ -351,6 +351,7 @@ EXTRA_DIST =				\
 	linux/unix_diag.h		\
 	linux/userent.h			\
 	linux/userent0.h		\
+	linux/x32/arch_regs.h		\
 	linux/x32/errnoent1.h		\
 	linux/x32/ioctls_arch0.h	\
 	linux/x32/ioctls_arch1.h	\
@@ -364,11 +365,12 @@ EXTRA_DIST =				\
 	linux/x86_64/errnoent1.h	\
 	linux/x86_64/errnoent2.h	\
 	linux/x86_64/gentab.pl		\
-	linux/x86_64/ioctlent2.h	\
 	linux/x86_64/ioctls_arch0.h	\
 	linux/x86_64/ioctls_arch1.h	\
+	linux/x86_64/ioctls_arch2.h	\
 	linux/x86_64/ioctls_inc0.h	\
 	linux/x86_64/ioctls_inc1.h	\
+	linux/x86_64/ioctls_inc2.h	\
 	linux/x86_64/signalent1.h	\
 	linux/x86_64/signalent2.h	\
 	linux/x86_64/syscallent.h	\
@@ -418,13 +420,12 @@ news-check: NEWS
 		exit 1;						\
 	fi
 
-ioctlsort_CC = $(CC)
+ioctlsort_CC = $(CC_FOR_BUILD)
 ioctlsort_DEFS = $(DEFS)
 ioctlsort_INCLUDES = $(DEFAULT_INCLUDES) $(INCLUDES)
-ioctlsort_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS)
-ioctlsort_CFLAGS = $(AM_CFLAGS) $(CFLAGS)
-ioctlsort_LD = $(CCLD)
-ioctlsort_LDFLAGS = $(AM_LDFLAGS) $(LDFLAGS)
+ioctlsort_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS_FOR_BUILD)
+ioctlsort_CFLAGS = $(AM_CFLAGS) $(CFLAGS_FOR_BUILD)
+ioctlsort_LDFLAGS = $(AM_LDFLAGS) $(LDFLAGS_FOR_BUILD)
 
 ioctls_inc_h = $(wildcard $(srcdir)/$(OS)/$(ARCH)/ioctls_inc*.h)
 ioctlent_h = $(patsubst $(srcdir)/$(OS)/$(ARCH)/ioctls_inc%,ioctlent%,$(ioctls_inc_h))
@@ -434,8 +435,8 @@ CLEANFILES = $(ioctlent_h)
 ioctlent%.h: ioctlsort%
 	./$< > $@
 
-ioctlsort%: ioctlsort%.o
-	$(ioctlsort_LD) $(ioctlsort_LDFLAGS) $< -o $@
+ioctlsort%$(BUILD_EXEEXT): ioctlsort%.o
+	$(ioctlsort_CC) $(ioctlsort_CFLAGS) $(ioctlsort_LDFLAGS) $< -o $@
 
 ioctlsort%.o: ioctls_all%.h $(srcdir)/ioctlsort.c
 	$(ioctlsort_CC) $(ioctlsort_DEFS) $(ioctlsort_INCLUDES) $(ioctlsort_CPPFLAGS) $(ioctlsort_CFLAGS) -DIOCTLSORT_INC=\"$<\" -c -o $@ $(srcdir)/ioctlsort.c

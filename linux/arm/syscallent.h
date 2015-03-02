@@ -116,7 +116,7 @@
 [ 87] = { 2,	TF,		sys_swapon,			"swapon"		},
 [ 88] = { 4,	0,		sys_reboot,			"reboot"		},
 [ 89] = { 3,	TD,		sys_readdir,			"readdir"		},
-[ 90] = { 1,	TD|TM|SI,	sys_old_mmap,			"old_mmap"		},
+[ 90] = { 1,	TD|TM|SI,	sys_old_mmap,			"mmap"			},
 [ 91] = { 2,	TM|SI,		sys_munmap,			"munmap"		},
 [ 92] = { 2,	TF,		sys_truncate,			"truncate"		},
 [ 93] = { 2,	TD,		sys_ftruncate,			"ftruncate"		},
@@ -206,8 +206,8 @@
 [177] = { 4,	TS,		sys_rt_sigtimedwait,		"rt_sigtimedwait"	},
 [178] = { 3,	TS,		sys_rt_sigqueueinfo,		"rt_sigqueueinfo"	},
 [179] = { 2,	TS,		sys_rt_sigsuspend,		"rt_sigsuspend"		},
-[180] = { 6,	TD,		sys_pread,			"pread"			},
-[181] = { 6,	TD,		sys_pwrite,			"pwrite"		},
+[180] = { 6,	TD,		sys_pread,			"pread64"		},
+[181] = { 6,	TD,		sys_pwrite,			"pwrite64"		},
 [182] = { 3,	TF,		sys_chown16,			"chown"			},
 [183] = { 2,	TF,		sys_getcwd,			"getcwd"		},
 [184] = { 2,	0,		sys_capget,			"capget"		},
@@ -344,14 +344,14 @@
 [317] = { 3,	TD,		sys_inotify_add_watch,		"inotify_add_watch"	},
 [318] = { 2,	TD,		sys_inotify_rm_watch,		"inotify_rm_watch"	},
 [319] = { 6,	TM,		sys_mbind,			"mbind"			},
-[320] = { 3,	TM,		sys_set_mempolicy,		"set_mempolicy"		},
-[321] = { 5,	TM,		sys_get_mempolicy,		"get_mempolicy"		},
+[320] = { 3,	TM,		sys_get_mempolicy,		"get_mempolicy"		},
+[321] = { 5,	TM,		sys_set_mempolicy,		"set_mempolicy"		},
 [322] = { 4,	TD|TF,		sys_openat,			"openat"		},
 [323] = { 3,	TD|TF,		sys_mkdirat,			"mkdirat"		},
 [324] = { 4,	TD|TF,		sys_mknodat,			"mknodat"		},
 [325] = { 5,	TD|TF,		sys_fchownat,			"fchownat"		},
 [326] = { 3,	TD|TF,		sys_futimesat,			"futimesat"		},
-[327] = { 4,	TD|TF,		sys_newfstatat,			"newfstatat"		},
+[327] = { 4,	TD|TF,		sys_newfstatat,			"fstatat64"		},
 [328] = { 3,	TD|TF,		sys_unlinkat,			"unlinkat"		},
 [329] = { 4,	TD|TF,		sys_renameat,			"renameat"		},
 [330] = { 5,	TD|TF,		sys_linkat,			"linkat"		},
@@ -374,7 +374,7 @@
 [347] = { 4,	0,		sys_kexec_load,			"kexec_load"		},
 [348] = { 4,	TD|TF,		sys_utimensat,			"utimensat"		},
 [349] = { 3,	TD|TS,		sys_signalfd,			"signalfd"		},
-[350] = { 4,	TD,		sys_timerfd,			"timerfd"		},
+[350] = { 4,	TD,		sys_timerfd_create,		"timerfd_create"	},
 [351] = { 1,	TD,		sys_eventfd,			"eventfd"		},
 [352] = { 6,	TD,		sys_fallocate,			"fallocate"		},
 [353] = { 4,	TD,		sys_timerfd_settime,		"timerfd_settime"	},
@@ -419,7 +419,7 @@
 #else
 # define SYS_socket_subcall	400
 # include "subcall.h"
-# define ARM_FIRST_SHUFFLED_SYSCALL (SYS_socket_subcall + SYS_socket_nsubcalls + SYS_ipc_nsubcalls)
+# define ARM_FIRST_SHUFFLED_SYSCALL (SYS_ipc_subcall + SYS_ipc_nsubcalls)
 #endif /* !__ARM_EABI__ */
 
 /*
