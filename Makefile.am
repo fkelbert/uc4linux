@@ -93,6 +93,7 @@ strace_SOURCES =	\
 	scsi.c		\
 	seccomp.c	\
 	signal.c	\
+	sigreturn.c	\
 	sock.c		\
 	socketutils.c	\
 	sram_alloc.c	\
@@ -230,7 +231,6 @@ EXTRA_DIST =				\
 	linux/ia64/arch_regs.h		\
 	linux/ia64/ioctls_arch0.h	\
 	linux/ia64/ioctls_inc0.h	\
-	linux/ia64/signalent.h		\
 	linux/ia64/syscallent.h		\
 	linux/ia64/userent.h		\
 	linux/inet_diag.h		\
@@ -281,12 +281,14 @@ EXTRA_DIST =				\
 	linux/powerpc64/syscallent1.h	\
 	linux/powerpc64/userent.h	\
 	linux/ptp_clock.h		\
+	linux/s390/arch_regs.h		\
 	linux/s390/ioctls_arch0.h	\
 	linux/s390/ioctls_inc0.h	\
 	linux/s390/syscallent.h		\
 	linux/s390/userent.h		\
 	linux/s390/userent0.h		\
 	linux/s390/userent1.h		\
+	linux/s390x/arch_regs.h		\
 	linux/s390x/ioctls_arch0.h	\
 	linux/s390x/ioctls_inc0.h	\
 	linux/s390x/syscallent.h	\
