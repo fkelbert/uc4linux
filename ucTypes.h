@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <jni.h>
 #include <sys/utsname.h>
 #include "ucLog.h"
 #include "ucJniBridge.h"
 
 #if UC_JNI
+	#include <jni.h>
 	typedef jstring str;
 #elif UC_THRIFT
 	typedef char* str;
@@ -66,7 +66,10 @@ typedef struct s_event event;
 extern char *eventStdParams[];
 
 void ucTypesInit();
+
+#if UC_JNI
 void ucTypesSetJniEnv(JNIEnv *mainJniEnv);
+#endif
 
 inline param *createParam(char *key, char *val);
 inline void destroyParam(param *p);

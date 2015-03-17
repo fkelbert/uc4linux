@@ -1,7 +1,10 @@
 #ifndef USAGECONTROL_H
 #define USAGECONTROL_H
 
+#if UC_JNI
 #include <jni.h>
+#endif
+
 #include <stdbool.h>
 #include <pthread.h>
 #include "defs.h"
