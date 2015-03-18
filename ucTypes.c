@@ -5,11 +5,13 @@ char *eventStdParams[] =
 				{ "PEP", "Linux",
 					"host", "<<PLACEHOLDER>> (To be filled by function ucTypesInit())" };
 
+#if UC_JNI
 JNIEnv *jniEnv;
 
 void ucTypesSetJniEnv(JNIEnv *mainJniEnv) {
 	jniEnv = mainJniEnv;
 }
+#endif
 
 inline str createString(char *s) {
 #if UC_JNI
