@@ -23,7 +23,7 @@ sys_sigreturn(struct tcb *tcp)
 # define OFFSETOF_STRUCT_UCONTEXT_UC_SIGMASK (5 * 4 + SIZEOF_STRUCT_SIGCONTEXT)
 		const long addr =
 # ifdef AARCH64
-			current_personality == 0 ?
+			current_personality == 1 ?
 				(*aarch64_sp_ptr + SIZEOF_STRUCT_SIGINFO +
 				 offsetof(struct ucontext, uc_sigmask)) :
 # endif
@@ -128,8 +128,20 @@ sys_sigreturn(struct tcb *tcp)
 		long addr;
 		if (upeek(tcp->pid, 4*PT_USP, &addr) < 0)
 			return 0;
+		/* Fetch pointer to struct sigcontext.  */
+		if (umove(tcp, addr + 2 * sizeof(int), &addr) < 0)
+			return 0;
+		unsigned long mask[NSIG / 8 / sizeof(long)];
+		/* Fetch first word of signal mask.  */
+		if (umove(tcp, addr, &mask[0]) < 0)
+			return 0;
+		/* Fetch remaining words of signal mask, located
+		   immediately before.  */
+		addr -= sizeof(mask) - sizeof(long);
+		if (umoven(tcp, addr, sizeof(mask) - sizeof(long), (char *) &mask[1]) < 0)
+			return 0;
 		tprints("{mask=");
-		print_sigset_addr_len(tcp, addr, NSIG / 8);
+		tprintsigmask_addr("", mask);
 		tprints("}");
 	}
 #elif defined(ALPHA)
