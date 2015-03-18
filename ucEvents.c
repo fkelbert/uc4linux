@@ -1003,12 +1003,7 @@ event *ucSemantics_execve(struct tcb *tcp) {
 
 	cmdline[0]='\0';
 
-	if (is_actual(tcp)) {
-		return NULL;
-	}
-
 	// Note: Do not ignore filename.
-
 	toString(relFilename, tcp, tcp->u_arg[0]);
 	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))) {
 		return NULL;
@@ -1026,7 +1021,6 @@ event *ucSemantics_execve(struct tcb *tcp) {
 		&& addParam(ev, createParam("cmdline", cmdline))) {
 		return ev;
 	}
-
 	return NULL;
 }
 
