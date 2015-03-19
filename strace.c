@@ -930,9 +930,7 @@ detach(struct tcb *tcp)
 
  drop:
 	if (!qflag && (tcp->flags & TCB_ATTACHED))
-#if !UC_ENABLED
 		fprintf(stderr, "Process %u detached\n", tcp->pid);
-#endif
 
 	droptcb(tcp);
 }
@@ -1059,12 +1057,10 @@ startup_attach(void)
 					continue;
 				}
 				if (!qflag) {
-#if !UC_ENABLED
 					fprintf(stderr, ntid > 1
 ? "Process %u attached with %u threads\n"
 : "Process %u attached\n",
 						tcp->pid, ntid);
-#endif
 				}
 				if (!(tcp->flags & TCB_ATTACHED)) {
 					/* -p PID, we failed to attach to PID itself
@@ -1094,12 +1090,10 @@ startup_attach(void)
 			kill(getppid(), SIGKILL);
 		}
 
-#if !UC_ENABLED
 		if (!qflag)
 			fprintf(stderr,
 				"Process %u attached\n",
 				tcp->pid);
-#endif
 	} /* for each tcbtab[] */
 
  ret:
@@ -1631,14 +1625,21 @@ init(int argc, char *argv[])
 	}
 
 	if (!followfork)
-// if uc is enabled, we want to make sure to follow forks.
-// Forgot to run strace with '-f' flag more than once...
 #if UC_ENABLED
-	{
+		/*
+		 * if UC is enabled, we want to make sure to follow forks.
+		 * Forgot to run strace with '-f' flag more than once...
+		 */
 		followfork++;
-	}
 #else
 		followfork = optF;
+#endif
+
+#if UC_ENABLED
+		/*
+		 * If UC is enabled: Make strace quiet
+		 */
+		qflag = 2;
 #endif
 
 
