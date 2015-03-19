@@ -14,6 +14,7 @@ AC_PROG_CXX
 AC_PROG_CC
 AX_PROG_CC_FOR_BUILD
 AC_USE_SYSTEM_EXTENSIONS
+AX_CXX_COMPILE_STDCXX_11
 
 AC_MSG_CHECKING([for supported architecture])
 case "$host_cpu" in

@@ -22,6 +22,7 @@ AM_CPPFLAGS = -I$(builddir)/$(OS)/$(ARCH) \
 	      -I$(srcdir)/$(OS)/$(ARCH) \
 	      -I$(builddir)/$(OS) \
 	      -I$(srcdir)/$(OS)
+AM_CXXFLAGS = -std=c++11
 
 include xlat/Makemodule.am
 
@@ -147,7 +148,7 @@ endif
 noinst_HEADERS = defs.h
 # Enable this to get link map generated
 #strace_CFLAGS = $(AM_CFLAGS) -Wl,-Map=strace.mapfile
-strace_CFLAGS = $(DEPS_CFLAGS) 
+strace_CFLAGS = $(DEPS_CFLAGS)
 
 # FK: Hard-wiring linking of some libraries
 LIBS = $(DEPS_LIBS) -ljvm -lpthread -lthrift

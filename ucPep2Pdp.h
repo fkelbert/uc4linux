@@ -4,6 +4,7 @@
 #ifdef __cplusplus
 
 #include <iostream>
+#include <chrono>
 #include <unistd.h>
 #include <thrift/transport/TSocket.h>
 #include <thrift/protocol/TBinaryProtocol.h>
@@ -11,6 +12,7 @@
 #include <thrift/transport/TTransportUtils.h>
 #include "TPep2Pdp.h"
 #include "ucTypes.h"
+#include "time.h"
 
 extern "C" {
 #endif

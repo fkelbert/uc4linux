@@ -83,6 +83,8 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	long long start;
 	long long end;
 
+	clock_t cs, ce;
+	double elapsed;
 
 	/* 
 	 * Always send events synchronously.
@@ -92,13 +94,18 @@ void notifyEventToPdpThriftCpp(event *ev) {
 
 	system_time(&t);
 	start = time_to_msec(t);
+	cs = clock();
 
 	auto_ptr<TResponse> response(new TResponse);
 	cl->notifyEventSync(*response, *tev);
 
+	ce = clock();
 	system_time(&t);
+
 	end = time_to_msec(t);
-	cout << (end - start) << endl;
+	elapsed = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+	cout << (end - start) << "(" << elapsed << ")" << endl;
 
 
 /*
