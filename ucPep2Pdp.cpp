@@ -90,8 +90,16 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	 * order at the PDP side.
 	 */
 
+	system_time(&t);
+	start = time_to_msec(t);
+
 	auto_ptr<TResponse> response(new TResponse);
 	cl->notifyEventSync(*response, *tev);
+
+	system_time(&t);
+	end = time_to_msec(t);
+	cout << (end - start) << endl;
+
 
 /*
 	if (ev->isActual) {
