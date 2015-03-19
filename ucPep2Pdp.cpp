@@ -7,6 +7,7 @@ using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 using namespace de::tum::in::i22::uc::thrift::types;
+using namespace std::chrono;
 
 boost::shared_ptr<TTransport> tr;
 TPep2PdpClient *cl;
@@ -79,12 +80,7 @@ void notifyEventToPdpThriftCpp(event *ev) {
 		tev->parameters.insert(make_pair(string(ev->params[i]->key), string(ev->params[i]->val)));
 	}
 
-	sys_time_t t;
-	long long start;
-	long long end;
-
-	clock_t cs, ce;
-	double elapsed;
+	steady_clock::time_point starttime, endtime;
 
 	/* 
 	 * Always send events synchronously.
@@ -92,20 +88,12 @@ void notifyEventToPdpThriftCpp(event *ev) {
 	 * order at the PDP side.
 	 */
 
-	system_time(&t);
-	start = time_to_msec(t);
-	cs = clock();
-
+	starttime = steady_clock::now();
 	auto_ptr<TResponse> response(new TResponse);
 	cl->notifyEventSync(*response, *tev);
+	endtime = steady_clock::now();
 
-	ce = clock();
-	system_time(&t);
-
-	end = time_to_msec(t);
-	elapsed = ((double) (end - start)) / CLOCKS_PER_SEC;
-
-	cout << (end - start) << "(" << elapsed << ")" << endl;
+	cout << duration_cast<microseconds>(endtime - starttime).count() << endl;
 
 
 /*
