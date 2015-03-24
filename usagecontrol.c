@@ -66,7 +66,15 @@ void notifySyscall(struct tcb *tcp) {
 			ev->isActual = actual;
 	}
 
-	uc_log("notifying PDP... ");
+	uc_log("notifying to PDP... ");
+
+#if UC_LOG_EVENT_PARAMETERS
+	int i;
+	for (i = 0; i < ev->cntParams; i++) {
+		uc_log("  %s => %s\n", ev->params[i]->key, ev->params[i]->val);
+	}
+#endif
+
 #if UC_ONLY_EXECVE
 	if (tcp->scno == SYS_execve) {
 		notifyEventToPdp(ev);
@@ -74,7 +82,6 @@ void notifySyscall(struct tcb *tcp) {
 #else
 	notifyEventToPdp(ev);
 #endif
-	uc_log("done.");
 
 	destroyEvent(ev);
 	uc_log("\n");

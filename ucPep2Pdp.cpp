@@ -80,54 +80,27 @@ void notifyEventToPdpThriftCpp(event *ev) {
 		tev->parameters.insert(make_pair(string(ev->params[i]->key), string(ev->params[i]->val)));
 	}
 
-	steady_clock::time_point starttime, endtime;
-
 	/* 
+	 * NOTE:
 	 * Always send events synchronously.
 	 * Otherwise, they might end up in the wrong
 	 * order at the PDP side.
 	 */
 
+#if UC_LOG_TIME
+	steady_clock::time_point starttime, endtime;
+
 	starttime = steady_clock::now();
+#endif
+
 	auto_ptr<TResponse> response(new TResponse);
 	cl->notifyEventSync(*response, *tev);
+
+#if UC_LOG_TIME
 	endtime = steady_clock::now();
-
-	cout << duration_cast<microseconds>(endtime - starttime).count() << endl;
-
-
-/*
-	if (ev->isActual) {
-#if UC_ONLY_EXECVE
-
-		auto_ptr<TResponse> response(new TResponse);
-
-	        system_time(&t);
-		start = time_to_msec(t);
-
-		cl->notifyEventSync(*response, *tev);
-
-		system_time(&t);
-		end = time_to_msec(t);
-//		cout << (end - start) << endl;
-
-#else
-		cl->notifyEventAsync(*tev);
+	cout << duration_cast<microseconds>(endtime - starttime).count() << "us" << endl;
 #endif
-	}
-	else {
-		auto_ptr<TResponse> response(new TResponse);
-	        
-		system_time(&t);
-		start = time_to_msec(t);
-		
-		cl->notifyEventSync(*response, *tev);
-		
-		system_time(&t);
-		end = time_to_msec(t);
-//		cout << (end - start) << endl;
-	}
-*/
+
 }
 
 #endif

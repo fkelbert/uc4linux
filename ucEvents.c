@@ -34,7 +34,25 @@ bool ignoreFilename(char *fn) {
 }
 
 
-// get the processes' current working directory
+/*
+ * get the process' executable
+ */
+bool getExe(char *exe, int exelen, int pid) {
+	char procfsPath[PATH_MAX];
+	int read;
+
+	snprintf(procfsPath, sizeof(procfsPath), "/proc/%d/exe", pid);
+	if ((read = readlink(procfsPath, exe,  exelen - 1)) == -1) {
+		return false;
+	}
+	exe[read] = '\0';
+	return true;
+}
+
+
+/*
+ * get the process' current working directory
+ */
 bool getCwd(char *cwd, int cwdlen, int pid) {
 	char procfsPath[PATH_MAX];
 	int read;
@@ -47,7 +65,10 @@ bool getCwd(char *cwd, int cwdlen, int pid) {
 	return true;
 }
 
-// get the processes' command Line parameters
+
+/*
+ * get the process' command Line parameters
+ */
 int getCmdline(char *cmdline, int len, int pid) {
 	char procfsPath[PATH_MAX];
 	int read;
@@ -77,7 +98,6 @@ int getCmdline(char *cmdline, int len, int pid) {
 			}
 		}
 		strcat(cmdline,line);
-//		printf ("line = [%s], cmdline = [%s], res=%d\n",line, cmdline, res);		
 		line=NULL;
 		s=0;
 	}
@@ -996,29 +1016,39 @@ event *ucSemantics_exit_group(struct tcb *tcp) {
 	return NULL;
 }
 
+
 event *ucSemantics_execve(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
 	char cmdline[FILENAME_MAX];
+	char cwd[FILENAME_MAX];
 
-	cmdline[0]='\0';
+	if (is_actual(tcp)) {
+		getExe(relFilename, sizeof(relFilename), tcp->pid);
+	}
+	else {
+		toString(relFilename, tcp, tcp->u_arg[0]);
+	}
 
-	// Note: Do not ignore filename.
-	toString(relFilename, tcp, tcp->u_arg[0]);
 	if (!(toAbsFilename(tcp->pid, relFilename, absFilename, sizeof(absFilename)))) {
 		return NULL;
 	}
 
-
-	toPid(pid, tcp->pid);
+	/*
+	 * Note: Do not ignore for specific filename as we do for read, write, etc.
+	 */
 
 	int l = getCmdline(cmdline, FILENAME_MAX, tcp->pid);
 	cmdline[l] = '\0';
 
-	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 3);
+	toPid(pid, tcp->pid);
+	getCwd(cwd, sizeof(cwd), tcp->pid);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_EXECVE, 4);
 	if (addParam(ev, createParam("pid", pid))
 		&& addParam(ev, createParam("filename", absFilename))
-		&& addParam(ev, createParam("cmdline", cmdline))) {
+		&& addParam(ev, createParam("cmdline", cmdline))
+		&& addParam(ev, createParam("cwd", cwd))) {
 		return ev;
 	}
 	return NULL;
