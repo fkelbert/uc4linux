@@ -2,6 +2,8 @@
 
 uc4linux is a Policy Enforcement Point for usage control enforcement purposes as developed within the scope of the publications listed below. The code is based on the strace project.
 
+The master branch of this project is branch ucmaster.
+
 
 # Publications
 
