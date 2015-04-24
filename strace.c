@@ -2363,9 +2363,5 @@ main(int argc, char *argv[])
 		exit_code += 128;
 	}
 
-#if UC_ENABLED
-	ucEnd();
-#endif
-
 	return exit_code;
 }

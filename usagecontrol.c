@@ -10,10 +10,6 @@ void notifyEventToPdp(event *ev) {
 #endif
 }
 
-void ucEnd() {
-//	while(1);
-}
-
 
 void ucInit() {
 #if UC_JNI

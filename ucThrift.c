@@ -5,12 +5,9 @@
 void ucInitThrift() {
 	initPep2PdpThriftClient(UC_THRIFT_PDP_PORT);
 
-	if (connectPep2PdpThriftClient()) {
-		uc_log("success\n");
-	}
-	else {
-		uc_log("failure\n");
-		exit(1);
+	while (!connectPep2PdpThriftClient()) {
+		uc_log("Trying to connect to PDP.\n");
+		sleep(1);
 	}
 }
 
