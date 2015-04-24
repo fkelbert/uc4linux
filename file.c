@@ -275,8 +275,7 @@ printstat(struct tcb *tcp, long addr)
 	do_printstat(tcp, &statbuf);
 }
 
-int
-sys_stat(struct tcb *tcp)
+SYS_FUNC(stat)
 {
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
@@ -287,8 +286,7 @@ sys_stat(struct tcb *tcp)
 	return 0;
 }
 
-int
-sys_fstat(struct tcb *tcp)
+SYS_FUNC(fstat)
 {
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
@@ -305,7 +303,6 @@ sys_fstat(struct tcb *tcp)
  * Linux x86_64 and x32 have unified `struct stat' but their i386 personality
  * needs `struct stat64'.
  * linux/arch/x86/include/uapi/asm/stat.h defines `struct stat64' only for i386.
- * __GNUC__ is needed for the required __attribute__ below.
  *
  * Similarly, aarch64 has a unified `struct stat' but its arm personality
  * needs `struct stat64' (unlike x86, it shouldn't be packed).
@@ -332,7 +329,7 @@ struct stat64 {
 	unsigned long long	st_ino;
 }
 #  if defined X86_64 || defined X32
-  __attribute__((packed))
+  ATTRIBUTE_PACKED
 #   define STAT64_SIZE	96
 #  else
 #   define STAT64_SIZE	104
@@ -386,8 +383,7 @@ printstat64(struct tcb *tcp, long addr)
 	do_printstat64(tcp, &statbuf);
 }
 
-int
-sys_stat64(struct tcb *tcp)
+SYS_FUNC(stat64)
 {
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
@@ -398,8 +394,7 @@ sys_stat64(struct tcb *tcp)
 	return 0;
 }
 
-int
-sys_fstat64(struct tcb *tcp)
+SYS_FUNC(fstat64)
 {
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
@@ -412,22 +407,19 @@ sys_fstat64(struct tcb *tcp)
 
 #else
 
-int
-sys_stat64(struct tcb *tcp)
+SYS_FUNC(stat64)
 {
 	return sys_stat(tcp);
 }
 
-int
-sys_fstat64(struct tcb *tcp)
+SYS_FUNC(fstat64)
 {
 	return sys_fstat(tcp);
 }
 
 #endif /* HAVE_STRUCT_STAT64 */
 
-int
-sys_newfstatat(struct tcb *tcp)
+SYS_FUNC(newfstatat)
 {
 	if (entering(tcp)) {
 		print_dirfd(tcp, tcp->u_arg[0]);
@@ -500,8 +492,7 @@ printoldstat(struct tcb *tcp, long addr)
 	do_printstat(tcp, &newstatbuf);
 }
 
-int
-sys_oldstat(struct tcb *tcp)
+SYS_FUNC(oldstat)
 {
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
@@ -512,8 +503,7 @@ sys_oldstat(struct tcb *tcp)
 	return 0;
 }
 
-int
-sys_oldfstat(struct tcb *tcp)
+SYS_FUNC(oldfstat)
 {
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
@@ -528,8 +518,7 @@ sys_oldfstat(struct tcb *tcp)
 
 #if defined(SPARC) || defined(SPARC64)
 
-int
-sys_xstat(struct tcb *tcp)
+SYS_FUNC(xstat)
 {
 	if (entering(tcp)) {
 		tprintf("%ld, ", tcp->u_arg[0]);
@@ -541,8 +530,7 @@ sys_xstat(struct tcb *tcp)
 	return 0;
 }
 
-int
-sys_fxstat(struct tcb *tcp)
+SYS_FUNC(fxstat)
 {
 	if (entering(tcp)) {
 		tprintf("%ld, ", tcp->u_arg[0]);

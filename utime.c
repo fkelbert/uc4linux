@@ -1,7 +1,6 @@
 #include "defs.h"
 
-int
-sys_utime(struct tcb *tcp)
+SYS_FUNC(utime)
 {
 	union {
 		long utl[2];
@@ -19,7 +18,7 @@ sys_utime(struct tcb *tcp)
 			tprints("NULL");
 		else if (!verbose(tcp))
 			tprintf("%#lx", tcp->u_arg[1]);
-		else if (umoven(tcp, tcp->u_arg[1], 2 * wordsize, (char *) &u) < 0)
+		else if (umoven(tcp, tcp->u_arg[1], 2 * wordsize, &u) < 0)
 			tprints("[?, ?]");
 		else if (wordsize == sizeof u.utl[0]) {
 			tprintf("[%s,", sprinttime(u.utl[0]));

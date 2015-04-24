@@ -14,8 +14,7 @@
 #include "xlat/sysctl_net_ipv6.h"
 #include "xlat/sysctl_net_ipv6_route.h"
 
-int
-sys_sysctl(struct tcb *tcp)
+SYS_FUNC(sysctl)
 {
 	struct __sysctl_args info;
 	int *name;
@@ -27,7 +26,7 @@ sys_sysctl(struct tcb *tcp)
 	size = sizeof(int) * (unsigned long) info.nlen;
 	name = (size / sizeof(int) != (unsigned long) info.nlen) ? NULL : malloc(size);
 	if (name == NULL ||
-	    umoven(tcp, (unsigned long) info.name, size, (char *) name) < 0) {
+	    umoven(tcp, (unsigned long) info.name, size, name) < 0) {
 		free(name);
 		if (entering(tcp))
 			tprintf("{%p, %d, %p, %p, %p, %lu}",

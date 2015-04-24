@@ -17,6 +17,7 @@
 
 void ucInit();
 void ucEnd();
+void notifySyscall(struct tcb *tcp);
 
 #endif /* USAGECONTROL_H */
 

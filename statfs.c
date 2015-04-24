@@ -52,8 +52,7 @@ printstatfs(struct tcb *tcp, const long addr)
 	tprints("}");
 }
 
-int
-sys_statfs(struct tcb *tcp)
+SYS_FUNC(statfs)
 {
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
@@ -64,8 +63,7 @@ sys_statfs(struct tcb *tcp)
 	return 0;
 }
 
-int
-sys_fstatfs(struct tcb *tcp)
+SYS_FUNC(fstatfs)
 {
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
@@ -125,9 +123,13 @@ struct compat_statfs64 {
 	uint32_t f_spare[4];
 }
 #if defined AARCH64 || defined X86_64 || defined X32 || defined IA64
-  __attribute__ ((packed, aligned(4)))
+  ATTRIBUTE_PACKED ATTRIBUTE_ALIGNED(4)
 #endif
 ;
+#if defined AARCH64 || defined ARM
+/* See arch/arm/kernel/sys_oabi-compat.c for details. */
+# define COMPAT_STATFS64_PADDED_SIZE (sizeof(struct compat_statfs64) + 4)
+#endif
 
 static void
 printcompat_statfs64(struct tcb *tcp, const long addr)
@@ -157,16 +159,19 @@ printcompat_statfs64(struct tcb *tcp, const long addr)
 	tprintf(", f_flags=%lu}", (unsigned long)statbuf.f_frsize);
 }
 
-int
-sys_statfs64(struct tcb *tcp)
+static int
+do_statfs64_fstatfs64(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
 		tprintf(", %lu, ", tcp->u_arg[1]);
 	} else {
 		if (tcp->u_arg[1] == sizeof(struct statfs64))
 			printstatfs64(tcp, tcp->u_arg[2]);
-		else if (tcp->u_arg[1] == sizeof(struct compat_statfs64))
+		else if (tcp->u_arg[1] == sizeof(struct compat_statfs64)
+#ifdef COMPAT_STATFS64_PADDED_SIZE
+			 || tcp->u_arg[1] == COMPAT_STATFS64_PADDED_SIZE
+#endif
+									)
 			printcompat_statfs64(tcp, tcp->u_arg[2]);
 		else
 			tprints("{???}");
@@ -174,27 +179,23 @@ sys_statfs64(struct tcb *tcp)
 	return 0;
 }
 
-int
-sys_fstatfs64(struct tcb *tcp)
+SYS_FUNC(statfs64)
 {
-	if (entering(tcp)) {
+	if (entering(tcp))
+		printpath(tcp, tcp->u_arg[0]);
+	return do_statfs64_fstatfs64(tcp);
+}
+
+SYS_FUNC(fstatfs64)
+{
+	if (entering(tcp))
 		printfd(tcp, tcp->u_arg[0]);
-		tprintf(", %lu, ", tcp->u_arg[1]);
-	} else {
-		if (tcp->u_arg[1] == sizeof(struct statfs64))
-			printstatfs64(tcp, tcp->u_arg[2]);
-		else if (tcp->u_arg[1] == sizeof(struct compat_statfs64))
-			printcompat_statfs64(tcp, tcp->u_arg[2]);
-		else
-			tprints("{???}");
-	}
-	return 0;
+	return do_statfs64_fstatfs64(tcp);
 }
 #endif /* HAVE_STRUCT_STATFS64 */
 
 #ifdef ALPHA
-int
-osf_statfs(struct tcb *tcp)
+SYS_FUNC(osf_statfs)
 {
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
@@ -206,8 +207,7 @@ osf_statfs(struct tcb *tcp)
 	return 0;
 }
 
-int
-osf_fstatfs(struct tcb *tcp)
+SYS_FUNC(osf_fstatfs)
 {
 	if (entering(tcp)) {
 		tprintf("%lu, ", tcp->u_arg[0]);

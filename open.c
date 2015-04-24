@@ -97,22 +97,19 @@ decode_open(struct tcb *tcp, int offset)
 	return RVAL_FD;
 }
 
-int
-sys_open(struct tcb *tcp)
+SYS_FUNC(open)
 {
 	return decode_open(tcp, 0);
 }
 
-int
-sys_openat(struct tcb *tcp)
+SYS_FUNC(openat)
 {
 	if (entering(tcp))
 		print_dirfd(tcp, tcp->u_arg[0]);
 	return decode_open(tcp, 1);
 }
 
-int
-sys_creat(struct tcb *tcp)
+SYS_FUNC(creat)
 {
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
@@ -120,24 +117,3 @@ sys_creat(struct tcb *tcp)
 	}
 	return RVAL_FD;
 }
-
-#if defined(SPARC) || defined(SPARC64)
-# include "xlat/openmodessol.h"
-
-int
-solaris_open(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		/* flags */
-		printflags(openmodessol, tcp->u_arg[1] + 1, "O_???");
-		if (tcp->u_arg[1] & 0x100) {
-			/* mode */
-			tprintf(", %#lo", tcp->u_arg[2]);
-		}
-	}
-	return 0;
-}
-
-#endif /* SPARC || SPARC64 */
