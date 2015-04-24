@@ -34,7 +34,9 @@
 #include "defs.h"
 #include <sys/param.h>
 
+#if UC_ENABLED
 #include <ucSettings.h>
+#endif
 
 /* for struct iovec */
 #include <sys/uio.h>

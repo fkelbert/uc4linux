@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
+#include <dirent.h>
 #include <sys/utsname.h>
 #ifdef HAVE_PRCTL
 # include <sys/prctl.h>

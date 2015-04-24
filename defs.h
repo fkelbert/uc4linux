@@ -41,7 +41,6 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <sys/types.h>
-#include <dirent.h>
 #ifdef STDC_HEADERS
 # include <stddef.h>
 #endif
