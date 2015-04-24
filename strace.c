@@ -29,9 +29,7 @@
  */
 
 #include "defs.h"
-#if UC_ENABLED
 #include "usagecontrol.h"
-#endif
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sys/param.h>
