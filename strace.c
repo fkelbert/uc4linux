@@ -538,7 +538,7 @@ strace_popen(const char *command)
 }
 
 
-#if UC_ENABLED
+#if UC_ENABLED || STRACE_SILENT
 
 inline void tprintf(const char *fmt, ...) {}
 inline void tprints(const char *str) {}
