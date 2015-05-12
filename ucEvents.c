@@ -740,7 +740,6 @@ event *ucSemantics_open(struct tcb *tcp) {
 }
 
 
-
 event *ucSemantics_creat(struct tcb *tcp) {
 	char relFilename[FILENAME_MAX];
 	char absFilename[FILENAME_MAX];
@@ -757,6 +756,33 @@ event *ucSemantics_creat(struct tcb *tcp) {
 	}
 
 	return do_open(tcp, absFilename, O_CREAT|O_WRONLY|O_TRUNC);
+}
+
+
+event *ucSemantics_chroot(struct tcb *tcp) {
+	char relDir[FILENAME_MAX];
+	char absDir[FILENAME_MAX];
+
+	if (is_actual(tcp) && tcp->u_rval < 0) {
+		return NULL;
+	}
+
+	toString(relDir, tcp, tcp->u_arg[0]);
+	if (!(toAbsFilename(tcp->pid, relDir, absDir, sizeof(absDir)))
+			|| ignoreFilename(absDir)) {
+		return NULL;
+	}
+
+
+	toPid(pid, tcp->pid);
+
+	event *ev = createEventWithStdParams(EVENT_NAME_CHROOT, 2);
+	if (addParam(ev, createParam("pid", pid))
+		&& addParam(ev, createParam("dir", absDir))) {
+		return ev;
+	}
+
+	return NULL;
 }
 
 
@@ -1173,6 +1199,7 @@ event *ucSemantics_close(struct tcb *tcp) {
 	return NULL;
 }
 
+
 event *ucSemantics_connect(struct tcb *tcp) {
 	// connect might succeed if return value is -1 and errno == EINPROGRESS.
 	if (tcp->u_arg[0] < 0 || (is_actual(tcp) && tcp->u_rval < 0 && tcp->u_error != EINPROGRESS)) {
@@ -1336,7 +1363,7 @@ event *(*ucSemanticsFunct[])(struct tcb *tcp) = {
 	[SYS_chown] = ucSemantics_IGNORE,
 #endif
 #ifdef SYS_chroot
-	[SYS_chroot] = ucSemantics_IGNORE,
+	[SYS_chroot] = ucSemantics_chroot,
 #endif
 #ifdef SYS_clock_adjtime
 	[SYS_clock_adjtime] = ucSemantics_IGNORE,

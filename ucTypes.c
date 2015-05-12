@@ -46,6 +46,7 @@ void ucTypesInit() {
 	uc_log("Determined hostname: %s\n", eventStdParams[3]);
 
 	EVENT_NAME_ACCEPT = createString("Accept");
+	EVENT_NAME_CHROOT = createString("Chroot");
 	EVENT_NAME_CLONE = createString("Clone");
 	EVENT_NAME_CLOSE = createString("Close");
 	EVENT_NAME_CONNECT = createString("Connect");
