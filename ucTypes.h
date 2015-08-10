@@ -8,6 +8,8 @@
 #include "ucLog.h"
 #include "ucJniBridge.h"
 
+#define EVENT_STD_PARAMS_CNT 2
+
 #if UC_JNI
 	#include <jni.h>
 	typedef jstring str;
@@ -72,11 +74,89 @@ void ucTypesInit();
 void ucTypesSetJniEnv(JNIEnv *mainJniEnv);
 #endif
 
-inline param *createParam(char *key, char *val);
-inline void destroyParam(param *p);
-inline event *createEventWithStdParams(str name, int cntParams);
-inline void destroyEvent(event *e);
-inline bool addParam(event *ev, param *p);
+
+inline str createString(char *s) {
+#if UC_JNI
+	return JniNewStringUTF(jniEnv, s);
+#elif UC_THRIFT
+	return strdup(s);
+#else
+	printf("Unknown option.\n");
+	return "";
+#endif
+}
+
+inline void destroyString(str s) {
+#if UC_JNI
+	return;
+#elif UC_THRIFT
+	free(s);
+#else
+	printf("Unknown option.\n");
+#endif
+}
+
+
+
+inline param *createParam(char *key, char *val) {
+	param *p = (param *) malloc(sizeof(param));
+	p->key = createString(key);
+	p->val = createString(val);
+	return p;
+}
+
+
+inline bool addParam(event *ev, param *p) {
+	if (ev->iterParams < ev->cntParams) {
+		ev->params[ev->iterParams] = p;
+		ev->iterParams++;
+		return true;
+	}
+	return false;
+}
+
+
+
+inline void destroyParam(param *p) {
+	destroyString(p->key);
+	destroyString(p->val);
+	free(p);
+}
+
+inline event *createEvent(str name, int cntParams) {
+	event *e = (event *) malloc(sizeof(event));
+	e->name = name;
+	e->isActual = true;
+	e->cntParams = cntParams;
+	e->iterParams = 0;
+	e->params = (param**) malloc(cntParams * sizeof(param*));
+	return e;
+}
+
+
+
+
+inline event *createEventWithStdParams(str name, int cntParams) {
+	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);
+
+	int i;
+	for (i = 0; i < EVENT_STD_PARAMS_CNT; i++) {
+		addParam(e, createParam(eventStdParams[i*2], eventStdParams[i*2+1]));
+	}
+
+	return e;
+}
+
+
+inline void destroyEvent(event *e) {
+	int i;
+	for (i = 0; i < e->cntParams; i++) {
+		destroyParam(e->params[i]);
+	}
+	free(e->params);
+}
+
+
 
 #define is_actual(tcp) 		(!exiting(tcp))
 #define is_desired(tcp) 	(exiting(tcp))
