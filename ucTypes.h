@@ -75,7 +75,7 @@ void ucTypesSetJniEnv(JNIEnv *mainJniEnv);
 #endif
 
 
-inline str createString(char *s) {
+static inline str createString(char *s) {
 #if UC_JNI
 	return JniNewStringUTF(jniEnv, s);
 #elif UC_THRIFT
@@ -86,7 +86,7 @@ inline str createString(char *s) {
 #endif
 }
 
-inline void destroyString(str s) {
+static inline void destroyString(str s) {
 #if UC_JNI
 	return;
 #elif UC_THRIFT
@@ -98,7 +98,7 @@ inline void destroyString(str s) {
 
 
 
-inline param *createParam(char *key, char *val) {
+static inline param *createParam(char *key, char *val) {
 	param *p = (param *) malloc(sizeof(param));
 	p->key = createString(key);
 	p->val = createString(val);
@@ -106,7 +106,7 @@ inline param *createParam(char *key, char *val) {
 }
 
 
-inline bool addParam(event *ev, param *p) {
+static inline bool addParam(event *ev, param *p) {
 	if (ev->iterParams < ev->cntParams) {
 		ev->params[ev->iterParams] = p;
 		ev->iterParams++;
@@ -117,13 +117,13 @@ inline bool addParam(event *ev, param *p) {
 
 
 
-inline void destroyParam(param *p) {
+static inline void destroyParam(param *p) {
 	destroyString(p->key);
 	destroyString(p->val);
 	free(p);
 }
 
-inline event *createEvent(str name, int cntParams) {
+static inline event *createEvent(str name, int cntParams) {
 	event *e = (event *) malloc(sizeof(event));
 	e->name = name;
 	e->isActual = true;
@@ -136,7 +136,7 @@ inline event *createEvent(str name, int cntParams) {
 
 
 
-inline event *createEventWithStdParams(str name, int cntParams) {
+static inline event *createEventWithStdParams(str name, int cntParams) {
 	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);
 
 	int i;
@@ -148,7 +148,7 @@ inline event *createEventWithStdParams(str name, int cntParams) {
 }
 
 
-inline void destroyEvent(event *e) {
+static inline void destroyEvent(event *e) {
 	int i;
 	for (i = 0; i < e->cntParams; i++) {
 		destroyParam(e->params[i]);
