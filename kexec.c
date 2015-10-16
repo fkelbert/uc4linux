@@ -11,37 +11,22 @@
 #endif
 
 static void
-print_kexec_segments(struct tcb *tcp, unsigned long addr, unsigned long len)
+print_seg(const unsigned long *seg)
 {
-#if SUPPORTED_PERSONALITIES > 1
-	union {
-		struct { u_int32_t buf, bufsz, mem, memsz; } seg32;
-		struct { u_int64_t buf, bufsz, mem, memsz; } seg64;
-	} seg;
-# define sizeof_seg \
-	(current_wordsize == 4 ? sizeof(seg.seg32) : sizeof(seg.seg64))
-# define seg_buf \
-	(current_wordsize == 4 ? (uint64_t) seg.seg32.buf : seg.seg64.buf)
-# define seg_bufsz \
-	(current_wordsize == 4 ? (uint64_t) seg.seg32.bufsz : seg.seg64.bufsz)
-# define seg_mem \
-	(current_wordsize == 4 ? (uint64_t) seg.seg32.mem : seg.seg64.mem)
-# define seg_memsz \
-	(current_wordsize == 4 ? (uint64_t) seg.seg32.memsz : seg.seg64.memsz)
-#else
-	struct {
-		void *buf;
-		size_t bufsz;
-		void *mem;
-		size_t memsz;
-	} seg;
-# define sizeof_seg sizeof(seg)
-# define seg_buf seg.buf
-# define seg_bufsz seg.bufsz
-# define seg_mem seg.mem
-# define seg_memsz seg.memsz
-#endif
-	unsigned int i, failed;
+	tprints("{");
+	printaddr(seg[0]);
+	tprintf(", %lu, ", seg[1]);
+	printaddr(seg[2]);
+	tprintf(", %lu}", seg[3]);
+}
+
+static void
+print_kexec_segments(struct tcb *tcp, const unsigned long addr,
+		     const unsigned long len)
+{
+	unsigned long seg[4];
+	const size_t sizeof_seg = ARRAY_SIZE(seg) * current_wordsize;
+	unsigned int i;
 
 	if (!len) {
 		tprints("[]");
@@ -49,38 +34,35 @@ print_kexec_segments(struct tcb *tcp, unsigned long addr, unsigned long len)
 	}
 
 	if (len > KEXEC_SEGMENT_MAX) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 		return;
 	}
 
-	failed = 0;
+	if (umove_ulong_array_or_printaddr(tcp, addr, seg, ARRAY_SIZE(seg)))
+		return;
+
 	tprints("[");
-	for (i = 0; i < len; ++i) {
-		if (i)
-			tprints(", ");
-		if (umoven(tcp, addr + i * sizeof_seg, sizeof_seg, &seg) < 0) {
-			tprints("?");
-			failed = 1;
+	print_seg(seg);
+
+	for (i = 1; i < len; ++i) {
+		tprints(", ");
+		if (umove_ulong_array_or_printaddr(tcp,
+						   addr + i * sizeof_seg,
+						   seg, ARRAY_SIZE(seg)))
 			break;
-		}
-		tprintf("{%#lx, %lu, %#lx, %lu}",
-			(long) seg_buf, (unsigned long) seg_bufsz,
-			(long) seg_mem, (unsigned long) seg_memsz);
+		print_seg(seg);
 	}
+
 	tprints("]");
-	if (failed)
-		tprintf(" %#lx", addr);
 }
 
 SYS_FUNC(kexec_load)
 {
 	unsigned long n;
 
-	if (exiting(tcp))
-		return 0;
-
 	/* entry, nr_segments */
-	tprintf("%#lx, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
+	printaddr(tcp->u_arg[0]);
+	tprintf(", %lu, ", tcp->u_arg[1]);
 
 	/* segments */
 	print_kexec_segments(tcp, tcp->u_arg[2], tcp->u_arg[1]);
@@ -95,5 +77,5 @@ SYS_FUNC(kexec_load)
 		printflags(kexec_load_flags, n, "KEXEC_???");
 	}
 
-	return 0;
+	return RVAL_DECODED;
 }

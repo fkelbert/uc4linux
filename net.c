@@ -52,8 +52,23 @@
 # include <linux/ipx.h>
 #endif
 
+#if defined(HAVE_LINUX_IP_VS_H)
+# include <linux/ip_vs.h>
+#endif
 #if defined(HAVE_LINUX_NETLINK_H)
 # include <linux/netlink.h>
+#endif
+#if defined(HAVE_LINUX_NETFILTER_ARP_ARP_TABLES_H)
+# include <linux/netfilter_arp/arp_tables.h>
+#endif
+#if defined(HAVE_LINUX_NETFILTER_BRIDGE_EBTABLES_H)
+# include <linux/netfilter_bridge/ebtables.h>
+#endif
+#if defined(HAVE_LINUX_NETFILTER_IPV4_IP_TABLES_H)
+# include <linux/netfilter_ipv4/ip_tables.h>
+#endif
+#if defined(HAVE_LINUX_NETFILTER_IPV6_IP6_TABLES_H)
+# include <linux/netfilter_ipv6/ip6_tables.h>
 #endif
 #if defined(HAVE_LINUX_IF_PACKET_H)
 # include <linux/if_packet.h>
@@ -80,105 +95,6 @@
 # define SOCK_TYPE_MASK 0xf
 #endif
 
-#ifndef SOL_IP
-# define SOL_IP 0
-#endif
-#ifndef SOL_TCP
-# define SOL_TCP 6
-#endif
-#ifndef SOL_UDP
-# define SOL_UDP 17
-#endif
-#ifndef SOL_IPV6
-# define SOL_IPV6 41
-#endif
-#ifndef SOL_ICMPV6
-# define SOL_ICMPV6 58
-#endif
-#ifndef SOL_SCTP
-# define SOL_SCTP 132
-#endif
-#ifndef SOL_UDPLITE
-# define SOL_UDPLITE 136
-#endif
-#ifndef SOL_RAW
-# define SOL_RAW 255
-#endif
-#ifndef SOL_IPX
-# define SOL_IPX 256
-#endif
-#ifndef SOL_AX25
-# define SOL_AX25 257
-#endif
-#ifndef SOL_ATALK
-# define SOL_ATALK 258
-#endif
-#ifndef SOL_NETROM
-# define SOL_NETROM 259
-#endif
-#ifndef SOL_ROSE
-# define SOL_ROSE 260
-#endif
-#ifndef SOL_DECNET
-# define SOL_DECNET 261
-#endif
-#ifndef SOL_X25
-# define SOL_X25 262
-#endif
-#ifndef SOL_PACKET
-# define SOL_PACKET 263
-#endif
-#ifndef SOL_ATM
-# define SOL_ATM 264
-#endif
-#ifndef SOL_AAL
-# define SOL_AAL 265
-#endif
-#ifndef SOL_IRDA
-# define SOL_IRDA 266
-#endif
-#ifndef SOL_NETBEUI
-# define SOL_NETBEUI 267
-#endif
-#ifndef SOL_LLC
-# define SOL_LLC 268
-#endif
-#ifndef SOL_DCCP
-# define SOL_DCCP 269
-#endif
-#ifndef SOL_NETLINK
-# define SOL_NETLINK 270
-#endif
-#ifndef SOL_TIPC
-# define SOL_TIPC 271
-#endif
-#ifndef SOL_RXRPC
-# define SOL_RXRPC 272
-#endif
-#ifndef SOL_PPPOL2TP
-# define SOL_PPPOL2TP 273
-#endif
-#ifndef SOL_BLUETOOTH
-# define SOL_BLUETOOTH 274
-#endif
-#ifndef SOL_PNPIPE
-# define SOL_PNPIPE 275
-#endif
-#ifndef SOL_RDS
-# define SOL_RDS 276
-#endif
-#ifndef SOL_IUCV
-# define SOL_IUCV 277
-#endif
-#ifndef SOL_CAIF
-# define SOL_CAIF 278
-#endif
-#ifndef SOL_ALG
-# define SOL_ALG 279
-#endif
-#ifndef SOL_NFC
-# define SOL_NFC 280
-#endif
 #include "xlat/socketlayers.h"
 
 #include "xlat/inet_protocols.h"
@@ -199,6 +115,22 @@
 #if defined(AF_PACKET) /* from e.g. linux/if_packet.h */
 # include "xlat/af_packet_types.h"
 #endif
+
+static void
+print_ifindex(unsigned int ifindex)
+{
+#ifdef HAVE_IF_INDEXTONAME
+	char buf[IFNAMSIZ + 1];
+
+	if (if_indextoname(ifindex, buf)) {
+		tprints("if_nametoindex(");
+		print_quoted_string(buf, sizeof(buf), QUOTE_0_TERMINATED);
+		tprints(")");
+		return;
+	}
+#endif
+	tprintf("%u", ifindex);
+}
 
 void
 printsock(struct tcb *tcp, long addr, int addrlen)
@@ -229,23 +161,17 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 	} addrbuf;
 	char string_addr[100];
 
-	if (addr == 0) {
-		tprints("NULL");
-		return;
-	}
-	if (!verbose(tcp)) {
-		tprintf("%#lx", addr);
+	if (addrlen < 2) {
+		printaddr(addr);
 		return;
 	}
 
-	if (addrlen < 2 || addrlen > (int) sizeof(addrbuf))
+	if (addrlen > (int) sizeof(addrbuf))
 		addrlen = sizeof(addrbuf);
 
 	memset(&addrbuf, 0, sizeof(addrbuf));
-	if (umoven(tcp, addr, addrlen, addrbuf.pad) < 0) {
-		tprints("{...}");
+	if (umoven_or_printaddr(tcp, addr, addrlen, addrbuf.pad))
 		return;
-	}
 	addrbuf.pad[sizeof(addrbuf.pad) - 1] = '\0';
 
 	tprints("{sa_family=");
@@ -279,30 +205,15 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 				ntohs(addrbuf.sa6.sin6_port), string_addr,
 				addrbuf.sa6.sin6_flowinfo);
 #ifdef HAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID
-		{
-#if defined(HAVE_IF_INDEXTONAME) && defined(IN6_IS_ADDR_LINKLOCAL) && defined(IN6_IS_ADDR_MC_LINKLOCAL)
-			int numericscope = 0;
-			if (IN6_IS_ADDR_LINKLOCAL(&addrbuf.sa6.sin6_addr)
-			    || IN6_IS_ADDR_MC_LINKLOCAL(&addrbuf.sa6.sin6_addr)) {
-				char scopebuf[IFNAMSIZ + 1];
-
-				if (if_indextoname(addrbuf.sa6.sin6_scope_id, scopebuf) == NULL)
-					numericscope++;
-				else {
-					tprints(", sin6_scope_id=if_nametoindex(");
-					print_quoted_string(scopebuf,
-							    sizeof(scopebuf),
-							    QUOTE_0_TERMINATED);
-					tprints(")");
-				}
-			} else
-				numericscope++;
-
-			if (numericscope)
+		tprints(", sin6_scope_id=");
+#if defined IN6_IS_ADDR_LINKLOCAL && defined IN6_IS_ADDR_MC_LINKLOCAL
+		if (IN6_IS_ADDR_LINKLOCAL(&addrbuf.sa6.sin6_addr)
+		    || IN6_IS_ADDR_MC_LINKLOCAL(&addrbuf.sa6.sin6_addr))
+			print_ifindex(addrbuf.sa6.sin6_scope_id);
+		else
 #endif
-				tprintf(", sin6_scope_id=%u", addrbuf.sa6.sin6_scope_id);
-		}
-#endif
+			tprintf("%u", addrbuf.sa6.sin6_scope_id);
+#endif /* HAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID */
 		break;
 #endif
 #if defined(AF_IPX)
@@ -378,7 +289,7 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 	tprints("}");
 }
 
-#if HAVE_SENDMSG
+#ifdef HAVE_SENDMSG
 # ifndef SCM_SECURITY
 #  define SCM_SECURITY 0x03
 # endif
@@ -461,7 +372,8 @@ printcmsghdr(struct tcb *tcp, unsigned long addr, size_t len)
 
 	char *buf = len < cmsg_size ? NULL : malloc(len);
 	if (!buf || umoven(tcp, addr, len, buf) < 0) {
-		tprintf(", msg_control=%#lx", addr);
+		tprints(", msg_control=");
+		printaddr(addr);
 		free(buf);
 		return;
 	}
@@ -642,7 +554,7 @@ printmsghdr(struct tcb *tcp, long addr, unsigned long data_size)
 	if (verbose(tcp) && extractmsghdr(tcp, addr, &msg))
 		do_msghdr(tcp, &msg, data_size);
 	else
-		tprintf("%#lx", addr);
+		printaddr(addr);
 }
 
 void
@@ -665,7 +577,7 @@ printmmsghdr(struct tcb *tcp, long addr, unsigned int idx, unsigned long msg_len
 		tprintf(", %u}", mmsg.msg_len);
 	}
 	else
-		tprintf("%#lx", addr);
+		printaddr(addr);
 }
 
 static void
@@ -673,7 +585,7 @@ decode_mmsg(struct tcb *tcp, unsigned long msg_len)
 {
 	/* mmsgvec */
 	if (syserror(tcp)) {
-		tprintf("%#lx", tcp->u_arg[1]);
+		printaddr(tcp->u_arg[1]);
 	} else {
 		unsigned int len = tcp->u_rval;
 		unsigned int i;
@@ -731,68 +643,60 @@ tprint_sock_type(int flags)
 
 SYS_FUNC(socket)
 {
-	if (entering(tcp)) {
-		printxval(domains, tcp->u_arg[0], "PF_???");
-		tprints(", ");
-		tprint_sock_type(tcp->u_arg[1]);
-		tprints(", ");
-		switch (tcp->u_arg[0]) {
-		case PF_INET:
+	printxval(domains, tcp->u_arg[0], "PF_???");
+	tprints(", ");
+	tprint_sock_type(tcp->u_arg[1]);
+	tprints(", ");
+	switch (tcp->u_arg[0]) {
+	case PF_INET:
 #ifdef PF_INET6
-		case PF_INET6:
+	case PF_INET6:
 #endif
-			printxval(inet_protocols, tcp->u_arg[2], "IPPROTO_???");
-			break;
+		printxval(inet_protocols, tcp->u_arg[2], "IPPROTO_???");
+		break;
 #ifdef PF_IPX
-		case PF_IPX:
-			/* BTW: I don't believe this.. */
-			tprints("[");
-			printxval(domains, tcp->u_arg[2], "PF_???");
-			tprints("]");
-			break;
+	case PF_IPX:
+		/* BTW: I don't believe this.. */
+		tprints("[");
+		printxval(domains, tcp->u_arg[2], "PF_???");
+		tprints("]");
+		break;
 #endif /* PF_IPX */
 #ifdef PF_NETLINK
-		case PF_NETLINK:
-			printxval(netlink_protocols, tcp->u_arg[2], "NETLINK_???");
-			break;
+	case PF_NETLINK:
+		printxval(netlink_protocols, tcp->u_arg[2], "NETLINK_???");
+		break;
 #endif
 #if defined(PF_BLUETOOTH) && defined(HAVE_BLUETOOTH_BLUETOOTH_H)
-		case PF_BLUETOOTH:
-			printxval(bt_protocols, tcp->u_arg[2], "BTPROTO_???");
-			break;
+	case PF_BLUETOOTH:
+		printxval(bt_protocols, tcp->u_arg[2], "BTPROTO_???");
+		break;
 #endif
-		default:
-			tprintf("%lu", tcp->u_arg[2]);
-			break;
-		}
+	default:
+		tprintf("%lu", tcp->u_arg[2]);
+		break;
 	}
-	return 0;
+
+	return RVAL_DECODED | RVAL_FD;
 }
 
 SYS_FUNC(bind)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printsock(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %lu", tcp->u_arg[2]);
-	}
-	return 0;
-}
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printsock(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+	tprintf(", %lu", tcp->u_arg[2]);
 
-SYS_FUNC(connect)
-{
-	return sys_bind(tcp);
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(listen)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		tprintf("%lu", tcp->u_arg[1]);
-	}
-	return 0;
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	tprintf("%lu", tcp->u_arg[1]);
+
+	return RVAL_DECODED;
 }
 
 static int
@@ -803,19 +707,18 @@ do_sockname(struct tcb *tcp, int flags_arg)
 		tprints(", ");
 		return 0;
 	}
-	if (!tcp->u_arg[2])
-		tprintf("%#lx, NULL", tcp->u_arg[1]);
-	else {
-		int len;
-		if (tcp->u_arg[1] == 0 || syserror(tcp)
-		    || umove(tcp, tcp->u_arg[2], &len) < 0) {
-			tprintf("%#lx", tcp->u_arg[1]);
-		} else {
-			printsock(tcp, tcp->u_arg[1], len);
-		}
+
+	int len;
+	if (!tcp->u_arg[2] || !verbose(tcp) || syserror(tcp) ||
+	    umove(tcp, tcp->u_arg[2], &len) < 0) {
+		printaddr(tcp->u_arg[1]);
 		tprints(", ");
-		printnum_int(tcp, tcp->u_arg[2], "%u");
+		printaddr(tcp->u_arg[2]);
+	} else {
+		printsock(tcp, tcp->u_arg[1], len);
+		tprintf(", [%d]", len);
 	}
+
 	if (flags_arg >= 0) {
 		tprints(", ");
 		printflags(sock_type_flags, tcp->u_arg[flags_arg],
@@ -838,48 +741,45 @@ SYS_FUNC(accept4)
 
 SYS_FUNC(send)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %lu, ", tcp->u_arg[2]);
-		/* flags */
-		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
-	}
-	return 0;
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+	tprintf(", %lu, ", tcp->u_arg[2]);
+	/* flags */
+	printflags(msg_flags, tcp->u_arg[3], "MSG_???");
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(sendto)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %lu, ", tcp->u_arg[2]);
-		/* flags */
-		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
-		/* to address */
-		tprints(", ");
-		printsock(tcp, tcp->u_arg[4], tcp->u_arg[5]);
-		/* to length */
-		tprintf(", %lu", tcp->u_arg[5]);
-	}
-	return 0;
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+	tprintf(", %lu, ", tcp->u_arg[2]);
+	/* flags */
+	printflags(msg_flags, tcp->u_arg[3], "MSG_???");
+	/* to address */
+	tprints(", ");
+	printsock(tcp, tcp->u_arg[4], tcp->u_arg[5]);
+	/* to length */
+	tprintf(", %lu", tcp->u_arg[5]);
+
+	return RVAL_DECODED;
 }
 
 #ifdef HAVE_SENDMSG
 
 SYS_FUNC(sendmsg)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printmsghdr(tcp, tcp->u_arg[1], (unsigned long) -1L);
-		/* flags */
-		tprints(", ");
-		printflags(msg_flags, tcp->u_arg[2], "MSG_???");
-	}
-	return 0;
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printmsghdr(tcp, tcp->u_arg[1], (unsigned long) -1L);
+	/* flags */
+	tprints(", ");
+	printflags(msg_flags, tcp->u_arg[2], "MSG_???");
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(sendmmsg)
@@ -909,7 +809,7 @@ SYS_FUNC(recv)
 		tprints(", ");
 	} else {
 		if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[1]);
+			printaddr(tcp->u_arg[1]);
 		else
 			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
 
@@ -927,36 +827,27 @@ SYS_FUNC(recvfrom)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 	} else {
-		if (syserror(tcp)) {
-			tprintf("%#lx, %lu, %lu, %#lx, %#lx",
-				tcp->u_arg[1], tcp->u_arg[2], tcp->u_arg[3],
-				tcp->u_arg[4], tcp->u_arg[5]);
-			return 0;
-		}
 		/* buf */
-		printstr(tcp, tcp->u_arg[1], tcp->u_rval);
+		if (syserror(tcp)) {
+			printaddr(tcp->u_arg[1]);
+		} else {
+			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
+		}
 		/* len */
 		tprintf(", %lu, ", tcp->u_arg[2]);
 		/* flags */
 		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
-		/* from address, len */
-		if (!tcp->u_arg[4] || !tcp->u_arg[5]) {
-			if (tcp->u_arg[4] == 0)
-				tprints(", NULL");
-			else
-				tprintf(", %#lx", tcp->u_arg[4]);
-			if (tcp->u_arg[5] == 0)
-				tprints(", NULL");
-			else
-				tprintf(", %#lx", tcp->u_arg[5]);
-			return 0;
-		}
-		if (umove(tcp, tcp->u_arg[5], &fromlen) < 0) {
-			tprints(", {...}, [?]");
-			return 0;
-		}
 		tprints(", ");
-		printsock(tcp, tcp->u_arg[4], tcp->u_arg[5]);
+		if (syserror(tcp) || !tcp->u_arg[4] || !tcp->u_arg[5] ||
+		    umove(tcp, tcp->u_arg[5], &fromlen) < 0) {
+			/* from address, len */
+			printaddr(tcp->u_arg[4]);
+			tprints(", ");
+			printaddr(tcp->u_arg[5]);
+			return 0;
+		}
+		/* from address */
+		printsock(tcp, tcp->u_arg[4], fromlen);
 		/* from length */
 		tprintf(", [%u]", fromlen);
 	}
@@ -972,7 +863,7 @@ SYS_FUNC(recvmsg)
 		tprints(", ");
 	} else {
 		if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[1]);
+			printaddr(tcp->u_arg[1]);
 		else
 			printmsghdr(tcp, tcp->u_arg[1], tcp->u_rval);
 		/* flags */
@@ -984,18 +875,16 @@ SYS_FUNC(recvmsg)
 
 SYS_FUNC(recvmmsg)
 {
-	/* +5 chars are for "left " prefix */
-	static char str[5 + TIMESPEC_TEXT_BUFSIZE];
+	static char str[sizeof("left") + TIMESPEC_TEXT_BUFSIZE];
 
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 		if (verbose(tcp)) {
-			sprint_timespec(str, tcp, tcp->u_arg[4]);
 			/* Abusing tcp->auxstr as temp storage.
-			 * Will be used and freed on syscall exit.
+			 * Will be used and cleared on syscall exit.
 			 */
-			tcp->auxstr = strdup(str);
+			tcp->auxstr = sprint_timespec(tcp, tcp->u_arg[4]);
 		} else {
 			tprintf("%#lx, %ld, ", tcp->u_arg[1], tcp->u_arg[2]);
 			printflags(msg_flags, tcp->u_arg[3], "MSG_???");
@@ -1006,9 +895,9 @@ SYS_FUNC(recvmmsg)
 	} else {
 		if (verbose(tcp)) {
 			decode_mmsg(tcp, 0);
+			tprints(", ");
 			/* timeout on entrance */
-			tprintf(", %s", tcp->auxstr ? tcp->auxstr : "{...}");
-			free((void *) tcp->auxstr);
+			tprints(tcp->auxstr);
 			tcp->auxstr = NULL;
 		}
 		if (syserror(tcp))
@@ -1020,7 +909,8 @@ SYS_FUNC(recvmmsg)
 		if (!verbose(tcp))
 			return 0;
 		/* timeout on exit */
-		sprint_timespec(stpcpy(str, "left "), tcp, tcp->u_arg[4]);
+		snprintf(str, sizeof(str), "left %s",
+			 sprint_timespec(tcp, tcp->u_arg[4]));
 		tcp->auxstr = str;
 		return RVAL_STR;
 	}
@@ -1032,12 +922,11 @@ SYS_FUNC(recvmmsg)
 
 SYS_FUNC(shutdown)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printxval(shutdown_modes, tcp->u_arg[1], "SHUT_???");
-	}
-	return 0;
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printxval(shutdown_modes, tcp->u_arg[1], "SHUT_???");
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(getsockname)
@@ -1045,26 +934,40 @@ SYS_FUNC(getsockname)
 	return do_sockname(tcp, -1);
 }
 
+static void
+printpair_fd(struct tcb *tcp, const int i0, const int i1)
+{
+	tprints("[");
+	printfd(tcp, i0);
+	tprints(", ");
+	printfd(tcp, i1);
+	tprints("]");
+}
+
+static void
+decode_pair_fd(struct tcb *tcp, const long addr)
+{
+	int pair[2];
+
+	if (umove_or_printaddr(tcp, addr, &pair))
+		return;
+
+	printpair_fd(tcp, pair[0], pair[1]);
+}
+
 static int
 do_pipe(struct tcb *tcp, int flags_arg)
 {
 	if (exiting(tcp)) {
 		if (syserror(tcp)) {
-			tprintf("%#lx", tcp->u_arg[0]);
+			printaddr(tcp->u_arg[0]);
 		} else {
 #ifdef HAVE_GETRVAL2
 			if (flags_arg < 0) {
-				tprintf("[%lu, %lu]", tcp->u_rval, getrval2(tcp));
+				printpair_fd(tcp, tcp->u_rval, getrval2(tcp));
 			} else
 #endif
-			{
-				int fds[2];
-
-				if (umove(tcp, tcp->u_arg[0], &fds) < 0)
-					tprintf("%#lx", tcp->u_arg[0]);
-				else
-					tprintf("[%u, %u]", fds[0], fds[1]);
-			}
+				decode_pair_fd(tcp, tcp->u_arg[0]);
 		}
 		if (flags_arg >= 0) {
 			tprints(", ");
@@ -1086,29 +989,25 @@ SYS_FUNC(pipe2)
 
 SYS_FUNC(socketpair)
 {
-	int fds[2];
-
 	if (entering(tcp)) {
 		printxval(domains, tcp->u_arg[0], "PF_???");
 		tprints(", ");
 		tprint_sock_type(tcp->u_arg[1]);
 		tprintf(", %lu", tcp->u_arg[2]);
 	} else {
-		if (syserror(tcp)) {
-			tprintf(", %#lx", tcp->u_arg[3]);
-			return 0;
-		}
-		if (umoven(tcp, tcp->u_arg[3], sizeof fds, fds) < 0)
-			tprints(", [...]");
-		else
-			tprintf(", [%u, %u]", fds[0], fds[1]);
+		tprints(", ");
+		decode_pair_fd(tcp, tcp->u_arg[3]);
 	}
 	return 0;
 }
 
 #include "xlat/sockoptions.h"
 #include "xlat/sockipoptions.h"
+#include "xlat/getsockipoptions.h"
+#include "xlat/setsockipoptions.h"
 #include "xlat/sockipv6options.h"
+#include "xlat/getsockipv6options.h"
+#include "xlat/setsockipv6options.h"
 #include "xlat/sockipxoptions.h"
 #include "xlat/sockrawoptions.h"
 #include "xlat/sockpacketoptions.h"
@@ -1116,7 +1015,7 @@ SYS_FUNC(socketpair)
 #include "xlat/socktcpoptions.h"
 
 static void
-print_sockopt_fd_level_name(struct tcb *tcp, int fd, int level, int name)
+print_sockopt_fd_level_name(struct tcb *tcp, int fd, int level, int name, bool is_getsockopt)
 {
 	printfd(tcp, fd);
 	tprints(", ");
@@ -1128,10 +1027,12 @@ print_sockopt_fd_level_name(struct tcb *tcp, int fd, int level, int name)
 		printxval(sockoptions, name, "SO_???");
 		break;
 	case SOL_IP:
-		printxval(sockipoptions, name, "IP_???");
+		printxvals(name, "IP_???", sockipoptions,
+			is_getsockopt ? getsockipoptions : setsockipoptions, NULL);
 		break;
 	case SOL_IPV6:
-		printxval(sockipv6options, name, "IPV6_???");
+		printxvals(name, "IPV6_???", sockipv6options,
+			is_getsockopt ? getsockipv6options : setsockipv6options, NULL);
 		break;
 	case SOL_IPX:
 		printxval(sockipxoptions, name, "IPX_???");
@@ -1166,7 +1067,7 @@ print_linger(struct tcb *tcp, long addr, int len)
 
 	if (len != sizeof(linger) ||
 	    umove(tcp, addr, &linger) < 0) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 		return;
 	}
 
@@ -1184,7 +1085,7 @@ print_ucred(struct tcb *tcp, long addr, int len)
 
 	if (len != sizeof(uc) ||
 	    umove(tcp, addr, &uc) < 0) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 	} else {
 		tprintf("{pid=%u, uid=%u, gid=%u}",
 			(unsigned) uc.pid,
@@ -1202,7 +1103,7 @@ print_tpacket_stats(struct tcb *tcp, long addr, int len)
 
 	if (len != sizeof(stats) ||
 	    umove(tcp, addr, &stats) < 0) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 	} else {
 		tprintf("{packets=%u, drops=%u}",
 			stats.tp_packets,
@@ -1221,7 +1122,7 @@ print_icmp_filter(struct tcb *tcp, long addr, int len)
 
 	if (len != sizeof(filter) ||
 	    umove(tcp, addr, &filter) < 0) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 		return;
 	}
 
@@ -1281,7 +1182,7 @@ print_getsockopt(struct tcb *tcp, int level, int name, long addr, int len)
 			printstr(tcp, addr, len);
 		}
 	} else {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 	}
 done:
 	tprintf(", [%d]", len);
@@ -1291,7 +1192,7 @@ SYS_FUNC(getsockopt)
 {
 	if (entering(tcp)) {
 		print_sockopt_fd_level_name(tcp, tcp->u_arg[0],
-					    tcp->u_arg[1], tcp->u_arg[2]);
+					    tcp->u_arg[1], tcp->u_arg[2], true);
 	} else {
 		int len;
 
@@ -1306,6 +1207,61 @@ SYS_FUNC(getsockopt)
 	return 0;
 }
 
+#ifdef IP_ADD_MEMBERSHIP
+static void
+print_mreq(struct tcb *tcp, long addr, unsigned int len)
+{
+	struct ip_mreq mreq;
+
+	if (len < sizeof(mreq)) {
+		printstr(tcp, addr, len);
+		return;
+	}
+	if (umove_or_printaddr(tcp, addr, &mreq))
+		return;
+
+	tprints("{imr_multiaddr=inet_addr(");
+	print_quoted_string(inet_ntoa(mreq.imr_multiaddr),
+			    16, QUOTE_0_TERMINATED);
+	tprints("), imr_interface=inet_addr(");
+	print_quoted_string(inet_ntoa(mreq.imr_interface),
+			    16, QUOTE_0_TERMINATED);
+	tprints(")}");
+}
+#endif /* IP_ADD_MEMBERSHIP */
+
+#ifdef IPV6_ADD_MEMBERSHIP
+static void
+print_mreq6(struct tcb *tcp, long addr, unsigned int len)
+{
+	struct ipv6_mreq mreq;
+
+	if (len < sizeof(mreq))
+		goto fail;
+
+	if (umove_or_printaddr(tcp, addr, &mreq))
+		return;
+
+#ifdef HAVE_INET_NTOP
+	const struct in6_addr *in6 = &mreq.ipv6mr_multiaddr;
+	char address[INET6_ADDRSTRLEN];
+
+	if (!inet_ntop(AF_INET6, in6, address, sizeof(address)))
+		goto fail;
+
+	tprints("{ipv6mr_multiaddr=inet_pton(");
+	print_quoted_string(address, sizeof(address), QUOTE_0_TERMINATED);
+	tprints("), ipv6mr_interface=");
+	print_ifindex(mreq.ipv6mr_interface);
+	tprints("}");
+	return;
+#endif /* HAVE_INET_NTOP */
+
+fail:
+	printstr(tcp, addr, len);
+}
+#endif /* IPV6_ADD_MEMBERSHIP */
+
 #ifdef MCAST_JOIN_GROUP
 static void
 print_group_req(struct tcb *tcp, long addr, int len)
@@ -1314,7 +1270,7 @@ print_group_req(struct tcb *tcp, long addr, int len)
 
 	if (len != sizeof(greq) ||
 	    umove(tcp, addr, &greq) < 0) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 		return;
 	}
 
@@ -1364,7 +1320,7 @@ print_tpacket_req(struct tcb *tcp, long addr, int len)
 
 	if (len != sizeof(req) ||
 	    umove(tcp, addr, &req) < 0) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 	} else {
 		tprintf("{block_size=%u, block_nr=%u, "
 			"frame_size=%u, frame_nr=%u}",
@@ -1386,7 +1342,7 @@ print_packet_mreq(struct tcb *tcp, long addr, int len)
 
 	if (len != sizeof(mreq) ||
 	    umove(tcp, addr, &mreq) < 0) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 	} else {
 		unsigned int i;
 
@@ -1419,12 +1375,35 @@ print_setsockopt(struct tcb *tcp, int level, int name, long addr, int len)
 
 	case SOL_IP:
 		switch (name) {
+#ifdef IP_ADD_MEMBERSHIP
+		case IP_ADD_MEMBERSHIP:
+		case IP_DROP_MEMBERSHIP:
+			print_mreq(tcp, addr, len);
+			goto done;
+#endif /* IP_ADD_MEMBERSHIP */
 #ifdef MCAST_JOIN_GROUP
 		case MCAST_JOIN_GROUP:
 		case MCAST_LEAVE_GROUP:
 			print_group_req(tcp, addr, len);
 			goto done;
 #endif /* MCAST_JOIN_GROUP */
+		}
+		break;
+
+	case SOL_IPV6:
+		switch (name) {
+#ifdef IPV6_ADD_MEMBERSHIP
+		case IPV6_ADD_MEMBERSHIP:
+		case IPV6_DROP_MEMBERSHIP:
+# ifdef IPV6_JOIN_ANYCAST
+		case IPV6_JOIN_ANYCAST:
+# endif
+# ifdef IPV6_LEAVE_ANYCAST
+		case IPV6_LEAVE_ANYCAST:
+# endif
+			print_mreq6(tcp, addr, len);
+			goto done;
+#endif /* IPV6_ADD_MEMBERSHIP */
 		}
 		break;
 
@@ -1467,7 +1446,7 @@ print_setsockopt(struct tcb *tcp, int level, int name, long addr, int len)
 			printstr(tcp, addr, len);
 		}
 	} else {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 	}
 done:
 	tprintf(", %d", len);
@@ -1475,11 +1454,10 @@ done:
 
 SYS_FUNC(setsockopt)
 {
-	if (entering(tcp)) {
-		print_sockopt_fd_level_name(tcp, tcp->u_arg[0],
-					    tcp->u_arg[1], tcp->u_arg[2]);
-		print_setsockopt(tcp, tcp->u_arg[1], tcp->u_arg[2],
-				 tcp->u_arg[3], tcp->u_arg[4]);
-	}
-	return 0;
+	print_sockopt_fd_level_name(tcp, tcp->u_arg[0],
+				    tcp->u_arg[1], tcp->u_arg[2], false);
+	print_setsockopt(tcp, tcp->u_arg[1], tcp->u_arg[2],
+			 tcp->u_arg[3], tcp->u_arg[4]);
+
+	return RVAL_DECODED;
 }

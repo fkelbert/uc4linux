@@ -21,10 +21,18 @@ AM_CFLAGS = $(WARN_CFLAGS) -Wall -Werror
 AM_CPPFLAGS = -I$(builddir)/$(OS)/$(ARCH) \
 	      -I$(srcdir)/$(OS)/$(ARCH) \
 	      -I$(builddir)/$(OS) \
-	      -I$(srcdir)/$(OS)
+	      -I$(srcdir)/$(OS) \
+	      -I$(builddir) \
+	      -I$(srcdir)
+
 AM_CXXFLAGS = -std=c++11
 
 include xlat/Makemodule.am
+
+strace_CPPFLAGS = $(AM_CPPFLAGS)
+strace_LDFLAGS =
+strace_LDADD =
+noinst_LIBRARIES =
 
 strace_SOURCES =	\
 	access.c	\
@@ -32,6 +40,7 @@ strace_SOURCES =	\
 	aio.c		\
 	bjm.c		\
 	block.c		\
+	bpf.c		\
 	cacheflush.c	\
 	capability.c	\
 	caps0.h		\
@@ -42,14 +51,20 @@ strace_SOURCES =	\
 	count.c		\
 	desc.c		\
 	dirent.c	\
+	empty.h		\
+	epoll.c		\
 	evdev.c		\
+	eventfd.c	\
 	execve.c	\
 	exit.c		\
 	fadvise.c	\
 	fallocate.c	\
 	fanotify.c	\
 	fchownat.c	\
+	fcntl.c		\
+	fetch_seccomp_fprog.c \
 	file.c		\
+	flock.c		\
 	futex.c		\
 	get_robust_list.c \
 	getcpu.c	\
@@ -60,7 +75,12 @@ strace_SOURCES =	\
 	io.c		\
 	ioctl.c		\
 	ioprio.c	\
-	ipc.c		\
+	ipc_defs.h	\
+	ipc_msg.c	\
+	ipc_msgctl.c	\
+	ipc_sem.c	\
+	ipc_shm.c	\
+	ipc_shmctl.c	\
 	kexec.c		\
 	keyctl.c	\
 	ldt.c		\
@@ -68,17 +88,30 @@ strace_SOURCES =	\
 	loop.c		\
 	lseek.c		\
 	mem.c		\
+	memfd_create.c	\
 	mknod.c		\
 	mount.c		\
+	mpers_type.h	\
+	mq.c		\
 	mtd.c		\
+	native_defs.h	\
 	net.c		\
 	open.c		\
 	or1k_atomic.c	\
 	pathtrace.c	\
+	perf.c		\
 	personality.c	\
+	poll.c		\
 	prctl.c		\
+	print_mq_attr.c	\
+	print_msgbuf.c	\
+	print_sigevent.c \
+	print_time.c	\
+	print_timex.c	\
 	printmode.c	\
+	printrusage.c	\
 	printsiginfo.c	\
+	printsiginfo.h	\
 	printstat.h	\
 	process.c	\
 	process_vm.c	\
@@ -91,11 +124,15 @@ strace_SOURCES =	\
 	regs.h		\
 	renameat.c	\
 	resource.c	\
+	rtc.c		\
 	sched.c		\
 	scsi.c		\
 	seccomp.c	\
+	seccomp_fprog.h \
+	sendfile.c	\
 	sigaltstack.c	\
 	signal.c	\
+	signalfd.c	\
 	sigreturn.c	\
 	sock.c		\
 	socketutils.c	\
@@ -112,6 +149,7 @@ strace_SOURCES =	\
 	sysmips.c	\
 	term.c		\
 	time.c		\
+	times.c		\
 	truncate.c	\
 	uid.c		\
 	uid16.c		\
@@ -125,6 +163,7 @@ strace_SOURCES =	\
 	vsprintf.c	\
 	wait.c		\
 	xattr.c		\
+	xmalloc.c	\
 	ucEvents.c 	\
 	ucLog.c 	\
 	ucJni.c 	\
@@ -137,14 +176,14 @@ strace_SOURCES =	\
 	ucPep2Pdp.cpp \
 	usagecontrol.c	\
 	ucTypes.c
+# end of strace_SOURCES
+
 
 if USE_LIBUNWIND
 strace_SOURCES += unwind.c
-strace_CPPFLAGS = $(AM_CPPFLAGS) $(libunwind_CPPFLAGS)
-strace_LDFLAGS = $(libunwind_LDFLAGS)
-strace_LDADD = $(libunwind_LIBS)
-else
-strace_CPPFLAGS = $(AM_CPPFLAGS)
+strace_CPPFLAGS += $(libunwind_CPPFLAGS)
+strace_LDFLAGS += $(libunwind_LDFLAGS)
+strace_LDADD += $(libunwind_LIBS)
 endif
 
 noinst_HEADERS = defs.h
@@ -178,8 +217,11 @@ EXTRA_DIST =				\
 	debian/strace64.manpages	\
 	debian/watch			\
 	errnoent.sh			\
+	generate_sen.sh			\
 	ioctlsort.c			\
 	linux/32/ioctls_inc.h		\
+	linux/32/ioctls_inc_align32.h	\
+	linux/32/ioctls_inc_align64.h	\
 	linux/32/syscallent.h		\
 	linux/64/ioctls_inc.h		\
 	linux/64/syscallent.h		\
@@ -358,6 +400,14 @@ EXTRA_DIST =				\
 	linux/mips/syscallent.h		\
 	linux/mips/userent.h		\
 	linux/mtd-abi.h			\
+	linux/nios2/arch_regs.c		\
+	linux/nios2/get_error.c		\
+	linux/nios2/get_scno.c		\
+	linux/nios2/get_syscall_args.c	\
+	linux/nios2/ioctls_arch0.h	\
+	linux/nios2/ioctls_inc0.h	\
+	linux/nios2/print_pc.c		\
+	linux/nios2/syscallent.h	\
 	linux/or1k/arch_regs.c		\
 	linux/or1k/get_error.c		\
 	linux/or1k/get_scno.c		\
@@ -558,6 +608,9 @@ EXTRA_DIST =				\
 	maint/ioctls_hex.sh		\
 	maint/ioctls_sym.sh		\
 	maint/print_ioctlent.c		\
+	mpers.awk			\
+	mpers.sh			\
+	mpers_test.sh			\
 	signalent.sh			\
 	strace-graph			\
 	strace-log-merge		\
@@ -572,8 +625,6 @@ EXTRA_DIST =				\
 srpm: dist-xz
 	rpmbuild --define '%_srcrpmdir .' -ts $(distdir).tar.xz
 
-BUILT_SOURCES = .version sys_func.h
-
 $(srcdir)/.version:
 	$(AM_V_GEN)echo $(VERSION) > $@-t && mv $@-t $@
 
@@ -583,6 +634,15 @@ sys_func.h: $(patsubst %,$(srcdir)/%,$(strace_SOURCES_c))
 	for f in $^; do \
 		sed -n 's/^SYS_FUNC(.*/extern &;/p' $$f; \
 	done | sort -u > $@
+
+syscallent_names = subcall.h syscallent.h syscallent1.h \
+		   syscallent-n32.h syscallent-n64.h syscallent-o32.h
+syscallent_patterns = $(patsubst %,\%/%,$(syscallent_names))
+syscallent_files = $(filter $(syscallent_patterns),$(EXTRA_DIST))
+
+sen.h: $(patsubst %,$(srcdir)/%,$(syscallent_files))
+	for f in $^; do cat -- $$f; done | \
+		$(srcdir)/generate_sen.sh > $@
 
 dist-hook:
 	$(AM_V_GEN)echo $(VERSION) > $(distdir)/.tarball-version
@@ -609,8 +669,6 @@ ioctlsort_LDFLAGS = $(AM_LDFLAGS) $(LDFLAGS_FOR_BUILD)
 
 ioctls_inc_h = $(wildcard $(srcdir)/$(OS)/$(ARCH)/ioctls_inc*.h)
 ioctlent_h = $(patsubst $(srcdir)/$(OS)/$(ARCH)/ioctls_inc%,ioctlent%,$(ioctls_inc_h))
-BUILT_SOURCES += $(ioctlent_h)
-CLEANFILES = sys_func.h $(ioctlent_h)
 
 ioctlent%.h: ioctlsort%
 	./$< > $@
@@ -623,6 +681,110 @@ ioctlsort%.o: ioctls_all%.h $(srcdir)/ioctlsort.c
 
 ioctls_all%.h: $(srcdir)/$(OS)/$(ARCH)/ioctls_inc%.h $(srcdir)/$(OS)/$(ARCH)/ioctls_arch%.h
 	cat $^ > $@
+
+BUILT_SOURCES = $(ioctlent_h) native_printer_decls.h native_printer_defs.h printers.h sen.h sys_func.h .version
+CLEANFILES    = $(ioctlent_h) native_printer_decls.h native_printer_defs.h printers.h sen.h sys_func.h
+DISTCLEANFILES = gnu/stubs-32.h gnu/stubs-x32.h
+
+# defines mpers_source_files
+include mpers.am
+srcdir_mpers_source_files = $(patsubst %,$(srcdir)/%,$(mpers_source_files))
+
+mpers_NAME =
+mpers_PREFIX = $(mpers_NAME)_
+mpers_DEFS = $(DEFS)
+mpers_INCLUDES = $(DEFAULT_INCLUDES) $(INCLUDES)
+mpers_CPPFLAGS = $(strace_CPPFLAGS) $(CPPFLAGS)
+mpers_sh_opts = $(mpers_DEFS) $(mpers_INCLUDES) $(mpers_CPPFLAGS)
+libmpers_CPPFLAGS = $(AM_CPPFLAGS) -DIN_MPERS
+
+# mpers targets
+
+mpers-m%.stamp: $(srcdir_mpers_source_files) | printers.h
+	for f in $^; do \
+		CC="$(CC)" CFLAGS="$(mpers_sh_opts)" \
+		CPP="$(CPP)" CPPFLAGS="$(mpers_CPPFLAGS) $(mpers_INCLUDES) -DIN_MPERS -DMPERS_IS_$(mpers_NAME)" \
+		$(srcdir)/mpers.sh -$(mpers_NAME) $$f || exit; \
+	done
+	> $@
+
+m%_defs.h: $(srcdir_mpers_source_files)
+	for f in $^; do \
+		sed -n 's/^#include DEF_MPERS_TYPE(\([^)]\+\))/#ifdef MPERS_$(mpers_PREFIX)\1\n# define \1 MPERS_$(mpers_PREFIX)\1\n#endif/p' $$f || exit; \
+	done > $@-t
+	echo '#undef MPERS_PRINTER_NAME' >> $@-t
+	echo '#define MPERS_PRINTER_NAME(printer_name) printer_name' >> $@-t
+	echo '#include "$(mpers_PREFIX)printer_decls.h"' >> $@-t
+	mv $@-t $@
+
+m%_funcs.h: $(srcdir_mpers_source_files)
+	for f in $^; do \
+		sed -n 's/^SYS_FUNC(\([^)]\+\))/#undef sys_\1\n#define sys_\1 $(mpers_PREFIX)sys_\1/p' $$f || exit; \
+	done > $@-t && \
+	echo '#include "sys_func.h"' >> $@-t
+	mv $@-t $@
+
+# printers
+
+printers.h: $(srcdir_mpers_source_files)
+	echo '/* Generated by Makefile from $^; do not edit. */' > $@-t
+	echo 'typedef struct {' >> $@-t
+	for f in $^; do \
+		sed -n 's/^MPERS_PRINTER_DECL(\([^,]\+\),[[:space:]]*\([^)]\+\))\(.*\)/ \1 (*\2) \3;\n#define \2 MPERS_PRINTER_NAME(\2)\n/p' $$f || exit; \
+	done >> $@-t
+	echo '} struct_printers;' >> $@-t
+	echo 'extern const struct_printers *printers;' >> $@-t
+	echo '#define MPERS_PRINTER_NAME(printer_name) printers->printer_name' >> $@-t
+	mv $@-t $@
+
+%_printer_decls.h: $(srcdir_mpers_source_files)
+	echo '/* Generated by Makefile from $^; do not edit. */' > $@-t
+	for f in $^; do \
+		sed -n 's/^MPERS_PRINTER_DECL(\([^,]\+\),[[:space:]]*\([^)]\+\))\(.*\)/extern \1 $(mpers_PREFIX)\2\3;/p' $$f || exit; \
+	done >> $@-t
+	mv $@-t $@
+
+%_printer_defs.h: $(srcdir_mpers_source_files)
+	echo '/* Generated by Makefile from $^; do not edit. */' > $@-t
+	for f in $^; do \
+		sed -n 's/^MPERS_PRINTER_DECL(\([^,]\+\),[[:space:]]*\([^)]\+\))\(.*\)/\.\2 = $(mpers_PREFIX)\2,/p' $$f || exit; \
+	done >> $@-t
+	mv $@-t $@
+
+native_printer_decls.h native_printer_defs.h: mpers_PREFIX =
+
+if HAVE_M32_MPERS
+
+strace_LDADD += libmpers-m32.a
+noinst_LIBRARIES += libmpers-m32.a
+libmpers_m32_a_SOURCES = $(mpers_source_files)
+libmpers_m32_a_CPPFLAGS = $(libmpers_CPPFLAGS) -DMPERS_IS_m32 -I$(builddir)/mpers-m32
+mpers_m32_targets = mpers-m32.stamp m32_defs.h m32_funcs.h m32_printer_decls.h m32_printer_defs.h
+
+BUILT_SOURCES += $(mpers_m32_targets)
+CLEANFILES    += $(mpers_m32_targets)
+
+$(mpers_m32_targets): mpers_NAME = m32
+
+endif # HAVE_M32_MPERS
+
+if HAVE_MX32_MPERS
+
+strace_LDADD += libmpers-mx32.a
+noinst_LIBRARIES += libmpers-mx32.a
+libmpers_mx32_a_SOURCES = $(mpers_source_files)
+libmpers_mx32_a_CPPFLAGS = $(libmpers_CPPFLAGS) -DMPERS_IS_mx32 -I$(builddir)/mpers-mx32
+mpers_mx32_targets = mpers-mx32.stamp mx32_defs.h mx32_funcs.h mx32_printer_decls.h mx32_printer_defs.h
+
+BUILT_SOURCES += $(mpers_mx32_targets)
+CLEANFILES    += $(mpers_mx32_targets)
+
+$(mpers_mx32_targets): mpers_NAME = mx32
+
+endif # HAVE_MX32_MPERS
+
+clean-local:
+	-rm -rf mpers-m32 mpers-mx32
 
 if MAINTAINER_MODE
 

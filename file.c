@@ -87,6 +87,14 @@
 
 #include "printstat.h"
 
+/* all locally defined structures provide these fields */
+#undef HAVE_STRUCT_STAT_ST_ATIME_NSEC
+#define HAVE_STRUCT_STAT_ST_ATIME_NSEC 1
+#undef HAVE_STRUCT_STAT_ST_CTIME_NSEC
+#define HAVE_STRUCT_STAT_ST_CTIME_NSEC 1
+#undef HAVE_STRUCT_STAT_ST_MTIME_NSEC
+#define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
+
 #undef STAT32_PERSONALITY
 #if SUPPORTED_PERSONALITIES > 1
 # if defined AARCH64 || defined X86_64 || defined X32
@@ -174,19 +182,6 @@ struct stat32 {
 # undef HAVE_STRUCT_STAT_ST_FSTYPE
 # undef HAVE_STRUCT_STAT_ST_GEN
 # include "printstat.h"
-
-static void
-printstat32(struct tcb *tcp, long addr)
-{
-	struct stat32 statbuf;
-
-	if (umove(tcp, addr, &statbuf) < 0) {
-		tprints("{...}");
-		return;
-	}
-
-	do_printstat32(tcp, &statbuf);
-}
 #endif /* STAT32_PERSONALITY */
 
 #if defined(SPARC) || defined(SPARC64)
@@ -223,20 +218,6 @@ struct solstat {
 # undef HAVE_STRUCT_STAT_ST_FSTYPE
 # undef HAVE_STRUCT_STAT_ST_GEN
 # include "printstat.h"
-
-static void
-printstatsol(struct tcb *tcp, long addr)
-{
-	struct solstat statbuf;
-
-	if (umove(tcp, addr, &statbuf) < 0) {
-		tprints("{...}");
-		return;
-	}
-
-	do_printstat_sol(tcp, &statbuf);
-}
-
 #endif /* SPARC || SPARC64 */
 
 static void
@@ -244,35 +225,28 @@ printstat(struct tcb *tcp, long addr)
 {
 	struct stat statbuf;
 
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-	if (syserror(tcp) || !verbose(tcp)) {
-		tprintf("%#lx", addr);
-		return;
-	}
-
 #ifdef STAT32_PERSONALITY
 	if (current_personality == STAT32_PERSONALITY) {
-		printstat32(tcp, addr);
+		struct stat32 statbuf;
+
+		if (!umove_or_printaddr(tcp, addr, &statbuf))
+			do_printstat32(tcp, &statbuf);
 		return;
 	}
 #endif
 
 #if defined(SPARC) || defined(SPARC64)
 	if (current_personality == 1) {
-		printstatsol(tcp, addr);
+		struct solstat statbuf;
+
+		if (!umove_or_printaddr(tcp, addr, &statbuf))
+			do_printstat_sol(tcp, &statbuf);
 		return;
 	}
 #endif /* SPARC || SPARC64 */
 
-	if (umove(tcp, addr, &statbuf) < 0) {
-		tprints("{...}");
-		return;
-	}
-
-	do_printstat(tcp, &statbuf);
+	if (!umove_or_printaddr(tcp, addr, &statbuf))
+		do_printstat(tcp, &statbuf);
 }
 
 SYS_FUNC(stat)
@@ -359,15 +333,6 @@ printstat64(struct tcb *tcp, long addr)
 	(void) sizeof(char[sizeof statbuf == STAT64_SIZE ? 1 : -1]);
 # endif
 
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-	if (syserror(tcp) || !verbose(tcp)) {
-		tprintf("%#lx", addr);
-		return;
-	}
-
 # ifdef STAT32_PERSONALITY
 	if (current_personality != STAT32_PERSONALITY) {
 		printstat(tcp, addr);
@@ -375,12 +340,8 @@ printstat64(struct tcb *tcp, long addr)
 	}
 # endif /* STAT32_PERSONALITY */
 
-	if (umove(tcp, addr, &statbuf) < 0) {
-		tprints("{...}");
-		return;
-	}
-
-	do_printstat64(tcp, &statbuf);
+	if (!umove_or_printaddr(tcp, addr, &statbuf))
+		do_printstat64(tcp, &statbuf);
 }
 
 SYS_FUNC(stat64)
@@ -467,29 +428,20 @@ printoldstat(struct tcb *tcp, long addr)
 	struct __old_kernel_stat statbuf;
 	struct stat newstatbuf;
 
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-	if (syserror(tcp) || !verbose(tcp)) {
-		tprintf("%#lx", addr);
-		return;
-	}
-
 # if defined(SPARC) || defined(SPARC64)
 	if (current_personality == 1) {
-		printstatsol(tcp, addr);
+		struct solstat statbuf;
+
+		if (!umove_or_printaddr(tcp, addr, &statbuf))
+			do_printstat_sol(tcp, &statbuf);
 		return;
 	}
 # endif
 
-	if (umove(tcp, addr, &statbuf) < 0) {
-		tprints("{...}");
-		return;
+	if (!umove_or_printaddr(tcp, addr, &statbuf)) {
+		convertoldstat(&statbuf, &newstatbuf);
+		do_printstat(tcp, &newstatbuf);
 	}
-
-	convertoldstat(&statbuf, &newstatbuf);
-	do_printstat(tcp, &newstatbuf);
 }
 
 SYS_FUNC(oldstat)

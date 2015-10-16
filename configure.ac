@@ -6,7 +6,7 @@ AC_INIT([strace],
 AC_CONFIG_SRCDIR([strace.c])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([foreign dist-xz no-dist-gzip silent-rules parallel-tests])
+AM_INIT_AUTOMAKE([foreign nostdinc dist-xz no-dist-gzip silent-rules parallel-tests])
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
 
@@ -14,7 +14,10 @@ AC_PROG_CXX
 AC_PROG_CC
 AX_PROG_CC_FOR_BUILD
 AC_USE_SYSTEM_EXTENSIONS
+AC_PROG_RANLIB
+
 AX_CXX_COMPILE_STDCXX_11
+
 
 AC_MSG_CHECKING([for supported architecture])
 case "$host_cpu" in
@@ -127,6 +130,11 @@ microblaze*)
 	arch=microblaze
 	AC_DEFINE([MICROBLAZE], 1, [Define for the MicroBlaze architecture.])
 	;;
+nios2*)
+	arch=nios2
+	AC_DEFINE([NIOS2], 1, [Define for the Nios-II architecture.])
+	;;
+
 or1k*)
 	arch=or1k
 	AC_DEFINE([OR1K], 1, [Define for the OpenRISC 1000 architecture.])
@@ -147,21 +155,27 @@ AC_MSG_RESULT($arch)
 AC_SUBST(arch)
 
 if test "$arch" = mips; then
-	AC_CACHE_CHECK([for MIPS ABI], [ac_cv_mips_abi],
+	AC_CACHE_CHECK([for _MIPS_SIM], [st_cv__MIPS_SIM],
+		       [AC_COMPUTE_INT([st_cv__MIPS_SIM], [_MIPS_SIM],
+				       [#include <sgidefs.h>],
+				       [AC_MSG_ERROR([_MIPS_SIM cannot be determined])])])
+
+	AC_CACHE_CHECK([for MIPS ABI], [st_cv_mips_abi],
 		[AC_COMPILE_IFELSE(
 			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
 					 [[int i[_MIPS_SIM == _MIPS_SIM_ABI32 ? 1 : - 1];]])],
-			[ac_cv_mips_abi=o32],
+			[st_cv_mips_abi=o32],
 		[AC_COMPILE_IFELSE(
 			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
 					 [[int i[_MIPS_SIM == _MIPS_SIM_NABI32 ? 1 : - 1];]])],
-			[ac_cv_mips_abi=n32],
+			[st_cv_mips_abi=n32],
 		[AC_COMPILE_IFELSE(
 			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
 					 [[int i[_MIPS_SIM == _MIPS_SIM_ABI64 ? 1 : - 1];]])],
-			[ac_cv_mips_abi=n64],
-			[ac_cv_mips_abi=unknown])])])])
-	case "$ac_cv_mips_abi" in
+			[st_cv_mips_abi=n64],
+			[st_cv_mips_abi=unknown])])])])
+
+	case "$st_cv_mips_abi" in
 		o32) AC_DEFINE([LINUX_MIPSO32], [1], [Define for _MIPS_SIM_ABI32.]);;
 		n32) AC_DEFINE([LINUX_MIPSN32], [1], [Define for _MIPS_SIM_NABI32.]);;
 		n64) AC_DEFINE([LINUX_MIPSN64], [1], [Define for _MIPS_SIM_ABI64.]);;
@@ -203,11 +217,14 @@ AC_HEADER_STDBOOL
 AC_HEADER_DIRENT
 AC_HEADER_STAT
 AC_CHECK_MEMBERS(m4_normalize([
+	struct stat.st_atim.tv_nsec,
 	struct stat.st_blksize,
 	struct stat.st_blocks,
+	struct stat.st_ctim.tv_nsec,
 	struct stat.st_flags,
 	struct stat.st_fstype,
 	struct stat.st_gen,
+	struct stat.st_mtim.tv_nsec,
 	struct stat.st_rdev
 ]))
 
@@ -230,6 +247,7 @@ AC_CHECK_FUNCS(m4_normalize([
 	fputs_unlocked
 	if_indextoname
 	inet_ntop
+	inet_pton
 	pipe2
 	prctl
 	preadv
@@ -238,9 +256,11 @@ AC_CHECK_FUNCS(m4_normalize([
 	sendmsg
 	sendmmsg
 	sigaction
+	signalfd
 	stpcpy
 	strerror
 	strsignal
+	utimensat
 ]))
 AC_CHECK_HEADERS(m4_normalize([
 	asm/cachectl.h
@@ -253,6 +273,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	linux/falloc.h
 	linux/filter.h
 	linux/hiddev.h
+	linux/ip_vs.h
 	linux/mmtimer.h
 	linux/perf_event.h
 	linux/seccomp.h
@@ -260,16 +281,15 @@ AC_CHECK_HEADERS(m4_normalize([
 	linux/utsname.h
 	mqueue.h
 	netinet/sctp.h
-	poll.h
 	scsi/sg.h
 	stropts.h
 	sys/conf.h
 	sys/epoll.h
+	sys/eventfd.h
 	sys/fanotify.h
-	sys/filio.h
 	sys/ioctl.h
-	sys/poll.h
 	sys/reg.h
+	sys/signalfd.h
 	sys/vfs.h
 	sys/xattr.h
 ]))
@@ -280,9 +300,23 @@ AC_CHECK_HEADERS([linux/icmp.h linux/in6.h linux/netlink.h linux/if_packet.h],
 AC_CHECK_HEADERS([asm/sigcontext.h], [], [], [#include <signal.h>])
 AC_CHECK_TYPES([struct sigcontext],,, [#include <signal.h>])
 AC_CHECK_HEADERS([netinet/tcp.h netinet/udp.h],,, [#include <netinet/in.h>])
+AC_CHECK_HEADERS(m4_normalize([
+	linux/netfilter_arp/arp_tables.h
+	linux/netfilter_bridge/ebtables.h
+	linux/netfilter_ipv4/ip_tables.h
+	linux/netfilter_ipv6/ip6_tables.h
+]), [], [], [#include <netinet/in.h>
+#include <net/if.h>])
 
 AC_CHECK_TYPES([struct mmsghdr],,, [#include <sys/socket.h>])
 AC_CHECK_MEMBERS([struct msghdr.msg_control],,, [#include <sys/socket.h>])
+
+AC_CHECK_MEMBERS(m4_normalize([
+	struct stat.st_atime_nsec,
+	struct stat.st_ctime_nsec,
+	struct stat.st_mtime_nsec
+]),,, [#include <sys/types.h>
+#include <asm/stat.h>])
 
 AC_CHECK_TYPES([struct stat64],,, [#include <sys/types.h>
 #include <asm/stat.h>])
@@ -300,19 +334,26 @@ AC_CHECK_MEMBERS([struct sigevent._sigev_un._pad,
 		  siginfo_t.si_timerid,
 		  siginfo_t.si_overrun],,, [#include <signal.h>])
 
-AC_CHECK_MEMBERS([struct sysinfo.totalhigh,
-		  struct sysinfo.freehigh,
-		  struct sysinfo.mem_unit],,, [#include <sys/sysinfo.h>])
-
 AC_CHECK_TYPES([struct flock64],,, [#include <fcntl.h>])
 
-AC_CHECK_HEADERS([libaio.h], [
-	AC_CHECK_MEMBERS([struct iocb.u.c.flags],,, [#include <libaio.h>])
-	AC_CHECK_DECLS([IO_CMD_PWRITE, IO_CMD_PWRITEV],,, [#include <libaio.h>])
-])
+AC_CHECK_MEMBERS([struct timex.tai],,, [#include <sys/timex.h>])
 
 AC_CHECK_HEADERS([linux/input.h], [
 	AC_CHECK_MEMBERS([struct input_absinfo.resolution],,, [#include <linux/input.h>])
+])
+
+AC_CHECK_HEADERS([linux/bpf.h], [
+	AC_CACHE_CHECK([whether union bpf_attr.log_buf initialization works],
+		       [st_cv_have_union_bpf_attr_log_buf],
+		[AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM([[#include <linux/bpf.h>]],
+					 [[union bpf_attr a = { .log_buf = 0 };]])],
+			[st_cv_have_union_bpf_attr_log_buf=yes],
+			[st_cv_have_union_bpf_attr_log_buf=no])])
+	if test $st_cv_have_union_bpf_attr_log_buf = yes; then
+		AC_DEFINE(HAVE_UNION_BPF_ATTR_LOG_BUF, [1],
+			  [Define to 1 if union bpf_attr.log_buf initialization works])
+	fi
 ])
 
 AC_CHECK_DECLS([sys_errlist])
@@ -713,6 +754,7 @@ AC_CACHE_CHECK([for BLKGETSIZE64], [ac_cv_have_blkgetsize64],
 AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([long long])
 AC_CHECK_SIZEOF([off_t],,[#include <sys/types.h>])
+AC_CHECK_SIZEOF([struct i64_i32],,[struct i64_i32 {long long i64; int i32;};])
 
 AC_CACHE_CHECK([for SIGRTMIN], [st_cv_SIGRTMIN],
 	       [[st_cv_SIGRTMIN="$(echo SIGRTMIN |
@@ -848,33 +890,8 @@ if test "$arch" = mips && test "$no_create" != yes; then
 	fi
 fi
 
-have_m32=no
-case "$arch" in
-	aarch64|powerpc64|sparc64|tile|x32|x86_64)
-	AC_MSG_CHECKING([for -m32 runtime support])
-	saved_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -m32"
-	AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(){return 0;}]])],
-		[have_m32=yes],[have_m32=no],[have_m32=no])
-	CFLAGS="$saved_CFLAGS"
-	AC_MSG_RESULT($have_m32)
-	;;
-esac
-AM_CONDITIONAL([HAVE_M32_RUNTIME], [test "$have_m32" = yes])
-
-have_mx32=no
-case "$arch" in
-	x86_64)
-	AC_MSG_CHECKING([for -mx32 runtime support])
-	saved_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -mx32"
-	AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(){return 0;}]])],
-		[have_mx32=yes],[have_mx32=no],[have_mx32=no])
-	CFLAGS="$saved_CFLAGS"
-	AC_MSG_RESULT($have_mx32)
-	;;
-esac
-AM_CONDITIONAL([HAVE_MX32_RUNTIME], [test "$have_mx32" = yes])
+st_MPERS([m32], [aarch64|powerpc64|sparc64|tile|x32|x86_64])
+st_MPERS([mx32], [x86_64])
 
 AC_CONFIG_FILES([Makefile tests/Makefile tests-m32/Makefile tests-mx32/Makefile])
 AC_OUTPUT
