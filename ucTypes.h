@@ -8,8 +8,6 @@
 #include "ucLog.h"
 #include "ucJniBridge.h"
 
-#define EVENT_STD_PARAMS_CNT 2
-
 #define is_actual(tcp) 		(!exiting(tcp))
 #define is_desired(tcp) 	(exiting(tcp))
 
@@ -75,16 +73,15 @@ struct s_event {
 };
 typedef struct s_event event;
 
-extern char *eventStdParams[];
-
 void ucTypesInit();
 
-static int evCount = 0;
+static event *theEvent;
+
+#define MAX_PARAMS 16
 
 inline param *createParam(char *key, char *val);
 inline bool addParam(event *ev, param *p);
 inline void destroyParam(param *p);
-inline event *createEvent(str name, int cntParams);
 inline event *createEventWithStdParams(str name, int cntParams) ;
 inline void destroyEvent(event *e);
 

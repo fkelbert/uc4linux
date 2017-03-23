@@ -9,7 +9,7 @@
 #define UC_UC4LINUX_ONLY 1 // do not notify to PDP (but do everything on the C side)
 
 #define UC_DEBUG 0
-#define UC_LOG_EVENT_PARAMETERS 0
+#define UC_LOG_EVENT_PARAMETERS 1
 #define UC_LOG_TIME 0
 
 // Enable _either_ of the two following options

@@ -1,10 +1,6 @@
 #include "ucTypes.h"
 
 
-char *eventStdParams[] =
-				{ "PEP", "Linux",
-					"host", "<<PLACEHOLDER>> (To be filled by function ucTypesInit())" };
-
 #if UC_JNI
 void ucTypesSetJniEnv(JNIEnv *mainJniEnv) {
 	jniEnv = mainJniEnv;
@@ -19,8 +15,14 @@ void ucTypesInit() {
 		exit(1);
 	}
 
-	eventStdParams[3] = strdup(utsname.nodename);
-	uc_log("Determined hostname: %s\n", eventStdParams[3]);
+	uc_log("Determined hostname: %s\n", utsname.nodename);
+
+	theEvent = (event *) malloc(sizeof(event));
+	theEvent->params = (param**) malloc(MAX_PARAMS * sizeof(param*));
+	theEvent->iterParams = 0;
+	addParam(theEvent, createParam("PEP", "Linux"));
+	addParam(theEvent, createParam("host", strdup(utsname.nodename)));
+
 
 	EVENT_NAME_ACCEPT = createString("Accept");
 	EVENT_NAME_CHROOT = createString("Chroot");
@@ -61,7 +63,7 @@ inline param *createParam(char *key, char *val) {
 }
 
 inline bool addParam(event *ev, param *p) {
-	if (ev->iterParams < ev->cntParams) {
+	if (ev->iterParams < MAX_PARAMS) {
 		ev->params[ev->iterParams] = p;
 		ev->iterParams++;
 		return true;
@@ -75,35 +77,17 @@ inline void destroyParam(param *p) {
 	free(p);
 }
 
-inline event *createEvent(str name, int cntParams) {
-	evCount++;
-	printf("evCount: %d\n", evCount);
-	event *e = (event *) malloc(sizeof(event));
-	e->name = name;
-	e->isActual = true;
-	e->cntParams = cntParams;
-	e->iterParams = 0;
-	e->params = (param**) malloc(cntParams * sizeof(param*));
-	return e;
-}
-
 inline event *createEventWithStdParams(str name, int cntParams) {
-	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);
-
-	int i;
-	for (i = 0; i < EVENT_STD_PARAMS_CNT; i++) {
-		addParam(e, createParam(eventStdParams[i*2], eventStdParams[i*2+1]));
-	}
-
-	return e;
+	theEvent->name = name;
+	theEvent->isActual = true;
+	theEvent->cntParams = cntParams + 2;
+	theEvent->iterParams = 2;
+	return theEvent;
 }
 
 inline void destroyEvent(event *e) {
-	evCount--;
 	int i;
-	for (i = 0; i < e->cntParams; i++) {
+	for (i = 2; i < e->cntParams; i++) {
 		destroyParam(e->params[i]);
 	}
-	free(e->params);
-	free(e);
 }
