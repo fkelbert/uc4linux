@@ -54,5 +54,4 @@
 #define JniExceptionCheck(env)								(*env)->ExceptionCheck(env)
 #define JniExceptionClear(env)								(*env)->ExceptionClear(env)
 #define JniExceptionDescribe(env)							(*env)->ExceptionDescribe(env)
-
 #endif

@@ -6,8 +6,6 @@ char *eventStdParams[] =
 					"host", "<<PLACEHOLDER>> (To be filled by function ucTypesInit())" };
 
 #if UC_JNI
-JNIEnv *jniEnv;
-
 void ucTypesSetJniEnv(JNIEnv *mainJniEnv) {
 	jniEnv = mainJniEnv;
 }
@@ -55,5 +53,57 @@ void ucTypesInit() {
 	EVENT_NAME_WRITE = createString("Write");
 }
 
+inline param *createParam(char *key, char *val) {
+	param *p = (param *) malloc(sizeof(param));
+	p->key = createString(key);
+	p->val = createString(val);
+	return p;
+}
 
+inline bool addParam(event *ev, param *p) {
+	if (ev->iterParams < ev->cntParams) {
+		ev->params[ev->iterParams] = p;
+		ev->iterParams++;
+		return true;
+	}
+	return false;
+}
 
+inline void destroyParam(param *p) {
+	destroyString(p->key);
+	destroyString(p->val);
+	free(p);
+}
+
+inline event *createEvent(str name, int cntParams) {
+	evCount++;
+	printf("evCount: %d\n", evCount);
+	event *e = (event *) malloc(sizeof(event));
+	e->name = name;
+	e->isActual = true;
+	e->cntParams = cntParams;
+	e->iterParams = 0;
+	e->params = (param**) malloc(cntParams * sizeof(param*));
+	return e;
+}
+
+inline event *createEventWithStdParams(str name, int cntParams) {
+	event *e = createEvent(name, cntParams + EVENT_STD_PARAMS_CNT);
+
+	int i;
+	for (i = 0; i < EVENT_STD_PARAMS_CNT; i++) {
+		addParam(e, createParam(eventStdParams[i*2], eventStdParams[i*2+1]));
+	}
+
+	return e;
+}
+
+inline void destroyEvent(event *e) {
+	evCount--;
+	int i;
+	for (i = 0; i < e->cntParams; i++) {
+		destroyParam(e->params[i]);
+	}
+	free(e->params);
+	free(e);
+}

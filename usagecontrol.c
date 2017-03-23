@@ -1,6 +1,10 @@
 #include "usagecontrol.h"
 
 void notifyEventToPdp(event *ev) {
+#if UC_UC4LINUX_ONLY
+	return;
+#endif
+
 #if UC_JNI
 	notifyEventToPdpJni(ev);
 #elif UC_THRIFT

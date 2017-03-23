@@ -2297,7 +2297,9 @@ show_stopsig:
   *    For an example, have a look at http://alip.github.io/code/ptrace-linux-deny.c
   *
  */
+#if !UC_STRACE_ONLY
 	notifySyscall(tcp);
+#endif
 
 #endif
 
