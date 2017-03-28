@@ -721,11 +721,26 @@ extern void unwind_capture_stacktrace(struct tcb* tcp);
  * strace -oLOG -f[f] -p "`pidof web_browser`"
  */
 extern struct tcb *printing_tcp;
+
+#include "ucSettings.h"
+#if UC_ENABLED || STRACE_SILENT
+//extern void printleader(struct tcb *);
+//extern void line_ended(void);
+//extern void tabto(void);
+//extern void tprintf(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
+//extern void tprints(const char *str);
+#define printleader(tcb)
+#define line_ended()
+#define tabto(void)
+#define tprintf(fmt, ...)
+#define tprints(str)
+#else
 extern void printleader(struct tcb *);
 extern void line_ended(void);
 extern void tabto(void);
 extern void tprintf(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
 extern void tprints(const char *str);
+#endif
 
 #if SUPPORTED_PERSONALITIES > 1
 extern void set_personality(int personality);

@@ -54,6 +54,8 @@ void notifySyscall(struct tcb *tcp) {
 		return;
 	}
 
+	uc_log(" (%d) ", cbtime);
+
 	/*
 	 * Always signal these calls as actual event.
 	 */

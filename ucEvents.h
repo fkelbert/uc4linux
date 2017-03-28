@@ -22,24 +22,22 @@
 #define ucSemantics_IGNORE NULL
 #define ucSemanticsDefined(syscallno) (ucSemanticsFunct[syscallno] != NULL)
 
-#define PID_LEN 6
-#define FD_LEN 6
-
-#define toPid(str,i) snprintf(str,PID_LEN,"%u", (unsigned int)i)
-#define toFd(str,i) snprintf(str,FD_LEN,"%u", (unsigned int)i)
-#define toString(str,tcp,arg)	{  str[0] = '\0'; 										\
-									if (!umovestr(tcp, arg, sizeof(str), str)) { 		\
-											str[sizeof(str) - 1] = '\0';				\
-									} }
-
 #define isAbsolutePath(string) (string && *string == '/')
 
 #define isSocket(string) 	(string && strlen(string) >= 7 && strncmp(string,"socket:",7) == 0)
 #define isPipe(string) 		(string && strlen(string) >= 5 && strncmp(string,"pipe:",5) == 0)
 
+#define toString(str,tcp,arg)  {  str[0] = '\0';                                                                               \
+                                                                       if (!umovestr(tcp, arg, sizeof(str), str)) {            \
+                                                                                       str[sizeof(str) - 1] = '\0';                            \
+                                                                       } }
+
 #define IS_FLAG_SET(field,flag)	((field & flag) == flag)
 
 extern event *(*ucSemanticsFunct[])(struct tcb *tcp);
+
+extern int cbtime;
+
 
 event *do_unlink(char *filename);
 
