@@ -538,6 +538,9 @@ printfd(struct tcb *tcp, int fd)
  * Returns 0 if QUOTE_0_TERMINATED is set and NUL was seen, 1 otherwise.
  * Note that if QUOTE_0_TERMINATED is not set, always returns 1.
  */
+#if UC_ENABLED
+#define string_quote(instr, outstr, size, style) 0
+#else
 static int
 string_quote(const char *instr, char *outstr, const unsigned int size,
 	     const unsigned int style)
@@ -674,6 +677,7 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
 	/* Return zero: we printed entire ASCIZ string (didn't truncate it) */
 	return 0;
 }
+#endif
 
 #ifndef ALLOCA_CUTOFF
 # define ALLOCA_CUTOFF	4032

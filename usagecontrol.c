@@ -1,10 +1,6 @@
 #include "usagecontrol.h"
 
 void notifyEventToPdp(event *ev) {
-#if UC_UC4LINUX_ONLY
-	return;
-#endif
-
 #if UC_JNI
 	notifyEventToPdpJni(ev);
 #elif UC_THRIFT
@@ -54,8 +50,6 @@ void notifySyscall(struct tcb *tcp) {
 		return;
 	}
 
-	uc_log(" (%d) ", cbtime);
-
 	/*
 	 * Always signal these calls as actual event.
 	 */
@@ -81,11 +75,10 @@ void notifySyscall(struct tcb *tcp) {
 	if (tcp->scno == SYS_execve) {
 		notifyEventToPdp(ev);
 	}
-#else
+#elif (!UC_UC4LINUX_ONLY)
 	notifyEventToPdp(ev);
 #endif
 
-	destroyEvent(ev);
 	uc_log("\n");
 }
 

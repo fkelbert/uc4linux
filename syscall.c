@@ -676,6 +676,9 @@ printargs_ld(struct tcb *tcp)
 	return 0;
 }
 
+#if UC_ENABLED
+#define dumpio(tcp)
+#else
 static void
 dumpio(struct tcb *tcp)
 {
@@ -731,6 +734,7 @@ dumpio(struct tcb *tcp)
 		}
 	}
 }
+#endif
 
 /*
  * Shuffle syscall numbers so that we don't have huge gaps in syscall table.
@@ -979,6 +983,7 @@ trace_syscall_exiting(struct tcb *tcp)
 			sys_res = tcp->s_ent->sys_func(tcp);
 	}
 
+#if (!UC_ENABLED)
 	tprints(") ");
 	tabto();
 	u_error = tcp->u_error;
@@ -1113,6 +1118,7 @@ trace_syscall_exiting(struct tcb *tcp)
 		if ((sys_res & RVAL_STR) && tcp->auxstr)
 			tprintf(" (%s)", tcp->auxstr);
 	}
+#endif
 	if (Tflag) {
 		tv_sub(&tv, &tv, &tcp->etime);
 		tprintf(" <%ld.%06ld>",

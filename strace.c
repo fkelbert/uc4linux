@@ -533,12 +533,6 @@ strace_popen(const char *command)
 
 #if UC_ENABLED || STRACE_SILENT
 
-//inline void tprintf(const char *fmt, ...) {}
-//inline void tprints(const char *str) {}
-//inline void line_ended(void) {}
-//inline void printleader(struct tcb *tcp) {}
-//inline void tabto(void) {}
-
 #else
 
 void
