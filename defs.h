@@ -59,6 +59,8 @@
 
 #include "mpers_type.h"
 
+#include "ucSettings.h"
+
 #ifndef HAVE_STRERROR
 const char *strerror(int);
 #endif
@@ -529,7 +531,11 @@ int strace_vfprintf(FILE *fp, const char *fmt, va_list args);
 extern void set_sortby(const char *);
 extern void set_overhead(int);
 extern void qualify(const char *);
+#if UC_ENABLED
+#define print_pc(a)
+#else
 extern void print_pc(struct tcb *);
+#endif
 extern int trace_syscall(struct tcb *);
 extern void count_syscall(struct tcb *, const struct timeval *);
 extern void call_summary(FILE *);
@@ -594,21 +600,34 @@ extern int printllval(struct tcb *, const char *, int)
 	ATTRIBUTE_FORMAT((printf, 2, 0));
 
 extern void printaddr(long);
+#if UC_ENABLED
+#define printxvals(a, b, c, ...)
+#else
 extern void printxvals(const unsigned int, const char *, const struct xlat *, ...);
+#endif
 #define printxval(xlat, val, dflt) printxvals(val, dflt, xlat, NULL)
 extern int printargs(struct tcb *);
 extern int printargs_lu(struct tcb *);
 extern int printargs_ld(struct tcb *);
 extern void addflags(const struct xlat *, int);
-extern int printflags(const struct xlat *, int, const char *);
+#if UC_ENABLED
+#define printflags(a, b, c) ({int i; i=0; i;})
+#else
+extern int printflags(const struct xlat *, int, const char *)
+#endif
 extern const char *sprintflags(const char *, const struct xlat *, int);
 extern const char *sprintmode(int);
 extern const char *sprinttime(time_t);
 extern void dumpiov_in_msghdr(struct tcb *, long);
 extern void dumpiov_in_mmsghdr(struct tcb *, long);
 extern void dumpiov(struct tcb *, int, long);
+#if UC_ENABLED
+#define dumpstr(a,b,c)
+#define printstr(t, a, b)
+#else
 extern void dumpstr(struct tcb *, long, int);
 extern void printstr(struct tcb *, long, long);
+#endif
 extern bool printnum_short(struct tcb *, long, const char *)
 	ATTRIBUTE_FORMAT((printf, 3, 0));
 extern bool printnum_int(struct tcb *, long, const char *)
@@ -646,8 +665,13 @@ extern bool printpair_int(struct tcb *, long, const char *)
 	ATTRIBUTE_FORMAT((printf, 3, 0));
 extern bool printpair_int64(struct tcb *, long, const char *)
 	ATTRIBUTE_FORMAT((printf, 3, 0));
+#if UC_ENABLED
+#define printpath(t, a)
+#define printpathn(t, a, b)
+#else
 extern void printpath(struct tcb *, long);
 extern void printpathn(struct tcb *, long, unsigned int);
+#endif
 #define TIMESPEC_TEXT_BUFSIZE \
 		(sizeof(intmax_t)*3 * 2 + sizeof("{tv_sec=%jd, tv_nsec=%jd}"))
 extern void printfd(struct tcb *, int);
@@ -668,9 +692,15 @@ extern const char *sprintsigmask_n(const char *, const void *, unsigned int);
 #define tprintsigmask_addr(prefix, mask) \
 	tprints(sprintsigmask_n((prefix), (mask), sizeof(mask)))
 extern void printsignal(int);
+#if UC_ENABLED
+#define tprint_iov(a,b,c,d)
+#define tprint_iov_upto(a,b,c,d,e)
+#define tprint_open_modes(a)
+#else
 extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);
 extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long, int decode_iov, unsigned long);
 extern void tprint_open_modes(int);
+#endif
 extern const char *sprint_open_modes(int);
 extern void print_seccomp_filter(struct tcb *tcp, unsigned long);
 

@@ -331,6 +331,9 @@ set_personality(int personality)
 # endif
 }
 
+#if (!UC_ENABLED)
+#define update_personality(a,b)
+#else
 static void
 update_personality(struct tcb *tcp, unsigned int personality)
 {
@@ -362,6 +365,7 @@ update_personality(struct tcb *tcp, unsigned int personality)
 	}
 # endif
 }
+#endif
 #endif
 
 static int qual_syscall(), qual_signal(), qual_desc();
@@ -640,6 +644,7 @@ SYS_FUNC(syscall)
 }
 #endif
 
+
 int
 printargs(struct tcb *tcp)
 {
@@ -809,6 +814,7 @@ trace_syscall_entering(struct tcb *tcp)
 		res = get_syscall_args(tcp);
 
 	if (res != 1) {
+#if (!UC_ENABLED)
 		printleader(tcp);
 		if (scno_good != 1)
 			tprints("????" /* anti-trigraph gap */ "(");
@@ -820,6 +826,7 @@ trace_syscall_entering(struct tcb *tcp)
 		 * " <unavailable>" will be added later by the code which
 		 * detects ptrace errors.
 		 */
+#endif
 		goto ret;
 	}
 
@@ -874,11 +881,13 @@ trace_syscall_entering(struct tcb *tcp)
 	}
 #endif
 
+#if (!UC_ENABLED)
 	printleader(tcp);
 	if (tcp->qual_flg & UNDEFINED_SCNO)
 		tprintf("%s(", syscall_name(tcp->scno));
 	else
 		tprintf("%s(", tcp->s_ent->sys_name);
+#endif
 	if ((tcp->qual_flg & QUAL_RAW) && SEN_exit != tcp->s_ent->sen)
 		res = printargs(tcp);
 	else
@@ -940,6 +949,7 @@ trace_syscall_exiting(struct tcb *tcp)
 	 * "strace -ff -oLOG test/threaded_execve" corner case.
 	 * It's the only case when -ff mode needs reprinting.
 	 */
+#if (!UC_ENABLED)
 	if ((followfork < 2 && printing_tcp != tcp) || (tcp->flags & TCB_REPRINT)) {
 		tcp->flags &= ~TCB_REPRINT;
 		printleader(tcp);
@@ -949,6 +959,7 @@ trace_syscall_exiting(struct tcb *tcp)
 			tprintf("<... %s resumed> ", tcp->s_ent->sys_name);
 	}
 	printing_tcp = tcp;
+#endif
 
 	tcp->s_prev_ent = NULL;
 	if (res != 1) {
@@ -1118,7 +1129,6 @@ trace_syscall_exiting(struct tcb *tcp)
 		if ((sys_res & RVAL_STR) && tcp->auxstr)
 			tprintf(" (%s)", tcp->auxstr);
 	}
-#endif
 	if (Tflag) {
 		tv_sub(&tv, &tv, &tcp->etime);
 		tprintf(" <%ld.%06ld>",
@@ -1127,6 +1137,7 @@ trace_syscall_exiting(struct tcb *tcp)
 	tprints("\n");
 	dumpio(tcp);
 	line_ended();
+#endif
 
 #ifdef USE_LIBUNWIND
 	if (stack_trace_enabled)
@@ -1228,6 +1239,7 @@ is_negated_errno(kernel_ulong_t val)
 # include "arch_getrval2.c"
 #endif
 
+#if (!UC_ENABLED)
 void
 print_pc(struct tcb *tcp)
 {
@@ -1258,6 +1270,7 @@ print_pc(struct tcb *tcp)
 
 #include "print_pc.c"
 }
+#endif
 
 #if defined X86_64 || defined POWERPC
 # include "getregs_old.c"

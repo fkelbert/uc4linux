@@ -207,6 +207,7 @@ next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits)
 /*
  * Print entry in struct xlat table, if there.
  */
+#if (!UC_ENABLED)
 void
 printxvals(const unsigned int val, const char *dflt, const struct xlat *xlat, ...)
 {
@@ -227,6 +228,7 @@ printxvals(const unsigned int val, const char *dflt, const struct xlat *xlat, ..
 
 	va_end(args);
 }
+#endif
 
 /*
  * Fetch 64bit argument at position arg_no and
@@ -346,6 +348,7 @@ sprintflags(const char *prefix, const struct xlat *xlat, int flags)
 	return outstr;
 }
 
+#if (!UC_ENABLED)
 int
 printflags(const struct xlat *xlat, int flags, const char *dflt)
 {
@@ -385,6 +388,7 @@ printflags(const struct xlat *xlat, int flags, const char *dflt)
 
 	return n;
 }
+#endif
 
 void
 printaddr(const long addr)
@@ -736,6 +740,9 @@ print_quoted_string(const char *str, unsigned int size,
 	return rc;
 }
 
+
+#if UC_ENABLED
+#else
 /*
  * Print path string specified by address `addr' and length `n'.
  * If path length exceeds `n', append `...' to the output.
@@ -834,6 +841,7 @@ printstr(struct tcb *tcp, long addr, long len)
 	if (ellipsis)
 		tprints("...");
 }
+#endif
 
 void
 dumpiov(struct tcb *tcp, int len, long addr)
@@ -883,6 +891,7 @@ dumpiov(struct tcb *tcp, int len, long addr)
 #undef iov
 }
 
+#if (!UC_ENABLED)
 void
 dumpstr(struct tcb *tcp, long addr, int len)
 {
@@ -954,6 +963,7 @@ dumpstr(struct tcb *tcp, long addr, int len)
 		tprintf(" | %05x  %s |\n", i - 16, outbuf);
 	}
 }
+#endif
 
 #ifdef HAVE_PROCESS_VM_READV
 /* C library supports this, but the kernel might not. */

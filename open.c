@@ -75,11 +75,13 @@ sprint_open_modes(int flags)
 	return outstr;
 }
 
+#if (!UC_ENABLED)
 void
 tprint_open_modes(int flags)
 {
 	tprints(sprint_open_modes(flags) + sizeof("flags"));
 }
+#endif
 
 static int
 decode_open(struct tcb *tcp, int offset)

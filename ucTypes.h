@@ -20,57 +20,51 @@
 
 #if UC_JNI
 	#include <jni.h>
-	typedef jstring str;
 	JNIEnv *jniEnv;
 
-	#define createString(s) 	JniNewStringUTF(jniEnv, s)
-	#define destroyString(s)
 	void ucTypesSetJniEnv(JNIEnv *mainJniEnv);
 #elif UC_THRIFT
-	typedef char* str;
-
-	#define createString(s) 	strdup(s)
-	#define destroyString(s)	free(s)
 #endif
 
-str EVENT_NAME_ACCEPT;
-str EVENT_NAME_CHROOT;
-str EVENT_NAME_CLONE;
-str EVENT_NAME_CLOSE;
-str EVENT_NAME_CONNECT;
-str EVENT_NAME_CREAT;
-str EVENT_NAME_DUP;
-str EVENT_NAME_DUP2;
-str EVENT_NAME_EXECVE;
-str EVENT_NAME_EXIT;
-str EVENT_NAME_EXITGROUP;
-str EVENT_NAME_FCNTL;
-str EVENT_NAME_FTRUNCATE;
-str EVENT_NAME_KILL;
-str EVENT_NAME_MMAP;
-str EVENT_NAME_MUNMAP;
-str EVENT_NAME_OPEN;
-str EVENT_NAME_PIPE;
-str EVENT_NAME_READ;
-str EVENT_NAME_RENAME;
-str EVENT_NAME_SENDFILE;
-str EVENT_NAME_SHUTDOWN;
-str EVENT_NAME_SOCKET;
-str EVENT_NAME_SOCKETPAIR;
-str EVENT_NAME_SPLICE;
-str EVENT_NAME_TEE;
-str EVENT_NAME_TRUNCATE;
-str EVENT_NAME_UNLINK;
-str EVENT_NAME_WRITE;
+#define EVENT_NAME_ACCEPT "Accept"
+#define EVENT_NAME_CHROOT "Chroot"
+#define EVENT_NAME_CLONE "Clone"
+#define EVENT_NAME_CLOSE "Close"
+#define EVENT_NAME_CONNECT "Connect"
+#define EVENT_NAME_CREAT "Creat"
+#define EVENT_NAME_DUP "Dup"
+#define EVENT_NAME_DUP2 "Dup2"
+#define EVENT_NAME_EXECVE "Execve"
+#define EVENT_NAME_EXIT "Exit"
+#define EVENT_NAME_EXITGROUP "ExitGroup"
+#define EVENT_NAME_FCNTL "Fcntl"
+#define EVENT_NAME_FTRUNCATE "Ftruncate"
+#define EVENT_NAME_KILL "Kill"
+#define EVENT_NAME_MMAP "Mmap"
+#define EVENT_NAME_MUNMAP "Munmap"
+#define EVENT_NAME_OPEN "Open"
+#define EVENT_NAME_PIPE "Pipe"
+#define EVENT_NAME_READ "Read"
+#define EVENT_NAME_RENAME "Rename"
+#define EVENT_NAME_SENDFILE "Sendfile"
+#define EVENT_NAME_SHUTDOWN "Shutdown"
+#define EVENT_NAME_SOCKET "Socket"
+#define EVENT_NAME_SOCKETPAIR "Socketpair"
+#define EVENT_NAME_SPLICE "Splice"
+#define EVENT_NAME_TEE "Tee"
+#define EVENT_NAME_TRUNCATE "Truncate"
+#define EVENT_NAME_UNLINK "Unlink"
+#define EVENT_NAME_WRITE "Write"
+
 
 struct s_param {
-	str key;
-	str val;
+	char *key;
+	char *val;
 };
 typedef struct s_param param;
 
 struct s_event {
-	str name;
+	char name[64];
 	param **params;
 	int cntParams;
 	bool isActual;
@@ -97,6 +91,7 @@ static param *paramFd1;
 static param *paramFd2;
 static param *paramFilename;
 static param *paramFlags;
+static param *paramHost;
 static param *paramHow;
 static param *paramInfd;
 static param *paramLocalip;
@@ -108,6 +103,7 @@ static param *paramOldfd;
 static param *paramOperation;
 static param *paramOutfd;
 static param *paramOutfilename;
+static param *paramPep;
 static param *paramPid;
 static param *paramPids;
 static param *paramPipename;
@@ -162,6 +158,7 @@ inline bool addParamSrcfd(int fd);
 inline bool addParamTrunc(int trunc);
 inline bool addParamType(char *type);
 
-inline event *createEventWithStdParams(str name, int cntParams) ;
+inline event *createEventWithStdParams(char *name, int cntParams) ;
 
 #endif
+

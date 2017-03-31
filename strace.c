@@ -1958,6 +1958,11 @@ maybe_switch_tcbs(struct tcb *tcp, const int pid)
 	return tcp;
 }
 
+#if UC_ENABLED
+#define print_signalled(a,b,c)
+#define print_exited(a,b,c)
+#define print_stopped(a,b,c)
+#else
 static void
 print_signalled(struct tcb *tcp, const int pid, int status)
 {
@@ -2015,6 +2020,7 @@ print_stopped(struct tcb *tcp, const siginfo_t *si, const unsigned int sig)
 		line_ended();
 	}
 }
+#endif
 
 static void
 startup_tcb(struct tcb *tcp)

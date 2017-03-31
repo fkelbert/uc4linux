@@ -57,6 +57,7 @@ SYS_FUNC(write)
 	return RVAL_DECODED;
 }
 
+#if (!UC_ENABLED)
 /*
  * data_size limits the cumulative size of printed data.
  * Example: recvmsg returing a short read.
@@ -116,6 +117,7 @@ tprint_iov(struct tcb *tcp, unsigned long len, unsigned long addr, int decode_io
 {
 	tprint_iov_upto(tcp, len, addr, decode_iov, (unsigned long) -1L);
 }
+#endif
 
 SYS_FUNC(readv)
 {

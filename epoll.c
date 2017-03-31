@@ -23,6 +23,9 @@ SYS_FUNC(epoll_create1)
 #ifdef HAVE_SYS_EPOLL_H
 # include "xlat/epollevents.h"
 
+#if UC_ENABLED
+#define print_epoll_event(a)
+#else
 static void
 print_epoll_event(struct epoll_event *ev)
 {
@@ -33,6 +36,7 @@ print_epoll_event(struct epoll_event *ev)
 	tprintf(", {u32=%" PRIu32 ", u64=%" PRIu64 "}}",
 		ev->data.u32, ev->data.u64);
 }
+#endif
 #endif
 
 #include "xlat/epollctls.h"

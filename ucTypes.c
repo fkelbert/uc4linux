@@ -45,10 +45,9 @@ char str_srcpid[PID_LEN];
 char str_trunc[6];
 char str_type[128];
 
-param *createParam(char *key, char *val) {
+param *createParam(char *key) {
 	param *p = (param *) malloc(sizeof(param));
-	p->key = createString(key);
-	p->val = createString(val);
+	p->key = strdup(key);
 	return p;
 }
 
@@ -255,8 +254,8 @@ inline bool addParamType(char *type) {
 	return addParam(theEvent, paramType);
 }
 
-inline event *createEventWithStdParams(str name, int cntParams) {
-	theEvent->name = name;
+inline event *createEventWithStdParams(char *name, int cntParams) {
+	snprintf(theEvent->name, 64, "%s", name);
 	theEvent->isActual = true;
 	theEvent->cntParams = cntParams + 2;
 	theEvent->iterParams = 2;
@@ -277,154 +276,129 @@ void ucTypesInit() {
 	theEvent->params = (param**) malloc(MAX_PARAMS * sizeof(param*));
 	theEvent->iterParams = 0;
 
-	addParam(theEvent, createParam("PEP", "Linux"));
-	addParam(theEvent, createParam("host", strdup(utsname.nodename)));
+	paramPep = createParam("PEP");
+	paramPep->val = strdup("Linux");
+	addParam(theEvent, paramPep);
 
-	paramAddr = createParam("addr", "");
+	paramHost = createParam("host");
+	paramHost->val = strdup(utsname.nodename);
+	addParam(theEvent, paramHost);
+
+	paramAddr = createParam("addr");
 	paramAddr->val = str_addr;
 
-	paramAllowImpliesActual = createParam("allowImpliesActual", "true");
+	paramAllowImpliesActual = createParam("allowImpliesActual");
+	paramAllowImpliesActual->val = strdup("true");
 
-	paramCmdline = createParam("cmdline", "");
+	paramCmdline = createParam("cmdline");
 	paramCmdline->val = str_cmdline;
 
-	paramCpid = createParam("cpid", "");
+	paramCpid = createParam("cpid");
 	paramCpid->val = str_cpid;
 
-	paramCwd = createParam("cwd", "");
+	paramCwd = createParam("cwd");
 	paramCwd->val = str_cwd;
 
-	paramDir = createParam("dir", "");
+	paramDir = createParam("dir");
 	paramDir->val = str_dir;
 
-	paramDomain = createParam("domain", "");
+	paramDomain = createParam("domain");
 	paramDomain->val = str_domain;
 
-	paramDstfd = createParam("dstfd", "");
+	paramDstfd = createParam("dstfd");
 	paramDstfd->val = str_dstfd;
 
-	paramDstfilename = createParam("dstfilename", "");
+	paramDstfilename = createParam("dstfilename");
 	paramDstfilename->val = str_dstfilename;
 
-	paramDstpid = createParam("dstpid", "");
+	paramDstpid = createParam("dstpid");
 	paramDstpid->val = str_dstpid;
 
-	paramFd = createParam("fd", "");
+	paramFd = createParam("fd");
 	paramFd->val = str_fd;
 
-	paramFd1 = createParam("fd1", "");
+	paramFd1 = createParam("fd1");
 	paramFd1->val = str_fd1;
 
-	paramFd2 = createParam("fd2", "");
+	paramFd2 = createParam("fd2");
 	paramFd2->val = str_fd2;
 
-	paramFilename = createParam("filename", "");
+	paramFilename = createParam("filename");
 	paramFilename->val = str_filename;
 
-	paramFlags = createParam("flags", "");
+	paramFlags = createParam("flags");
 	paramFlags->val = str_flags;
 
-	paramHow = createParam("how", "");
+	paramHow = createParam("how");
 	paramHow->val = str_how;
 
-	paramInfd = createParam("infd", "");
+	paramInfd = createParam("infd");
 	paramInfd->val = str_infd;
 
-	paramLocalip = createParam("localIP", "");
+	paramLocalip = createParam("localIP");
 	paramLocalip->val = str_localip;
 
-	paramLocalport = createParam("localPort", "");
+	paramLocalport = createParam("localPort");
 	paramLocalport->val = str_localport;
 
-	paramNew = createParam("new", "");
+	paramNew = createParam("new");
 	paramNew->val = str_new;
 
-	paramNewfd = createParam("newfd", "");
+	paramNewfd = createParam("newfd");
 	paramNewfd->val = str_newfd;
 
-	paramOld = createParam("old", "");
+	paramOld = createParam("old");
 	paramOld->val = str_old;
 
-	paramOldfd = createParam("oldfd", "");
+	paramOldfd = createParam("oldfd");
 	paramOldfd->val = str_oldfd;
 
-	paramOperation = createParam("operation", "");
+	paramOperation = createParam("operation");
 	paramOperation->val = str_operation;
 
-	paramOutfd = createParam("outfd", "");
+	paramOutfd = createParam("outfd");
 	paramOutfd->val = str_outfd;
 
-	paramOutfilename = createParam("outfilename", "");
+	paramOutfilename = createParam("outfilename");
 	paramOutfilename->val = str_outfilename;
 
-	paramPid = createParam("pid", "");
+	paramPid = createParam("pid");
 	paramPid->val = str_pid;
 
-	paramPids = createParam("pids", "");
+	paramPids = createParam("pids");
 	paramPids->val = str_pids;
 
-	paramPipename = createParam("pipename", "");
+	paramPipename = createParam("pipename");
 	paramPipename->val = str_pipename;
 
-	paramPpid = createParam("ppid", "");
+	paramPpid = createParam("ppid");
 	paramPpid->val = str_ppid;
 
-	paramRemoteip = createParam("remoteIP", "");
+	paramRemoteip = createParam("remoteIP");
 	paramRemoteip->val = str_remoteip;
 
-	paramRemoteport = createParam("remotePort", "");
+	paramRemoteport = createParam("remotePort");
 	paramRemoteport->val = str_remoteport;
 
-	paramSocketname = createParam("socketname", "");
+	paramSocketname = createParam("socketname");
 	paramSocketname->val = str_socketname;
 
-	paramSocketname1 = createParam("socketname1", "");
+	paramSocketname1 = createParam("socketname1");
 	paramSocketname1->val = str_socketname1;
 
-	paramSocketname2 = createParam("socketname2", "");
+	paramSocketname2 = createParam("socketname2");
 	paramSocketname2->val = str_socketname2;
 
-	paramSrcfd = createParam("srcfd", "");
+	paramSrcfd = createParam("srcfd");
 	paramSrcfd->val = str_srcfd;
 
-	paramSrcpid = createParam("srcpid", "");
+	paramSrcpid = createParam("srcpid");
 	paramSrcpid->val = str_srcpid;
 
-	paramTrunc = createParam("trunc", "");
+	paramTrunc = createParam("trunc");
 	paramTrunc->val = str_trunc;
 
-	paramType = createParam("type", "");
+	paramType = createParam("type");
 	paramType->val = str_type;
-
-
-	EVENT_NAME_ACCEPT = createString("Accept");
-	EVENT_NAME_CHROOT = createString("Chroot");
-	EVENT_NAME_CLONE = createString("Clone");
-	EVENT_NAME_CLOSE = createString("Close");
-	EVENT_NAME_CONNECT = createString("Connect");
-	EVENT_NAME_CREAT = createString("Creat");
-	EVENT_NAME_DUP = createString("Dup");
-	EVENT_NAME_DUP2 = createString("Dup2");
-	EVENT_NAME_EXECVE = createString("Execve");
-	EVENT_NAME_EXIT = createString("Exit");
-	EVENT_NAME_EXITGROUP = createString("ExitGroup");
-	EVENT_NAME_FCNTL = createString("Fcntl");
-	EVENT_NAME_FTRUNCATE = createString("Ftruncate");
-	EVENT_NAME_KILL = createString("Kill");
-	EVENT_NAME_MMAP = createString("Mmap");
-	EVENT_NAME_MUNMAP = createString("Munmap");
-	EVENT_NAME_OPEN = createString("Open");
-	EVENT_NAME_PIPE = createString("Pipe");
-	EVENT_NAME_READ = createString("Read");
-	EVENT_NAME_RENAME = createString("Rename");
-	EVENT_NAME_SENDFILE = createString("Sendfile");
-	EVENT_NAME_SHUTDOWN = createString("Shutdown");
-	EVENT_NAME_SOCKET = createString("Socket");
-	EVENT_NAME_SOCKETPAIR = createString("Socketpair");
-	EVENT_NAME_SPLICE = createString("Splice");
-	EVENT_NAME_TEE = createString("Tee");
-	EVENT_NAME_TRUNCATE = createString("Truncate");
-	EVENT_NAME_UNLINK = createString("Unlink");
-	EVENT_NAME_WRITE = createString("Write");
 }
 

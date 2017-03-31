@@ -22,17 +22,17 @@ void *threadJvmStarter(void *args) {
 	JNIEnv *env;
     JavaVMInitArgs vm_args;
 
-    int nOptions = 4;
-    JavaVMOption options[nOptions];
-    options[0].optionString = "-Djava.class.path=" USER_CLASSPATH; //Path to the java source code
-    options[1].optionString = "-Djava.compiler=NONE";
-    options[2].optionString = "-Xms128m";
-    options[3].optionString = "-Xmx1536m";
+	int nOptions = 4;
+	JavaVMOption options[nOptions];
+	options[0].optionString = "-Djava.class.path=" USER_CLASSPATH; //Path to the java source code
+	options[1].optionString = "-Djava.compiler=NONE";
+	options[2].optionString = "-Xms2048m";
+	options[3].optionString = "-Xmx2048m";
 
-    vm_args.version = JNI_VERSION_1_6; //JDK version. This indicates version 1.6
-    vm_args.nOptions = nOptions;
+	vm_args.version = JNI_VERSION_1_8; //JDK version. This indicates version 1.6
+	vm_args.nOptions = nOptions;
     vm_args.options = options;
-    vm_args.ignoreUnrecognized = 0;
+	vm_args.ignoreUnrecognized = 1;
 
     jmethodID mainMethod;
     jclass mainClass;
@@ -52,17 +52,12 @@ void *threadJvmStarter(void *args) {
 	// find the main method
 	mainMethod = JniGetStaticMethodID(env, mainClass, METHOD_MAIN_NAME, METHOD_MAIN_SIG);
 	if (JniExceptionCheck(env) == JNI_TRUE) {
+		printf("3\n");
 		printf("Method " METHOD_MAIN_NAME " not found.\n");
 		exit(1);
 	}
 
-
-
 	// call the main method
-//	jarray arg = JniNewObjectArray(env, 2, JniFindClass(env, JNI_STRING), 0);
-//	JniSetObjectArrayElement(env, arg, 0, JniNewStringUTF(env, "-pp"));
-//	JniSetObjectArrayElement(env, arg, 1, JniNewStringUTF(env, "pdp1.properties"));
-//	JniCallStaticVoidMethod(env, pdpClass, mainMethod, arg);
 	JniCallStaticVoidMethod(env, mainClass, mainMethod);
 	if (JniExceptionCheck(env) == JNI_TRUE) {
 		printf("Exception in " METHOD_MAIN_NAME ".\n");
@@ -71,7 +66,6 @@ void *threadJvmStarter(void *args) {
 	}
 
 	JniExceptionClear(env);
-
 
 	// The above main() (i.e. this thread) should actually never exit
 	pthread_exit((void *) true);
@@ -94,11 +88,11 @@ inline void notifyEventToPdpJni(event *ev) {
 
 	int i;
 	for (i = 0; i < ev->cntParams; i++) {
-		JniSetObjectArrayElement(mainJniEnv, paramKeys, i, ev->params[i]->key);
-		JniSetObjectArrayElement(mainJniEnv, paramVals, i, ev->params[i]->val);
+		JniSetObjectArrayElement(mainJniEnv, paramKeys, i, createString(ev->params[i]->key));
+		JniSetObjectArrayElement(mainJniEnv, paramVals, i, createString(ev->params[i]->val));
 	}
 
-	jobject resp = JniCallObjectMethod(mainJniEnv, nativeHandler, methodNotifyEvent, ev->name, paramKeys, paramVals, ev->isActual);
+	jobject resp = JniCallObjectMethod(mainJniEnv, nativeHandler, methodNotifyEvent, createString(ev->name), paramKeys, paramVals, ev->isActual);
 }
 
 
@@ -122,7 +116,7 @@ bool waitForStartupCompletion() {
 		fflush(stdout);
 		sleep(1);
 	}
-	printf("\n");
+	printf(" done.\n");
 
 	return true;
 }
