@@ -480,7 +480,6 @@ typedef enum {
 	CFLAG_BOTH
 } cflag_t;
 extern cflag_t cflag;
-extern bool debug_flag;
 extern bool Tflag;
 extern bool iflag;
 extern bool count_wallclock;

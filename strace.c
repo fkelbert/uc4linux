@@ -42,6 +42,7 @@
 #include <grp.h>
 #include <dirent.h>
 #include <sys/utsname.h>
+#include "hashmap.h"
 #ifdef HAVE_PRCTL
 # include <sys/prctl.h>
 #endif
@@ -84,7 +85,6 @@ cflag_t cflag = CFLAG_NONE;
 unsigned int followfork = 0;
 unsigned int ptrace_setoptions = PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXEC;
 unsigned int xflag = 0;
-bool debug_flag = 0;
 bool Tflag = 0;
 bool iflag = 0;
 bool count_wallclock = 0;
@@ -132,6 +132,7 @@ static int post_attach_sigstop = TCB_IGNORE_ONE_SIGSTOP;
 /* Sometimes we want to print only succeeding syscalls. */
 bool not_failing_only = 0;
 
+
 /* Show path associated with fd arguments */
 unsigned int show_fd_path = 0;
 
@@ -160,6 +161,7 @@ static FILE *shared_log;
 struct tcb *printing_tcp = NULL;
 static struct tcb *current_tcp;
 
+static hashmap *tcbmap;
 static struct tcb **tcbtab;
 static unsigned int nprocs, tcbtabsize;
 static const char *progname;
@@ -702,6 +704,9 @@ alloctcb(int pid)
 		if (!tcp->pid) {
 			memset(tcp, 0, sizeof(*tcp));
 			tcp->pid = pid;
+			int *index = xcalloc(1, sizeof(index[0]));
+			*index = i;
+			hashmapInsert(tcbmap, index, (unsigned long) pid);
 #if SUPPORTED_PERSONALITIES > 1
 			tcp->currpers = current_personality;
 #endif
@@ -712,9 +717,6 @@ alloctcb(int pid)
 #endif
 
 			nprocs++;
-			if (debug_flag)
-				error_msg("new tcb for pid %d, active tcbs:%d",
-					  tcp->pid, nprocs);
 			return tcp;
 		}
 	}
@@ -734,9 +736,6 @@ droptcb(struct tcb *tcp)
 #endif
 
 	nprocs--;
-	if (debug_flag)
-		error_msg("dropped tcb for pid %d, %d remain",
-			  tcp->pid, nprocs);
 
 	if (tcp->outf) {
 		if (followfork >= 2) {
@@ -755,6 +754,7 @@ droptcb(struct tcb *tcp)
 	if (printing_tcp == tcp)
 		printing_tcp = NULL;
 
+	free(hashmapRemove(tcbmap, (unsigned long) tcp->pid));
 	memset(tcp, 0, sizeof(*tcp));
 }
 
@@ -864,9 +864,7 @@ detach(struct tcb *tcp)
 			break;
 		}
 		sig = WSTOPSIG(status);
-		if (debug_flag)
-			error_msg("detach wait: event:%d sig:%d",
-				  (unsigned)status >> 16, sig);
+
 		if (use_seize) {
 			unsigned event = (unsigned)status >> 16;
 			if (event == PTRACE_EVENT_STOP /*&& sig == SIGTRAP*/) {
@@ -1020,12 +1018,8 @@ startup_attach(void)
 					++ntid;
 					if (ptrace_attach_or_seize(tid) < 0) {
 						++nerr;
-						if (debug_flag)
-							error_msg("attach to pid %d failed", tid);
 						continue;
 					}
-					if (debug_flag)
-						error_msg("attach to pid %d succeeded", tid);
 					cur_tcp = tcp;
 					if (tid != tcp->pid)
 						cur_tcp = alloctcb(tid);
@@ -1068,8 +1062,6 @@ startup_attach(void)
 		}
 		tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
 		newoutf(tcp);
-		if (debug_flag)
-			error_msg("attach to pid %d (main) succeeded", tcp->pid);
 
 		if (daemonized_tracer) {
 			/*
@@ -1354,8 +1346,6 @@ test_ptrace_seize(void)
 	 */
 	if (ptrace(PTRACE_SEIZE, pid, 0, 0) == 0) {
 		post_attach_sigstop = 0; /* this sets use_seize to 1 */
-	} else if (debug_flag) {
-		error_msg("PTRACE_SEIZE doesn't work");
 	}
 
 	kill(pid, SIGKILL);
@@ -1448,6 +1438,7 @@ init(int argc, char *argv[])
 	/* Allocate the initial tcbtab.  */
 	tcbtabsize = argc;	/* Surely enough for all -p args.  */
 	tcbtab = xcalloc(tcbtabsize, sizeof(tcbtab[0]));
+	tcbmap = hashmapCreate(16);
 	tcp = xcalloc(tcbtabsize, sizeof(*tcp));
 	for (tcbi = 0; tcbi < tcbtabsize; tcbi++)
 		tcbtab[tcbi] = tcp++;
@@ -1487,9 +1478,6 @@ init(int argc, char *argv[])
 				error_msg_and_die("-c and -C are mutually exclusive");
 			}
 			cflag = CFLAG_BOTH;
-			break;
-		case 'd':
-			debug_flag = 1;
 			break;
 		case 'D':
 			daemonized_tracer = 1;
@@ -1678,8 +1666,6 @@ init(int argc, char *argv[])
 		ptrace_setoptions |= PTRACE_O_TRACECLONE |
 				     PTRACE_O_TRACEFORK |
 				     PTRACE_O_TRACEVFORK;
-	if (debug_flag)
-		error_msg("ptrace_setoptions = %#x", ptrace_setoptions);
 	test_ptrace_seize();
 
 	/* Check if they want to redirect the output. */
@@ -1780,15 +1766,12 @@ init(int argc, char *argv[])
 static struct tcb *
 pid2tcb(int pid)
 {
-	unsigned int i;
-
 	if (pid <= 0)
 		return NULL;
 
-	for (i = 0; i < tcbtabsize; i++) {
-		struct tcb *tcp = tcbtab[i];
-		if (tcp->pid == pid)
-			return tcp;
+	int *j = (int *) hashmapGet(tcbmap, (unsigned long) pid);
+	if (j != NULL) {
+		return tcbtab[*j];
 	}
 
 	return NULL;
@@ -1810,8 +1793,6 @@ cleanup(void)
 		tcp = tcbtab[i];
 		if (!tcp->pid)
 			continue;
-		if (debug_flag)
-			error_msg("cleanup: looking at pid %u", tcp->pid);
 		if (tcp->pid == strace_child) {
 			kill(tcp->pid, SIGCONT);
 			kill(tcp->pid, fatal_sig);
@@ -2025,15 +2006,10 @@ print_stopped(struct tcb *tcp, const siginfo_t *si, const unsigned int sig)
 static void
 startup_tcb(struct tcb *tcp)
 {
-	if (debug_flag)
-		error_msg("pid %d has TCB_STARTUP, initializing it", tcp->pid);
 
 	tcp->flags &= ~TCB_STARTUP;
 
 	if (!use_seize) {
-		if (debug_flag)
-			error_msg("setting opts 0x%x on pid %d",
-				  ptrace_setoptions, tcp->pid);
 		if (ptrace(PTRACE_SETOPTIONS, tcp->pid, NULL, ptrace_setoptions) < 0) {
 			if (errno != ESRCH) {
 				/* Should never happen, really */
@@ -2105,9 +2081,6 @@ trace(void)
 			popen_pid = 0;
 		return true;
 	}
-
-	if (debug_flag)
-		print_debug_info(pid, status);
 
 	/* Look up 'pid' in our table. */
 	tcp = pid2tcb(pid);
@@ -2219,8 +2192,6 @@ trace(void)
 	 * just before the process takes a signal.
 	 */
 	if (sig == SIGSTOP && (tcp->flags & TCB_IGNORE_ONE_SIGSTOP)) {
-		if (debug_flag)
-			error_msg("ignored SIGSTOP on pid %d", tcp->pid);
 		tcp->flags &= ~TCB_IGNORE_ONE_SIGSTOP;
 		goto restart_tracee_with_sig_0;
 	}
