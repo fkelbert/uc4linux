@@ -51,10 +51,10 @@ param *createParam(char *key) {
 	return p;
 }
 
-inline bool addParam(event *ev, param *p) {
-	if (ev->iterParams < MAX_PARAMS) {
-		ev->params[ev->iterParams] = p;
-		ev->iterParams++;
+inline bool addParam(param *p) {
+	if (theEvent->iterParams < MAX_PARAMS) {
+		theEvent->params[theEvent->iterParams] = p;
+		theEvent->iterParams++;
 		return true;
 	}
 	return false;
@@ -62,203 +62,203 @@ inline bool addParam(event *ev, param *p) {
 
 inline bool addParamAddr(char *addr) {
 	snprintf(str_addr, 12, "%s", addr);
-	return addParam(theEvent, paramAddr);
+	return addParam(paramAddr);
 }
 
 inline bool addParamAllowImpliesActual() {
-	return addParam(theEvent, paramAllowImpliesActual);
+	return addParam(paramAllowImpliesActual);
 }
 
 inline bool addParamCmdline(char *cmdline) {
 	snprintf(str_cmdline, FILENAME_MAX, "%s", cmdline);
-	return addParam(theEvent, paramCmdline);
+	return addParam(paramCmdline);
 }
 
 inline bool addParamCpid(int pid) {
 	toPid(str_cpid, pid);
-	return addParam(theEvent, paramCpid);
+	return addParam(paramCpid);
 }
 
 inline bool addParamCwd(char *cwd) {
 	snprintf(str_cwd, FILENAME_MAX, "%s", cwd);
-	return addParam(theEvent, paramCwd);
+	return addParam(paramCwd);
 }
 
 inline bool addParamDir(char *dir) {
 	snprintf(str_dir, FILENAME_MAX, "%s", dir);
-	return addParam(theEvent, paramDir);
+	return addParam(paramDir);
 }
 
 inline bool addParamDomain(char *domain) {
 	snprintf(str_domain, 128, "%s", domain);
-	return addParam(theEvent, paramDomain);
+	return addParam(paramDomain);
 }
 
 inline bool addParamDstfd(int fd) {
 	toFd(str_dstfd, fd);
-	return addParam(theEvent, paramDstfd);
+	return addParam(paramDstfd);
 }
 
 inline bool addParamDstfilename(char *filename) {
 	snprintf(str_dstfilename, FILENAME_MAX, "%s", filename);
-	return addParam(theEvent, paramDstfilename);
+	return addParam(paramDstfilename);
 }
 
 inline bool addParamDstpid(int pid) {
 	toPid(str_dstpid, pid);
-	return addParam(theEvent, paramDstpid);
+	return addParam(paramDstpid);
 }
 
 inline bool addParamFd(int fd) {
 	toFd(str_fd, fd);
-	return addParam(theEvent, paramFd);
+	return addParam(paramFd);
 }
 
 inline bool addParamFd1(int fd) {
 	toFd(str_fd1, fd);
-	return addParam(theEvent, paramFd1);
+	return addParam(paramFd1);
 }
 
 inline bool addParamFd2(int fd) {
 	toFd(str_fd2, fd);
-	return addParam(theEvent, paramFd2);
+	return addParam(paramFd2);
 }
 
 inline bool addParamFilename(char *filename) {
 	snprintf(str_filename, FILENAME_MAX, "%s", filename);
-	return addParam(theEvent, paramFilename);
+	return addParam(paramFilename);
 }
 
 inline bool addParamFlags(char *flags) {
 	snprintf(str_flags, 256, "%s", flags);
-	return addParam(theEvent, paramFlags);
+	return addParam(paramFlags);
 }
 
 inline bool addParamHow(char *how) {
 	snprintf(str_how, 128, "%s", how);
-	return addParam(theEvent, paramHow);
+	return addParam(paramHow);
 }
 
 inline bool addParamInfd(int fd) {
 	toFd(str_infd, fd);
-	return addParam(theEvent, paramInfd);
+	return addParam(paramInfd);
 }
 
 inline bool addParamLocalip(unsigned long ip) {
 	snprintf(str_localip, 16, "%d.%d.%d.%d", (unsigned char) ip & 0xFF, (unsigned char) (ip >> 8) & 0xFF, (unsigned char) (ip >> 16) & 0xFF, (unsigned char) (ip >> 24) & 0xFF);
-	return addParam(theEvent, paramLocalip);
+	return addParam(paramLocalip);
 }
 
 inline bool addParamLocalport(unsigned long port) {
 	snprintf(str_localport, 6, "%ld", port);
-	return addParam(theEvent, paramLocalport);
+	return addParam(paramLocalport);
 }
 
 inline bool addParamNew(char *filename) {
 	snprintf(str_new, FILENAME_MAX, "%s", filename);
-	return addParam(theEvent, paramNew);
+	return addParam(paramNew);
 }
 
 inline bool addParamNewfd(int fd) {
 	toFd(str_newfd, fd);
-	return addParam(theEvent, paramNewfd);
+	return addParam(paramNewfd);
 }
 
 inline bool addParamOld(char *filename) {
 	snprintf(str_old, FILENAME_MAX, "%s", filename);
-	return addParam(theEvent, paramOld);
+	return addParam(paramOld);
 }
 
 inline bool addParamOldfd(int fd) {
 	toFd(str_oldfd, fd);
-	return addParam(theEvent, paramOldfd);
+	return addParam(paramOldfd);
 }
 
 inline bool addParamOperation(char *operation) {
 	snprintf(str_operation, 128, "%s", operation);
-	return addParam(theEvent, paramOperation);
+	return addParam(paramOperation);
 }
 
 inline bool addParamOutfd(int fd) {
 	toFd(str_outfd, fd);
-	return addParam(theEvent, paramOutfd);
+	return addParam(paramOutfd);
 }
 
 inline bool addParamOutfilename(char *filename) {
 	snprintf(str_outfilename, FILENAME_MAX, "%s", filename);
-	return addParam(theEvent, paramOutfilename);
+	return addParam(paramOutfilename);
 }
 
 inline bool addParamPid(int pid) {
 	toPid(str_pid, pid);
-	return addParam(theEvent, paramPid);
+	return addParam(paramPid);
 }
 
 inline bool addParamPids(char *pids) {
 	snprintf(str_pids, 4096, "%s", pids);
-	return addParam(theEvent, paramPids);
+	return addParam(paramPids);
 }
 
 inline bool addParamPipename(char *pipename) {
 	snprintf(str_pipename, FILENAME_MAX, "%s", pipename);
-	return addParam(theEvent, paramPipename);
+	return addParam(paramPipename);
 }
 
 inline bool addParamPpid(int pid) {
 	toPid(str_ppid, pid);
-	return addParam(theEvent, paramPpid);
+	return addParam(paramPpid);
 }
 
 inline bool addParamRemoteip(unsigned long ip) {
 	snprintf(str_remoteip, 16, "%d.%d.%d.%d", (unsigned char) ip & 0xFF, (unsigned char) (ip >> 8) & 0xFF, (unsigned char) (ip >> 16) & 0xFF, (unsigned char) (ip >> 24) & 0xFF);
-	return addParam(theEvent, paramRemoteip);
+	return addParam(paramRemoteip);
 }
 
 inline bool addParamRemoteport(unsigned long port) {
 	snprintf(str_remoteport, 6, "%ld", port);
-	return addParam(theEvent, paramRemoteport);
+	return addParam(paramRemoteport);
 }
 
 inline bool addParamSocketname(char *sname) {
 	snprintf(str_socketname, PATH_MAX + 1, "%s", sname);
-	return addParam(theEvent, paramSocketname);
+	return addParam(paramSocketname);
 }
 
 inline bool addParamSocketname1(char *sname) {
 	snprintf(str_socketname1, PATH_MAX + 1, "%s", sname);
-	return addParam(theEvent, paramSocketname1);
+	return addParam(paramSocketname1);
 }
 
 inline bool addParamSocketname2(char *sname) {
 	snprintf(str_socketname2, PATH_MAX + 1, "%s", sname);
-	return addParam(theEvent, paramSocketname2);
+	return addParam(paramSocketname2);
 }
 
 inline bool addParamSrcfd(int fd) {
 	toFd(str_srcfd, fd);
-	return addParam(theEvent, paramSrcfd);
+	return addParam(paramSrcfd);
 }
 
 inline bool addParamSrcpid(int pid) {
 	toPid(str_srcpid, pid);
-	return addParam(theEvent, paramSrcpid);
+	return addParam(paramSrcpid);
 }
 
 inline bool addParamTrunc(int trunc) {
 	snprintf(str_trunc, 6, "%s", trunc ? "true" : "false");
-	return addParam(theEvent, paramTrunc);
+	return addParam(paramTrunc);
 }
 
 inline bool addParamType(char *type) {
 	snprintf(str_type, 128, "%s", type);
-	return addParam(theEvent, paramType);
+	return addParam(paramType);
 }
 
 inline event *createEventWithStdParams(char *name, int cntParams) {
 	snprintf(theEvent->name, 64, "%s", name);
 	theEvent->isActual = true;
-	theEvent->cntParams = cntParams + 2;
 	theEvent->iterParams = 2;
+	theEvent->cntParams = cntParams + theEvent->iterParams;
 	return theEvent;
 }
 
@@ -278,11 +278,11 @@ void ucTypesInit() {
 
 	paramPep = createParam("PEP");
 	paramPep->val = strdup("Linux");
-	addParam(theEvent, paramPep);
+	addParam(paramPep);
 
 	paramHost = createParam("host");
 	paramHost->val = strdup(utsname.nodename);
-	addParam(theEvent, paramHost);
+	addParam(paramHost);
 
 	paramAddr = createParam("addr");
 	paramAddr->val = str_addr;

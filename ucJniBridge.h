@@ -55,3 +55,5 @@
 #define JniExceptionClear(env)								(*env)->ExceptionClear(env)
 #define JniExceptionDescribe(env)							(*env)->ExceptionDescribe(env)
 #endif
+
+

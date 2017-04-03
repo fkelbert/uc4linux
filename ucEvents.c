@@ -97,8 +97,13 @@ int getCmdline(char *cmdline, int len, int pid) {
 			}
 		}
 		strcat(cmdline,line);
+		free(line);
 		line=NULL;
 		s=0;
+	}
+
+	if (line != NULL) {
+		free(line);
 	}
 
 	fclose(f);
@@ -235,7 +240,7 @@ bool getIPsAndPorts(int pid, int inode, unsigned long *lip, unsigned long *lport
 	bool first = true;
 	bool found = false;
 
-	for (line = NULL; !found && getline(&line, &s, cons) >= 0; line = NULL, s = 0){
+	for (line = NULL; !found && getline(&line, &s, cons) >= 0; free(line), line = NULL, s = 0){
 		if (first) {
 			first = false;
 			continue;
@@ -259,6 +264,10 @@ bool getIPsAndPorts(int pid, int inode, unsigned long *lip, unsigned long *lport
 		}
 	}
 
+	if (line != NULL) {
+		free(line);
+	}
+
 	fclose(cons);
 
 	return found;
@@ -279,7 +288,7 @@ int getParentPid(int pid) {
 	int ppid = -1;
 	bool found = false;
 
-	for (line = NULL; !found && getline(&line, &s, stat) >= 0; line = NULL, s = 0){
+	for (line = NULL; !found && getline(&line, &s, stat) >= 0; free(line), line = NULL, s = 0){
 		if (sscanf(line, "PPid: %d", &ppid) == 1) {
 			found = true;
 		}

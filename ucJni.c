@@ -88,11 +88,11 @@ inline void notifyEventToPdpJni(event *ev) {
 
 	int i;
 	for (i = 0; i < ev->cntParams; i++) {
-		JniSetObjectArrayElement(mainJniEnv, paramKeys, i, createString(ev->params[i]->key));
-		JniSetObjectArrayElement(mainJniEnv, paramVals, i, createString(ev->params[i]->val));
+		JniSetObjectArrayElement(mainJniEnv, paramKeys, i, JniNewStringUTF(mainJniEnv, ev->params[i]->key));
+		JniSetObjectArrayElement(mainJniEnv, paramVals, i, JniNewStringUTF(mainJniEnv, ev->params[i]->val));
 	}
 
-	jobject resp = JniCallObjectMethod(mainJniEnv, nativeHandler, methodNotifyEvent, createString(ev->name), paramKeys, paramVals, ev->isActual);
+	jobject resp = JniCallObjectMethod(mainJniEnv, nativeHandler, methodNotifyEvent, JniNewStringUTF(mainJniEnv, ev->name), paramKeys, paramVals, ev->isActual);
 }
 
 
