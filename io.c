@@ -34,25 +34,25 @@
 
 SYS_FUNC(read)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		if (syserror(tcp))
-			printaddr(tcp->u_arg[1]);
-		else
-			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
-		tprintf(", %lu", tcp->u_arg[2]);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		if (syserror(tcp))
+//			printaddr(tcp->u_arg[1]);
+//		else
+//			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
+//		tprintf(", %lu", tcp->u_arg[2]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(write)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu", tcp->u_arg[2]);
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//	tprintf(", %lu", tcp->u_arg[2]);
 
 	return RVAL_DECODED;
 }
@@ -65,78 +65,78 @@ SYS_FUNC(write)
 void
 tprint_iov_upto(struct tcb *tcp, unsigned long len, unsigned long addr, int decode_iov, unsigned long data_size)
 {
-	unsigned long iov[2];
-	unsigned long size, cur, end, abbrev_end;
-	const unsigned long sizeof_iov = current_wordsize * 2;
-
-	if (!len) {
-		tprints("[]");
-		return;
-	}
-	size = len * sizeof_iov;
-	end = addr + size;
-	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
-	    !addr || size / sizeof_iov != len || end < addr) {
-		printaddr(addr);
-		return;
-	}
-	if (abbrev(tcp)) {
-		abbrev_end = addr + max_strlen * sizeof_iov;
-		if (abbrev_end < addr)
-			abbrev_end = end;
-	} else {
-		abbrev_end = end;
-	}
-	tprints("[");
-	for (cur = addr; cur < end; cur += sizeof_iov) {
-		if (cur > addr)
-			tprints(", ");
-		if (cur >= abbrev_end) {
-			tprints("...");
-			break;
-		}
-		if (umove_ulong_array_or_printaddr(tcp, cur, iov,
-						   ARRAY_SIZE(iov)))
-			break;
-		tprints("{");
-		if (decode_iov) {
-			unsigned long len = iov[1];
-			if (len > data_size)
-				len = data_size;
-			data_size -= len;
-			printstr(tcp, iov[0], len);
-		} else
-			printaddr(iov[0]);
-		tprintf(", %lu}", iov[1]);
-	}
-	tprints("]");
+//	unsigned long iov[2];
+//	unsigned long size, cur, end, abbrev_end;
+//	const unsigned long sizeof_iov = current_wordsize * 2;
+//
+//	if (!len) {
+//		tprints("[]");
+//		return;
+//	}
+//	size = len * sizeof_iov;
+//	end = addr + size;
+//	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
+//	    !addr || size / sizeof_iov != len || end < addr) {
+//		printaddr(addr);
+//		return;
+//	}
+//	if (abbrev(tcp)) {
+//		abbrev_end = addr + max_strlen * sizeof_iov;
+//		if (abbrev_end < addr)
+//			abbrev_end = end;
+//	} else {
+//		abbrev_end = end;
+//	}
+//	tprints("[");
+//	for (cur = addr; cur < end; cur += sizeof_iov) {
+//		if (cur > addr)
+//			tprints(", ");
+//		if (cur >= abbrev_end) {
+//			tprints("...");
+//			break;
+//		}
+//		if (umove_ulong_array_or_printaddr(tcp, cur, iov,
+//						   ARRAY_SIZE(iov)))
+//			break;
+//		tprints("{");
+//		if (decode_iov) {
+//			unsigned long len = iov[1];
+//			if (len > data_size)
+//				len = data_size;
+//			data_size -= len;
+//			printstr(tcp, iov[0], len);
+//		} else
+//			printaddr(iov[0]);
+//		tprintf(", %lu}", iov[1]);
+//	}
+//	tprints("]");
 }
 
 void
 tprint_iov(struct tcb *tcp, unsigned long len, unsigned long addr, int decode_iov)
 {
-	tprint_iov_upto(tcp, len, addr, decode_iov, (unsigned long) -1L);
+//	tprint_iov_upto(tcp, len, addr, decode_iov, (unsigned long) -1L);
 }
 #endif
 
 SYS_FUNC(readv)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
-		tprintf(", %lu", tcp->u_arg[2]);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+//		tprintf(", %lu", tcp->u_arg[2]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(writev)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
-	tprintf(", %lu", tcp->u_arg[2]);
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+//	tprintf(", %lu", tcp->u_arg[2]);
 
 	return RVAL_DECODED;
 }
@@ -154,27 +154,27 @@ SYS_FUNC(writev)
 
 SYS_FUNC(pread)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		if (syserror(tcp))
-			printaddr(tcp->u_arg[1]);
-		else
-			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
-		tprintf(", %lu, ", tcp->u_arg[2]);
-		printllval(tcp, "%llu", PREAD_OFFSET_ARG);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		if (syserror(tcp))
+//			printaddr(tcp->u_arg[1]);
+//		else
+//			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
+//		tprintf(", %lu, ", tcp->u_arg[2]);
+//		printllval(tcp, "%llu", PREAD_OFFSET_ARG);
+//	}
 	return 0;
 }
 
 SYS_FUNC(pwrite)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu, ", tcp->u_arg[2]);
-	printllval(tcp, "%llu", PREAD_OFFSET_ARG);
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//	tprintf(", %lu, ", tcp->u_arg[2]);
+//	printllval(tcp, "%llu", PREAD_OFFSET_ARG);
 
 	return RVAL_DECODED;
 }
@@ -207,24 +207,24 @@ print_llu_from_low_high_val(struct tcb *tcp, int arg)
 
 SYS_FUNC(preadv)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
-		tprintf(", %lu, ", tcp->u_arg[2]);
-		print_llu_from_low_high_val(tcp, 3);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+//		tprintf(", %lu, ", tcp->u_arg[2]);
+//		print_llu_from_low_high_val(tcp, 3);
+//	}
 	return 0;
 }
 
 SYS_FUNC(pwritev)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
-	tprintf(", %lu, ", tcp->u_arg[2]);
-	print_llu_from_low_high_val(tcp, 3);
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+//	tprintf(", %lu, ", tcp->u_arg[2]);
+//	print_llu_from_low_high_val(tcp, 3);
 
 	return RVAL_DECODED;
 }
@@ -233,52 +233,52 @@ SYS_FUNC(pwritev)
 
 SYS_FUNC(tee)
 {
-	/* int fd_in */
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	/* int fd_out */
-	printfd(tcp, tcp->u_arg[1]);
-	tprints(", ");
-	/* size_t len */
-	tprintf("%lu, ", tcp->u_arg[2]);
-	/* unsigned int flags */
-	printflags(splice_flags, tcp->u_arg[3], "SPLICE_F_???");
+//	/* int fd_in */
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	/* int fd_out */
+//	printfd(tcp, tcp->u_arg[1]);
+//	tprints(", ");
+//	/* size_t len */
+//	tprintf("%lu, ", tcp->u_arg[2]);
+//	/* unsigned int flags */
+//	printflags(splice_flags, tcp->u_arg[3], "SPLICE_F_???");
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(splice)
 {
-	/* int fd_in */
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	/* loff_t *off_in */
-	printnum_int64(tcp, tcp->u_arg[1], "%" PRIu64);
-	tprints(", ");
-	/* int fd_out */
-	printfd(tcp, tcp->u_arg[2]);
-	tprints(", ");
-	/* loff_t *off_out */
-	printnum_int64(tcp, tcp->u_arg[3], "%" PRIu64);
-	tprints(", ");
-	/* size_t len */
-	tprintf("%lu, ", tcp->u_arg[4]);
-	/* unsigned int flags */
-	printflags(splice_flags, tcp->u_arg[5], "SPLICE_F_???");
+//	/* int fd_in */
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	/* loff_t *off_in */
+//	printnum_int64(tcp, tcp->u_arg[1], "%" PRIu64);
+//	tprints(", ");
+//	/* int fd_out */
+//	printfd(tcp, tcp->u_arg[2]);
+//	tprints(", ");
+//	/* loff_t *off_out */
+//	printnum_int64(tcp, tcp->u_arg[3], "%" PRIu64);
+//	tprints(", ");
+//	/* size_t len */
+//	tprintf("%lu, ", tcp->u_arg[4]);
+//	/* unsigned int flags */
+//	printflags(splice_flags, tcp->u_arg[5], "SPLICE_F_???");
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(vmsplice)
 {
-	/* int fd */
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	/* const struct iovec *iov, unsigned long nr_segs */
-	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
-	tprintf(", %lu, ", tcp->u_arg[2]);
-	/* unsigned int flags */
-	printflags(splice_flags, tcp->u_arg[3], "SPLICE_F_???");
+//	/* int fd */
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	/* const struct iovec *iov, unsigned long nr_segs */
+//	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+//	tprintf(", %lu, ", tcp->u_arg[2]);
+//	/* unsigned int flags */
+//	printflags(splice_flags, tcp->u_arg[3], "SPLICE_F_???");
 
 	return RVAL_DECODED;
 }

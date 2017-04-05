@@ -9,15 +9,15 @@
 static int
 do_signalfd(struct tcb *tcp, int flags_arg)
 {
-	/* NB: kernel requires arg[2] == NSIG / 8 */
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	print_sigset_addr_len(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu", tcp->u_arg[2]);
-	if (flags_arg >= 0) {
-		tprints(", ");
-		printflags(sfd_flags, tcp->u_arg[flags_arg], "SFD_???");
-	}
+//	/* NB: kernel requires arg[2] == NSIG / 8 */
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	print_sigset_addr_len(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//	tprintf(", %lu", tcp->u_arg[2]);
+//	if (flags_arg >= 0) {
+//		tprints(", ");
+//		printflags(sfd_flags, tcp->u_arg[flags_arg], "SFD_???");
+//	}
 
 	return RVAL_DECODED | RVAL_FD;
 }

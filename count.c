@@ -50,56 +50,56 @@ static struct timeval shortest = { 1000000, 0 };
 void
 count_syscall(struct tcb *tcp, const struct timeval *syscall_exiting_tv)
 {
-	struct timeval wtv;
-	struct timeval *tv = &wtv;
-	struct call_counts *cc;
-	unsigned long scno = tcp->scno;
-
-	if (!SCNO_IN_RANGE(scno))
-		return;
-
-	if (!counts)
-		counts = xcalloc(nsyscalls, sizeof(*counts));
-	cc = &counts[scno];
-
-	cc->calls++;
-	if (tcp->u_error)
-		cc->errors++;
-
-	/* tv = wall clock time spent while in syscall */
-	tv_sub(tv, syscall_exiting_tv, &tcp->etime);
-
-	/* Spent more wall clock time than spent system time? (usually yes) */
-	if (tv_cmp(tv, &tcp->dtime) > 0) {
-		static struct timeval one_tick = { -1, 0 };
-
-		if (one_tick.tv_sec == -1) {
-			/* Initialize it.  */
-			struct itimerval it;
-
-			memset(&it, 0, sizeof it);
-			it.it_interval.tv_usec = 1;
-			setitimer(ITIMER_REAL, &it, NULL);
-			getitimer(ITIMER_REAL, &it);
-			one_tick = it.it_interval;
-//FIXME: this hack doesn't work (tested on linux-3.6.11): one_tick = 0.000000
-//tprintf(" one_tick.tv_usec:%u\n", (unsigned)one_tick.tv_usec);
-		}
-
-		if (tv_nz(&tcp->dtime))
-			/* tv = system time spent, if it isn't 0 */
-			tv = &tcp->dtime;
-		else if (tv_cmp(tv, &one_tick) > 0) {
-			/* tv = smallest "sane" time interval */
-			if (tv_cmp(&shortest, &one_tick) < 0)
-				tv = &shortest;
-			else
-				tv = &one_tick;
-		}
-	}
-	if (tv_cmp(tv, &shortest) < 0)
-		shortest = *tv;
-	tv_add(&cc->time, &cc->time, count_wallclock ? &wtv : tv);
+//	struct timeval wtv;
+//	struct timeval *tv = &wtv;
+//	struct call_counts *cc;
+//	unsigned long scno = tcp->scno;
+//
+//	if (!SCNO_IN_RANGE(scno))
+//		return;
+//
+//	if (!counts)
+//		counts = xcalloc(nsyscalls, sizeof(*counts));
+//	cc = &counts[scno];
+//
+//	cc->calls++;
+//	if (tcp->u_error)
+//		cc->errors++;
+//
+//	/* tv = wall clock time spent while in syscall */
+//	tv_sub(tv, syscall_exiting_tv, &tcp->etime);
+//
+//	/* Spent more wall clock time than spent system time? (usually yes) */
+//	if (tv_cmp(tv, &tcp->dtime) > 0) {
+//		static struct timeval one_tick = { -1, 0 };
+//
+//		if (one_tick.tv_sec == -1) {
+//			/* Initialize it.  */
+//			struct itimerval it;
+//
+//			memset(&it, 0, sizeof it);
+//			it.it_interval.tv_usec = 1;
+//			setitimer(ITIMER_REAL, &it, NULL);
+//			getitimer(ITIMER_REAL, &it);
+//			one_tick = it.it_interval;
+////FIXME: this hack doesn't work (tested on linux-3.6.11): one_tick = 0.000000
+////tprintf(" one_tick.tv_usec:%u\n", (unsigned)one_tick.tv_usec);
+//		}
+//
+////		if (tv_nz(&tcp->dtime))
+////			/* tv = system time spent, if it isn't 0 */
+////			tv = &tcp->dtime;
+//		if (tv_cmp(tv, &one_tick) > 0) {
+//			/* tv = smallest "sane" time interval */
+//			if (tv_cmp(&shortest, &one_tick) < 0)
+//				tv = &shortest;
+//			else
+//				tv = &one_tick;
+//		}
+//	}
+//	if (tv_cmp(tv, &shortest) < 0)
+//		shortest = *tv;
+//	tv_add(&cc->time, &cc->time, tv);
 }
 
 static int

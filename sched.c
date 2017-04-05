@@ -7,60 +7,60 @@
 
 SYS_FUNC(sched_getscheduler)
 {
-	if (entering(tcp)) {
-		tprintf("%d", (int) tcp->u_arg[0]);
-	} else if (!syserror(tcp)) {
-		tcp->auxstr = xlookup(schedulers, tcp->u_rval);
-		if (tcp->auxstr != NULL)
-			return RVAL_STR;
-	}
+//	if (entering(tcp)) {
+//		tprintf("%d", (int) tcp->u_arg[0]);
+//	} else if (!syserror(tcp)) {
+//		tcp->auxstr = xlookup(schedulers, tcp->u_rval);
+//		if (tcp->auxstr != NULL)
+//			return RVAL_STR;
+//	}
 	return 0;
 }
 
 SYS_FUNC(sched_setscheduler)
 {
-	tprintf("%d, ", (int) tcp->u_arg[0]);
-	printxval(schedulers, tcp->u_arg[1], "SCHED_???");
-	tprints(", ");
-	printnum_int(tcp, tcp->u_arg[2], "%d");
+//	tprintf("%d, ", (int) tcp->u_arg[0]);
+//	printxval(schedulers, tcp->u_arg[1], "SCHED_???");
+//	tprints(", ");
+//	printnum_int(tcp, tcp->u_arg[2], "%d");
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(sched_getparam)
 {
-	if (entering(tcp))
-		tprintf("%d, ", (int) tcp->u_arg[0]);
-	else
-		printnum_int(tcp, tcp->u_arg[1], "%d");
+//	if (entering(tcp))
+//		tprintf("%d, ", (int) tcp->u_arg[0]);
+//	else
+//		printnum_int(tcp, tcp->u_arg[1], "%d");
 	return 0;
 }
 
 SYS_FUNC(sched_setparam)
 {
-	tprintf("%d, ", (int) tcp->u_arg[0]);
-	printnum_int(tcp, tcp->u_arg[1], "%d");
+//	tprintf("%d, ", (int) tcp->u_arg[0]);
+//	printnum_int(tcp, tcp->u_arg[1], "%d");
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(sched_get_priority_min)
 {
-	printxval(schedulers, tcp->u_arg[0], "SCHED_???");
+//	printxval(schedulers, tcp->u_arg[0], "SCHED_???");
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(sched_rr_get_interval)
 {
-	if (entering(tcp)) {
-		tprintf("%d, ", (int) tcp->u_arg[0]);
-	} else {
-		if (syserror(tcp))
-			printaddr(tcp->u_arg[1]);
-		else
-			print_timespec(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%d, ", (int) tcp->u_arg[0]);
+//	} else {
+//		if (syserror(tcp))
+//			printaddr(tcp->u_arg[1]);
+//		else
+//			print_timespec(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
@@ -83,36 +83,36 @@ print_sched_attr(struct tcb *tcp, const long addr, unsigned int size)
 	if (umoven_or_printaddr(tcp, addr, size, &attr))
 		return;
 
-	tprintf("{size=%u, sched_policy=", attr.size);
-	printxval(schedulers, attr.sched_policy, "SCHED_???");
-	tprints(", sched_flags=");
-	printflags(sched_flags, attr.sched_flags, "SCHED_FLAG_???");
-	tprintf(", sched_nice=%d", attr.sched_nice);
-	tprintf(", sched_priority=%u", attr.sched_priority);
-	tprintf(", sched_runtime=%" PRIu64, attr.sched_runtime);
-	tprintf(", sched_deadline=%" PRIu64, attr.sched_deadline);
-	tprintf(", sched_period=%" PRIu64 "}", attr.sched_period);
+//	tprintf("{size=%u, sched_policy=", attr.size);
+//	printxval(schedulers, attr.sched_policy, "SCHED_???");
+//	tprints(", sched_flags=");
+//	printflags(sched_flags, attr.sched_flags, "SCHED_FLAG_???");
+//	tprintf(", sched_nice=%d", attr.sched_nice);
+//	tprintf(", sched_priority=%u", attr.sched_priority);
+//	tprintf(", sched_runtime=%" PRIu64, attr.sched_runtime);
+//	tprintf(", sched_deadline=%" PRIu64, attr.sched_deadline);
+//	tprintf(", sched_period=%" PRIu64 "}", attr.sched_period);
 }
 
 SYS_FUNC(sched_setattr)
 {
-	tprintf("%d, ", (int) tcp->u_arg[0]);
-	print_sched_attr(tcp, tcp->u_arg[1], 0x100);
-	tprintf(", %u", (unsigned int) tcp->u_arg[2]);
+//	tprintf("%d, ", (int) tcp->u_arg[0]);
+//	print_sched_attr(tcp, tcp->u_arg[1], 0x100);
+//	tprintf(", %u", (unsigned int) tcp->u_arg[2]);
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(sched_getattr)
 {
-	if (entering(tcp)) {
-		tprintf("%d, ", (int) tcp->u_arg[0]);
-	} else {
-		print_sched_attr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %u, %u",
-			(unsigned int) tcp->u_arg[2],
-			(unsigned int) tcp->u_arg[3]);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%d, ", (int) tcp->u_arg[0]);
+//	} else {
+//		print_sched_attr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//		tprintf(", %u, %u",
+//			(unsigned int) tcp->u_arg[2],
+//			(unsigned int) tcp->u_arg[3]);
+//	}
 
 	return 0;
 }

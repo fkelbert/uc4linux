@@ -23,16 +23,16 @@
 /* The fd is an "int", so when decoding x86 on x86_64, we need to force sign
  * extension to get the right value.  We do this by declaring fd as int here.
  */
-void
-print_dirfd(struct tcb *tcp, int fd)
-{
-	if (fd == AT_FDCWD)
-		tprints("AT_FDCWD, ");
-	else {
-		printfd(tcp, fd);
-		tprints(", ");
-	}
-}
+//void
+//print_dirfd(struct tcb *tcp, int fd)
+//{
+//	if (fd == AT_FDCWD)
+//		tprints("AT_FDCWD, ");
+//	else {
+//		printfd(tcp, fd);
+//		tprints(", ");
+//	}
+//}
 
 /*
  * low bits of the open(2) flags define access mode,
@@ -86,14 +86,14 @@ tprint_open_modes(int flags)
 static int
 decode_open(struct tcb *tcp, int offset)
 {
-	printpath(tcp, tcp->u_arg[offset]);
-	tprints(", ");
-	/* flags */
-	tprint_open_modes(tcp->u_arg[offset + 1]);
-	if (tcp->u_arg[offset + 1] & O_CREAT) {
-		/* mode */
-		tprintf(", %#lo", tcp->u_arg[offset + 2]);
-	}
+//	printpath(tcp, tcp->u_arg[offset]);
+//	tprints(", ");
+//	/* flags */
+//	tprint_open_modes(tcp->u_arg[offset + 1]);
+//	if (tcp->u_arg[offset + 1] & O_CREAT) {
+//		/* mode */
+//		tprintf(", %#lo", tcp->u_arg[offset + 2]);
+//	}
 
 	return RVAL_DECODED | RVAL_FD;
 }
@@ -105,14 +105,14 @@ SYS_FUNC(open)
 
 SYS_FUNC(openat)
 {
-	print_dirfd(tcp, tcp->u_arg[0]);
+//	print_dirfd(tcp, tcp->u_arg[0]);
 	return decode_open(tcp, 1);
 }
 
 SYS_FUNC(creat)
 {
-	printpath(tcp, tcp->u_arg[0]);
-	tprintf(", %#lo", tcp->u_arg[1]);
+//	printpath(tcp, tcp->u_arg[0]);
+//	tprintf(", %#lo", tcp->u_arg[1]);
 
 	return RVAL_DECODED | RVAL_FD;
 }

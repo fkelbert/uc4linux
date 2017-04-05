@@ -171,9 +171,9 @@ do_adjtimex(struct tcb *tcp, long addr)
 {
 	if (print_timex(tcp, addr))
 		return 0;
-	tcp->auxstr = xlookup(adjtimex_state, tcp->u_rval);
-	if (tcp->auxstr)
-		return RVAL_STR;
+//	tcp->auxstr = xlookup(adjtimex_state, tcp->u_rval);
+//	if (tcp->auxstr)
+//		return RVAL_STR;
 	return 0;
 }
 
@@ -193,65 +193,65 @@ printclockname(int clockid)
 #ifdef CLOCKID_TO_FD
 # include "xlat/cpuclocknames.h"
 
-	if (clockid < 0) {
-		if ((clockid & CLOCKFD_MASK) == CLOCKFD)
-			tprintf("FD_TO_CLOCKID(%d)", CLOCKID_TO_FD(clockid));
-		else {
-			if(CPUCLOCK_PERTHREAD(clockid))
-				tprintf("MAKE_THREAD_CPUCLOCK(%d,", CPUCLOCK_PID(clockid));
-			else
-				tprintf("MAKE_PROCESS_CPUCLOCK(%d,", CPUCLOCK_PID(clockid));
-			printxval(cpuclocknames, clockid & CLOCKFD_MASK, "CPUCLOCK_???");
-			tprints(")");
-		}
-	}
-	else
+//	if (clockid < 0) {
+//		if ((clockid & CLOCKFD_MASK) == CLOCKFD)
+//			tprintf("FD_TO_CLOCKID(%d)", CLOCKID_TO_FD(clockid));
+//		else {
+//			if(CPUCLOCK_PERTHREAD(clockid))
+//				tprintf("MAKE_THREAD_CPUCLOCK(%d,", CPUCLOCK_PID(clockid));
+//			else
+//				tprintf("MAKE_PROCESS_CPUCLOCK(%d,", CPUCLOCK_PID(clockid));
+//			printxval(cpuclocknames, clockid & CLOCKFD_MASK, "CPUCLOCK_???");
+//			tprints(")");
+//		}
+//	}
+//	else
 #endif
-		printxval(clocknames, clockid, "CLOCK_???");
+//		printxval(clocknames, clockid, "CLOCK_???");
 }
 
 SYS_FUNC(clock_settime)
 {
-	printclockname(tcp->u_arg[0]);
-	tprints(", ");
-	print_timespec(tcp, tcp->u_arg[1]);
+//	printclockname(tcp->u_arg[0]);
+//	tprints(", ");
+//	print_timespec(tcp, tcp->u_arg[1]);
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(clock_gettime)
 {
-	if (entering(tcp)) {
-		printclockname(tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		print_timespec(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printclockname(tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		print_timespec(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(clock_nanosleep)
 {
-	if (entering(tcp)) {
-		printclockname(tcp->u_arg[0]);
-		tprints(", ");
-		printflags(clockflags, tcp->u_arg[1], "TIMER_???");
-		tprints(", ");
-		print_timespec(tcp, tcp->u_arg[2]);
-		tprints(", ");
-	} else {
-		/*
-		 * Second (returned) timespec is only significant
-		 * if syscall was interrupted and flags is not TIMER_ABSTIME.
-		 */
-		if (!tcp->u_arg[1] && is_erestart(tcp)) {
-			temporarily_clear_syserror(tcp);
-			print_timespec(tcp, tcp->u_arg[3]);
-			restore_cleared_syserror(tcp);
-		} else {
-			printaddr(tcp->u_arg[3]);
-		}
-	}
+//	if (entering(tcp)) {
+//		printclockname(tcp->u_arg[0]);
+//		tprints(", ");
+//		printflags(clockflags, tcp->u_arg[1], "TIMER_???");
+//		tprints(", ");
+//		print_timespec(tcp, tcp->u_arg[2]);
+//		tprints(", ");
+//	} else {
+//		/*
+//		 * Second (returned) timespec is only significant
+//		 * if syscall was interrupted and flags is not TIMER_ABSTIME.
+//		 */
+//		if (!tcp->u_arg[1] && is_erestart(tcp)) {
+//			temporarily_clear_syserror(tcp);
+//			print_timespec(tcp, tcp->u_arg[3]);
+//			restore_cleared_syserror(tcp);
+//		} else {
+//			printaddr(tcp->u_arg[3]);
+//		}
+//	}
 	return 0;
 }
 
@@ -259,8 +259,8 @@ SYS_FUNC(clock_adjtime)
 {
 	if (exiting(tcp))
 		return do_adjtimex(tcp, tcp->u_arg[1]);
-	printclockname(tcp->u_arg[0]);
-	tprints(", ");
+//	printclockname(tcp->u_arg[0]);
+//	tprints(", ");
 	return 0;
 }
 
@@ -279,25 +279,25 @@ SYS_FUNC(timer_create)
 
 SYS_FUNC(timer_settime)
 {
-	if (entering(tcp)) {
-		tprintf("%d, ", (int) tcp->u_arg[0]);
-		printflags(clockflags, tcp->u_arg[1], "TIMER_???");
-		tprints(", ");
-		print_itimerspec(tcp, tcp->u_arg[2]);
-		tprints(", ");
-	} else {
-		print_itimerspec(tcp, tcp->u_arg[3]);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%d, ", (int) tcp->u_arg[0]);
+//		printflags(clockflags, tcp->u_arg[1], "TIMER_???");
+//		tprints(", ");
+//		print_itimerspec(tcp, tcp->u_arg[2]);
+//		tprints(", ");
+//	} else {
+//		print_itimerspec(tcp, tcp->u_arg[3]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(timer_gettime)
 {
-	if (entering(tcp)) {
-		tprintf("%d, ", (int) tcp->u_arg[0]);
-	} else {
-		print_itimerspec(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%d, ", (int) tcp->u_arg[0]);
+//	} else {
+//		print_itimerspec(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
@@ -305,45 +305,45 @@ SYS_FUNC(timer_gettime)
 
 SYS_FUNC(timerfd)
 {
-	tprintf("%ld, ", tcp->u_arg[0]);
-	printclockname(tcp->u_arg[0]);
-	tprints(", ");
-	printflags(timerfdflags, tcp->u_arg[2], "TFD_???");
-	tprints(", ");
-	print_itimerspec(tcp, tcp->u_arg[3]);
+//	tprintf("%ld, ", tcp->u_arg[0]);
+//	printclockname(tcp->u_arg[0]);
+//	tprints(", ");
+//	printflags(timerfdflags, tcp->u_arg[2], "TFD_???");
+//	tprints(", ");
+//	print_itimerspec(tcp, tcp->u_arg[3]);
 
 	return RVAL_DECODED | RVAL_FD;
 }
 
 SYS_FUNC(timerfd_create)
 {
-	printclockname(tcp->u_arg[0]);
-	tprints(", ");
-	printflags(timerfdflags, tcp->u_arg[1], "TFD_???");
+//	printclockname(tcp->u_arg[0]);
+//	tprints(", ");
+//	printflags(timerfdflags, tcp->u_arg[1], "TFD_???");
 
 	return RVAL_DECODED | RVAL_FD;
 }
 
 SYS_FUNC(timerfd_settime)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printflags(timerfdflags, tcp->u_arg[1], "TFD_???");
-	tprints(", ");
-	print_itimerspec(tcp, tcp->u_arg[2]);
-	tprints(", ");
-	print_itimerspec(tcp, tcp->u_arg[3]);
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printflags(timerfdflags, tcp->u_arg[1], "TFD_???");
+//	tprints(", ");
+//	print_itimerspec(tcp, tcp->u_arg[2]);
+//	tprints(", ");
+//	print_itimerspec(tcp, tcp->u_arg[3]);
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(timerfd_gettime)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		print_itimerspec(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		print_itimerspec(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }

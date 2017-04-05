@@ -77,10 +77,10 @@ ioctl_next_match(const struct_ioctlent *iop)
 static void
 ioctl_print_code(const unsigned int code)
 {
-	tprints("_IOC(");
-	printflags(ioctl_dirs, _IOC_DIR(code), "_IOC_???");
-	tprintf(", 0x%02x, 0x%02x, 0x%02x)",
-		_IOC_TYPE(code), _IOC_NR(code), _IOC_SIZE(code));
+//	tprints("_IOC(");
+//	printflags(ioctl_dirs, _IOC_DIR(code), "_IOC_???");
+//	tprintf(", 0x%02x, 0x%02x, 0x%02x)",
+//		_IOC_TYPE(code), _IOC_NR(code), _IOC_SIZE(code));
 }
 
 static int

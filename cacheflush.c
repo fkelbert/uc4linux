@@ -22,16 +22,16 @@ static const struct xlat cacheflush_flags[] = {
 
 SYS_FUNC(cacheflush)
 {
-	/* addr */
-	printaddr(tcp->u_arg[0]);
-	tprints(", ");
-	/* scope */
-	printxval(cacheflush_scope, tcp->u_arg[1], "FLUSH_SCOPE_???");
-	tprints(", ");
-	/* flags */
-	printflags(cacheflush_flags, tcp->u_arg[2], "FLUSH_CACHE_???");
-	/* len */
-	tprintf(", %lu", tcp->u_arg[3]);
+//	/* addr */
+//	printaddr(tcp->u_arg[0]);
+//	tprints(", ");
+//	/* scope */
+//	printxval(cacheflush_scope, tcp->u_arg[1], "FLUSH_SCOPE_???");
+//	tprints(", ");
+//	/* flags */
+//	printflags(cacheflush_flags, tcp->u_arg[2], "FLUSH_CACHE_???");
+//	/* len */
+//	tprintf(", %lu", tcp->u_arg[3]);
 
 	return RVAL_DECODED;
 }
@@ -47,12 +47,12 @@ static const struct xlat cacheflush_flags[] = {
 
 SYS_FUNC(cacheflush)
 {
-	/* start addr */
-	printaddr(tcp->u_arg[0]);
-	/* length */
-	tprintf(", %ld, ", tcp->u_arg[1]);
-	/* flags */
-	printxval(cacheflush_flags, tcp->u_arg[1], "?CACHE");
+//	/* start addr */
+//	printaddr(tcp->u_arg[0]);
+//	/* length */
+//	tprintf(", %ld, ", tcp->u_arg[1]);
+//	/* flags */
+//	printxval(cacheflush_flags, tcp->u_arg[1], "?CACHE");
 
 	return RVAL_DECODED;
 }
@@ -77,12 +77,12 @@ static const struct xlat cacheflush_flags[] = {
 
 SYS_FUNC(cacheflush)
 {
-	/* addr */
-	printaddr(tcp->u_arg[0]);
-	/* len */
-	tprintf(", %lu, ", tcp->u_arg[1]);
-	/* flags */
-	printflags(cacheflush_flags, tcp->u_arg[2], "CACHEFLUSH_???");
+//	/* addr */
+//	printaddr(tcp->u_arg[0]);
+//	/* len */
+//	tprintf(", %lu, ", tcp->u_arg[1]);
+//	/* flags */
+//	printflags(cacheflush_flags, tcp->u_arg[2], "CACHEFLUSH_???");
 
 	return RVAL_DECODED;
 }
@@ -91,11 +91,11 @@ SYS_FUNC(cacheflush)
 #ifdef NIOS2
 SYS_FUNC(cacheflush)
 {
-	/* addr */
-	printaddr(tcp->u_arg[0]);
-	/* len */
-	tprintf(", %lu, ", tcp->u_arg[3]);
-	/* scope and flags (cache type) are currently ignored */
+//	/* addr */
+//	printaddr(tcp->u_arg[0]);
+//	/* len */
+//	tprintf(", %lu, ", tcp->u_arg[3]);
+//	/* scope and flags (cache type) are currently ignored */
 
 	return RVAL_DECODED;
 }

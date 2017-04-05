@@ -12,17 +12,17 @@
 
 SYS_FUNC(fanotify_init)
 {
-	unsigned flags;
-
-	flags = tcp->u_arg[0];
-	printxval(fan_classes, flags & FAN_ALL_CLASS_BITS, "FAN_CLASS_???");
-	flags &= ~FAN_ALL_CLASS_BITS;
-	if (flags) {
-		tprints("|");
-		printflags(fan_init_flags, flags, "FAN_???");
-	}
-	tprints(", ");
-	tprint_open_modes((unsigned) tcp->u_arg[1]);
+//	unsigned flags;
+//
+//	flags = tcp->u_arg[0];
+//	printxval(fan_classes, flags & FAN_ALL_CLASS_BITS, "FAN_CLASS_???");
+//	flags &= ~FAN_ALL_CLASS_BITS;
+//	if (flags) {
+//		tprints("|");
+//		printflags(fan_init_flags, flags, "FAN_???");
+//	}
+//	tprints(", ");
+//	tprint_open_modes((unsigned) tcp->u_arg[1]);
 
 	return RVAL_DECODED | RVAL_FD;
 }
@@ -32,29 +32,29 @@ SYS_FUNC(fanotify_init)
 
 SYS_FUNC(fanotify_mark)
 {
-	unsigned long long mask = 0;
-	int argn;
-
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printflags(fan_mark_flags, (unsigned) tcp->u_arg[1], "FAN_MARK_???");
-	tprints(", ");
-	/*
-	 * the mask argument is defined as 64-bit,
-	 * but kernel uses the lower 32 bits only.
-	 */
-	argn = getllval(tcp, &mask, 2);
-#ifdef HPPA
-	/* Parsic is weird.  See arch/parisc/kernel/sys_parisc32.c.  */
-	mask = (mask << 32) | (mask >> 32);
-#endif
-	printflags(fan_event_flags, mask, "FAN_???");
-	tprints(", ");
-	if ((int) tcp->u_arg[argn] == FAN_NOFD)
-		tprints("FAN_NOFD, ");
-	else
-		print_dirfd(tcp, tcp->u_arg[argn]);
-	printpath(tcp, tcp->u_arg[argn + 1]);
+//	unsigned long long mask = 0;
+//	int argn;
+//
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printflags(fan_mark_flags, (unsigned) tcp->u_arg[1], "FAN_MARK_???");
+//	tprints(", ");
+//	/*
+//	 * the mask argument is defined as 64-bit,
+//	 * but kernel uses the lower 32 bits only.
+//	 */
+//	argn = getllval(tcp, &mask, 2);
+//#ifdef HPPA
+//	/* Parsic is weird.  See arch/parisc/kernel/sys_parisc32.c.  */
+//	mask = (mask << 32) | (mask >> 32);
+//#endif
+//	printflags(fan_event_flags, mask, "FAN_???");
+//	tprints(", ");
+//	if ((int) tcp->u_arg[argn] == FAN_NOFD)
+//		tprints("FAN_NOFD, ");
+//	else
+//		print_dirfd(tcp, tcp->u_arg[argn]);
+//	printpath(tcp, tcp->u_arg[argn + 1]);
 
 	return RVAL_DECODED;
 }

@@ -10,46 +10,46 @@ struct kernel_dirent {
 	char            d_name[1];
 };
 
-static void
-print_old_dirent(struct tcb *tcp, long addr)
-{
-#ifdef SH64
-	typedef struct kernel_dirent old_dirent_t;
-#else
-	typedef struct {
-		uint32_t	d_ino;
-		uint32_t	d_off;
-		unsigned short  d_reclen;
-		char            d_name[1];
-	} old_dirent_t;
-#endif
-	old_dirent_t d;
-
-	if (umove_or_printaddr(tcp, addr, &d))
-		return;
-
-	tprintf("{d_ino=%lu, d_off=%lu, d_reclen=%u, d_name=",
-		(unsigned long) d.d_ino, (unsigned long) d.d_off, d.d_reclen);
-	if (d.d_reclen > D_NAME_LEN_MAX)
-		d.d_reclen = D_NAME_LEN_MAX;
-	printpathn(tcp, addr + offsetof(old_dirent_t, d_name), d.d_reclen);
-	tprints("}");
-}
+//static void
+//print_old_dirent(struct tcb *tcp, long addr)
+//{
+//#ifdef SH64
+//	typedef struct kernel_dirent old_dirent_t;
+//#else
+//	typedef struct {
+//		uint32_t	d_ino;
+//		uint32_t	d_off;
+//		unsigned short  d_reclen;
+//		char            d_name[1];
+//	} old_dirent_t;
+//#endif
+//	old_dirent_t d;
+//
+//	if (umove_or_printaddr(tcp, addr, &d))
+//		return;
+//
+//	tprintf("{d_ino=%lu, d_off=%lu, d_reclen=%u, d_name=",
+//		(unsigned long) d.d_ino, (unsigned long) d.d_off, d.d_reclen);
+//	if (d.d_reclen > D_NAME_LEN_MAX)
+//		d.d_reclen = D_NAME_LEN_MAX;
+//	printpathn(tcp, addr + offsetof(old_dirent_t, d_name), d.d_reclen);
+//	tprints("}");
+//}
 
 SYS_FUNC(readdir)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		if (tcp->u_rval == 0)
-			printaddr(tcp->u_arg[1]);
-		else
-			print_old_dirent(tcp, tcp->u_arg[1]);
-		/* Not much point in printing this out, it is always 1. */
-		if (tcp->u_arg[2] != 1)
-			tprintf(", %lu", tcp->u_arg[2]);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		if (tcp->u_rval == 0)
+//			printaddr(tcp->u_arg[1]);
+//		else
+//			print_old_dirent(tcp, tcp->u_arg[1]);
+//		/* Not much point in printing this out, it is always 1. */
+//		if (tcp->u_arg[2] != 1)
+//			tprintf(", %lu", tcp->u_arg[2]);
+//	}
 	return 0;
 }
 

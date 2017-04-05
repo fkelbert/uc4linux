@@ -503,7 +503,6 @@ printfd(struct tcb *tcp, int fd)
 		const size_t socket_prefix_len = sizeof(socket_prefix) - 1;
 		const size_t path_len = strlen(path);
 
-		tprintf("%d<", fd);
 		if (show_fd_path > 1 &&
 		    strncmp(path, socket_prefix, socket_prefix_len) == 0 &&
 		    path[path_len - 1] == ']') {
@@ -523,9 +522,7 @@ printfd(struct tcb *tcp, int fd)
 			print_quoted_string(path, path_len,
 					    QUOTE_OMIT_LEADING_TRAILING_QUOTES);
 		}
-		tprints(">");
-	} else
-		tprintf("%d", fd);
+	}
 }
 
 /*

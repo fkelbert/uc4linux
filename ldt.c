@@ -58,7 +58,7 @@ SYS_FUNC(set_thread_area)
 			static char outstr[32];
 
 			sprintf(outstr, "entry_number:%d", desc.entry_number);
-			tcp->auxstr = outstr;
+//			tcp->auxstr = outstr;
 			return RVAL_STR;
 		}
 	}

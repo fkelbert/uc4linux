@@ -245,29 +245,29 @@ printstat(struct tcb *tcp, long addr)
 	}
 #endif /* SPARC || SPARC64 */
 
-	if (!umove_or_printaddr(tcp, addr, &statbuf))
-		do_printstat(tcp, &statbuf);
+//	if (!umove_or_printaddr(tcp, addr, &statbuf))
+//		do_printstat(tcp, &statbuf);
 }
 
 SYS_FUNC(stat)
 {
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printstat(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printpath(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		printstat(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(fstat)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printstat(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		printstat(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
@@ -346,23 +346,23 @@ printstat64(struct tcb *tcp, long addr)
 
 SYS_FUNC(stat64)
 {
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printstat64(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printpath(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		printstat64(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(fstat64)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printstat64(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		printstat64(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
@@ -382,24 +382,24 @@ SYS_FUNC(fstat64)
 
 SYS_FUNC(newfstatat)
 {
-	if (entering(tcp)) {
-		print_dirfd(tcp, tcp->u_arg[0]);
-		printpath(tcp, tcp->u_arg[1]);
-		tprints(", ");
-	} else {
-#if defined STAT32_PERSONALITY
-		if (current_personality == STAT32_PERSONALITY)
-			printstat64(tcp, tcp->u_arg[2]);
-		else
-			printstat(tcp, tcp->u_arg[2]);
-#elif defined HAVE_STRUCT_STAT64
-		printstat64(tcp, tcp->u_arg[2]);
-#else
-		printstat(tcp, tcp->u_arg[2]);
-#endif /* STAT32_PERSONALITY || HAVE_STRUCT_STAT64 */
-		tprints(", ");
-		printflags(at_flags, tcp->u_arg[3], "AT_???");
-	}
+//	if (entering(tcp)) {
+//		print_dirfd(tcp, tcp->u_arg[0]);
+//		printpath(tcp, tcp->u_arg[1]);
+//		tprints(", ");
+//	} else {
+//#if defined STAT32_PERSONALITY
+//		if (current_personality == STAT32_PERSONALITY)
+//			printstat64(tcp, tcp->u_arg[2]);
+//		else
+//			printstat(tcp, tcp->u_arg[2]);
+//#elif defined HAVE_STRUCT_STAT64
+//		printstat64(tcp, tcp->u_arg[2]);
+//#else
+//		printstat(tcp, tcp->u_arg[2]);
+//#endif /* STAT32_PERSONALITY || HAVE_STRUCT_STAT64 */
+//		tprints(", ");
+//		printflags(at_flags, tcp->u_arg[3], "AT_???");
+//	}
 	return 0;
 }
 
@@ -446,23 +446,23 @@ printoldstat(struct tcb *tcp, long addr)
 
 SYS_FUNC(oldstat)
 {
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printoldstat(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printpath(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		printoldstat(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(oldfstat)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printoldstat(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		printoldstat(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
@@ -472,25 +472,25 @@ SYS_FUNC(oldfstat)
 
 SYS_FUNC(xstat)
 {
-	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
-		printpath(tcp, tcp->u_arg[1]);
-		tprints(", ");
-	} else {
-		printstat(tcp, tcp->u_arg[2]);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%ld, ", tcp->u_arg[0]);
+//		printpath(tcp, tcp->u_arg[1]);
+//		tprints(", ");
+//	} else {
+//		printstat(tcp, tcp->u_arg[2]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(fxstat)
 {
-	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
-		printfd(tcp, tcp->u_arg[1]);
-		tprints(", ");
-	} else {
-		printstat(tcp, tcp->u_arg[2]);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%ld, ", tcp->u_arg[0]);
+//		printfd(tcp, tcp->u_arg[1]);
+//		tprints(", ");
+//	} else {
+//		printstat(tcp, tcp->u_arg[2]);
+//	}
 	return 0;
 }
 

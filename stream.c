@@ -50,30 +50,30 @@ struct strbuf {
 static void
 printstrbuf(struct tcb *tcp, struct strbuf *sbp, int getting)
 {
-	if (sbp->maxlen == -1 && getting)
-		tprints("{maxlen=-1}");
-	else {
-		tprints("{");
-		if (getting)
-			tprintf("maxlen=%d, ", sbp->maxlen);
-		tprintf("len=%d, buf=", sbp->len);
-		printstr(tcp, (unsigned long) sbp->buf, sbp->len);
-		tprints("}");
-	}
+//	if (sbp->maxlen == -1 && getting)
+//		tprints("{maxlen=-1}");
+//	else {
+//		tprints("{");
+//		if (getting)
+//			tprintf("maxlen=%d, ", sbp->maxlen);
+//		tprintf("len=%d, buf=", sbp->len);
+//		printstr(tcp, (unsigned long) sbp->buf, sbp->len);
+//		tprints("}");
+//	}
 }
 
 static void
 printstrbufarg(struct tcb *tcp, long arg, int getting)
 {
-	struct strbuf buf;
-
-	if (arg == 0)
-		tprints("NULL");
-	else if (umove(tcp, arg, &buf) < 0)
-		tprints("{...}");
-	else
-		printstrbuf(tcp, &buf, getting);
-	tprints(", ");
+//	struct strbuf buf;
+//
+//	if (arg == 0)
+//		tprints("NULL");
+//	else if (umove(tcp, arg, &buf) < 0)
+//		tprints("{...}");
+//	else
+//		printstrbuf(tcp, &buf, getting);
+//	tprints(", ");
 }
 
 # include "xlat/pmsgflags.h"
@@ -82,17 +82,17 @@ SYS_FUNC(putpmsg)
 {
 	int i;
 
-	if (entering(tcp)) {
-		/* fd */
-		tprintf("%ld, ", tcp->u_arg[0]);
-		/* control and data */
-		for (i = 1; i < 3; i++)
-			printstrbufarg(tcp, tcp->u_arg[i], 0);
-		/* band */
-		tprintf("%ld, ", tcp->u_arg[3]);
-		/* flags */
-		printflags(pmsgflags, tcp->u_arg[4], "MSG_???");
-	}
+//	if (entering(tcp)) {
+//		/* fd */
+//		tprintf("%ld, ", tcp->u_arg[0]);
+//		/* control and data */
+//		for (i = 1; i < 3; i++)
+//			printstrbufarg(tcp, tcp->u_arg[i], 0);
+//		/* band */
+//		tprintf("%ld, ", tcp->u_arg[3]);
+//		/* flags */
+//		printflags(pmsgflags, tcp->u_arg[4], "MSG_???");
+//	}
 	return 0;
 }
 # endif
@@ -103,44 +103,44 @@ SYS_FUNC(getpmsg)
 
 	if (entering(tcp)) {
 		/* fd */
-		tprintf("%lu, ", tcp->u_arg[0]);
+//		tprintf("%lu, ", tcp->u_arg[0]);
 	} else {
 		if (syserror(tcp)) {
-			tprintf("%#lx, %#lx, %#lx, %#lx", tcp->u_arg[1],
-				tcp->u_arg[2], tcp->u_arg[3], tcp->u_arg[4]);
+//			tprintf("%#lx, %#lx, %#lx, %#lx", tcp->u_arg[1],
+//				tcp->u_arg[2], tcp->u_arg[3], tcp->u_arg[4]);
 			return 0;
 		}
-		/* control and data */
-		for (i = 1; i < 3; i++)
-			printstrbufarg(tcp, tcp->u_arg[i], 1);
-		/* pointer to band */
-		printnum_int(tcp, tcp->u_arg[3], "%d");
-		tprints(", ");
-		/* pointer to flags */
-		if (tcp->u_arg[4] == 0)
-			tprints("NULL");
-		else if (umove(tcp, tcp->u_arg[4], &flags) < 0)
-			tprints("[?]");
-		else {
-			tprints("[");
-			printflags(pmsgflags, flags, "MSG_???");
-			tprints("]");
-		}
-		/* decode return value */
-		switch (tcp->u_rval) {
-		case MORECTL:
-			tcp->auxstr = "MORECTL";
-			break;
-		case MORECTL|MOREDATA:
-			tcp->auxstr = "MORECTL|MOREDATA";
-			break;
-		case MOREDATA:
-			tcp->auxstr = "MORECTL";
-			break;
-		default:
-			tcp->auxstr = NULL;
-			break;
-		}
+//		/* control and data */
+//		for (i = 1; i < 3; i++)
+//			printstrbufarg(tcp, tcp->u_arg[i], 1);
+//		/* pointer to band */
+//		printnum_int(tcp, tcp->u_arg[3], "%d");
+//		tprints(", ");
+//		/* pointer to flags */
+//		if (tcp->u_arg[4] == 0)
+//			tprints("NULL");
+//		else if (umove(tcp, tcp->u_arg[4], &flags) < 0)
+//			tprints("[?]");
+//		else {
+//			tprints("[");
+//			printflags(pmsgflags, flags, "MSG_???");
+//			tprints("]");
+//		}
+//		/* decode return value */
+//		switch (tcp->u_rval) {
+//		case MORECTL:
+//			tcp->auxstr = "MORECTL";
+//			break;
+//		case MORECTL|MOREDATA:
+//			tcp->auxstr = "MORECTL|MOREDATA";
+//			break;
+//		case MOREDATA:
+//			tcp->auxstr = "MORECTL";
+//			break;
+//		default:
+//			tcp->auxstr = NULL;
+//			break;
+//		}
 	}
 	return RVAL_HEX | RVAL_STR;
 }

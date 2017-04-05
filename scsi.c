@@ -145,30 +145,30 @@ print_sg_io_v4_req(struct tcb *tcp, const long arg)
 	struct sg_io_v4 sg_io;
 
 	if (umove(tcp, arg, &sg_io) < 0) {
-		tprints("???}");
+//		tprints("???}");
 		return RVAL_DECODED | 1;
 	}
 
-	printxval(bsg_protocol, sg_io.protocol, "BSG_PROTOCOL_???");
-	tprints(", ");
-	printxval(bsg_subprotocol, sg_io.subprotocol, "BSG_SUB_PROTOCOL_???");
-	tprintf(", request[%u]=", sg_io.request_len);
-	print_sg_io_buffer(tcp, sg_io.request, sg_io.request_len);
-	tprintf(", request_tag=%llu", (unsigned long long) sg_io.request_tag);
-	tprintf(", request_attr=%u", sg_io.request_attr);
-	tprintf(", request_priority=%u", sg_io.request_priority);
-	tprintf(", request_extra=%u", sg_io.request_extra);
-	tprintf(", max_response_len=%u", sg_io.max_response_len);
-
-	tprintf(", dout_iovec_count=%u", sg_io.dout_iovec_count);
-	tprintf(", dout_xfer_len=%u", sg_io.dout_xfer_len);
-	tprintf(", din_iovec_count=%u", sg_io.din_iovec_count);
-	tprintf(", din_xfer_len=%u", sg_io.din_xfer_len);
-	tprintf(", timeout=%u", sg_io.timeout);
-	tprintf(", flags=%u", sg_io.flags);
-	tprintf(", usr_ptr=%llu", (unsigned long long) sg_io.usr_ptr);
-	tprintf(", spare_in=%u", sg_io.spare_in);
-	tprintf(", dout[%u]=", sg_io.dout_xfer_len);
+//	printxval(bsg_protocol, sg_io.protocol, "BSG_PROTOCOL_???");
+//	tprints(", ");
+//	printxval(bsg_subprotocol, sg_io.subprotocol, "BSG_SUB_PROTOCOL_???");
+//	tprintf(", request[%u]=", sg_io.request_len);
+//	print_sg_io_buffer(tcp, sg_io.request, sg_io.request_len);
+//	tprintf(", request_tag=%llu", (unsigned long long) sg_io.request_tag);
+//	tprintf(", request_attr=%u", sg_io.request_attr);
+//	tprintf(", request_priority=%u", sg_io.request_priority);
+//	tprintf(", request_extra=%u", sg_io.request_extra);
+//	tprintf(", max_response_len=%u", sg_io.max_response_len);
+//
+//	tprintf(", dout_iovec_count=%u", sg_io.dout_iovec_count);
+//	tprintf(", dout_xfer_len=%u", sg_io.dout_xfer_len);
+//	tprintf(", din_iovec_count=%u", sg_io.din_iovec_count);
+//	tprintf(", din_xfer_len=%u", sg_io.din_xfer_len);
+//	tprintf(", timeout=%u", sg_io.timeout);
+//	tprintf(", flags=%u", sg_io.flags);
+//	tprintf(", usr_ptr=%llu", (unsigned long long) sg_io.usr_ptr);
+//	tprintf(", spare_in=%u", sg_io.spare_in);
+//	tprintf(", dout[%u]=", sg_io.dout_xfer_len);
 	if (sg_io.dout_iovec_count)
 		tprint_iov_upto(tcp, sg_io.dout_iovec_count, sg_io.dout_xferp,
 				1, sg_io.dout_xfer_len);
@@ -199,17 +199,17 @@ print_sg_io_v4_res(struct tcb *tcp, const long arg)
 				1, din_len);
 	else
 		print_sg_io_buffer(tcp, sg_io.din_xferp, din_len);
-	tprintf(", driver_status=%u", sg_io.driver_status);
-	tprintf(", transport_status=%u", sg_io.transport_status);
-	tprintf(", device_status=%u", sg_io.device_status);
-	tprintf(", retry_delay=%u", sg_io.retry_delay);
-	tprintf(", info=%u", sg_io.info);
-	tprintf(", duration=%u", sg_io.duration);
-	tprintf(", response_len=%u", sg_io.response_len);
-	tprintf(", din_resid=%u", sg_io.din_resid);
-	tprintf(", dout_resid=%u", sg_io.dout_resid);
-	tprintf(", generated_tag=%llu", (unsigned long long) sg_io.generated_tag);
-	tprintf(", spare_out=%u", sg_io.spare_out);
+//	tprintf(", driver_status=%u", sg_io.driver_status);
+//	tprintf(", transport_status=%u", sg_io.transport_status);
+//	tprintf(", device_status=%u", sg_io.device_status);
+//	tprintf(", retry_delay=%u", sg_io.retry_delay);
+//	tprintf(", info=%u", sg_io.info);
+//	tprintf(", duration=%u", sg_io.duration);
+//	tprintf(", response_len=%u", sg_io.response_len);
+//	tprintf(", din_resid=%u", sg_io.din_resid);
+//	tprintf(", dout_resid=%u", sg_io.dout_resid);
+//	tprintf(", generated_tag=%llu", (unsigned long long) sg_io.generated_tag);
+//	tprintf(", spare_out=%u", sg_io.spare_out);
 }
 
 #else /* !HAVE_LINUX_BSG_H */

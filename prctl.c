@@ -34,10 +34,10 @@ enum {
 static void
 print_prctl_args(struct tcb *tcp, const unsigned int first)
 {
-	unsigned int i;
-
-	for (i = first; i < tcp->s_ent->nargs; ++i)
-		tprintf(", %#lx", tcp->u_arg[i]);
+//	unsigned int i;
+//
+//	for (i = first; i < tcp->s_ent->nargs; ++i)
+//		tprintf(", %#lx", tcp->u_arg[i]);
 }
 
 SYS_FUNC(prctl)
@@ -93,7 +93,7 @@ SYS_FUNC(prctl)
 			break;
 		if (syserror(tcp) || tcp->u_rval == 0)
 			return 0;
-		tcp->auxstr = sprintflags("", secbits, tcp->u_rval);
+//		tcp->auxstr = sprintflags("", secbits, tcp->u_rval);
 		return RVAL_STR;
 
 	case PR_GET_TID_ADDRESS:
@@ -265,8 +265,9 @@ SYS_FUNC(prctl)
 		}
 		if (syserror(tcp))
 			return 0;
-		tcp->auxstr = xlookup(pr_mce_kill_policy, tcp->u_rval);
-		return tcp->auxstr ? RVAL_STR : RVAL_UDECIMAL;
+//		tcp->auxstr = xlookup(pr_mce_kill_policy, tcp->u_rval);
+//		return tcp->auxstr ? RVAL_STR : RVAL_UDECIMAL;
+		break;
 
 	case PR_MPX_DISABLE_MANAGEMENT:
 	case PR_MPX_ENABLE_MANAGEMENT:

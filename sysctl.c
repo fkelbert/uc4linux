@@ -135,27 +135,27 @@ SYS_FUNC(sysctl)
 			tprints(", ...");
 		tprintf("}, %d, ", info.nlen);
 	} else {
-		size_t oldlen = 0;
-		if (info.oldval == NULL) {
-			tprints("NULL");
-		} else if (umove(tcp, (long)info.oldlenp, &oldlen) >= 0
-			   && info.nlen >= 2
-			   && ((name[0] == CTL_KERN
-				&& (name[1] == KERN_OSRELEASE
-				    || name[1] == KERN_OSTYPE
-					)))) {
-			printpath(tcp, (size_t)info.oldval);
-		} else {
-			tprintf("%p", info.oldval);
-		}
-		tprintf(", %lu, ", (unsigned long)oldlen);
-		if (info.newval == NULL)
-			tprints("NULL");
-		else if (syserror(tcp))
-			tprintf("%p", info.newval);
-		else
-			printpath(tcp, (size_t)info.newval);
-		tprintf(", %lu", (unsigned long)info.newlen);
+//		size_t oldlen = 0;
+//		if (info.oldval == NULL) {
+//			tprints("NULL");
+//		} else if (umove(tcp, (long)info.oldlenp, &oldlen) >= 0
+//			   && info.nlen >= 2
+//			   && ((name[0] == CTL_KERN
+//				&& (name[1] == KERN_OSRELEASE
+//				    || name[1] == KERN_OSTYPE
+//					)))) {
+//			printpath(tcp, (size_t)info.oldval);
+//		} else {
+//			tprintf("%p", info.oldval);
+//		}
+//		tprintf(", %lu, ", (unsigned long)oldlen);
+//		if (info.newval == NULL)
+//			tprints("NULL");
+//		else if (syserror(tcp))
+//			tprintf("%p", info.newval);
+//		else
+//			printpath(tcp, (size_t)info.newval);
+//		tprintf(", %lu", (unsigned long)info.newlen);
 	}
 
 	free(name);

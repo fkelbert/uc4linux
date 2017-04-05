@@ -42,7 +42,6 @@
 #include <grp.h>
 #include <dirent.h>
 #include <sys/utsname.h>
-#include "hashmap.h"
 #ifdef HAVE_PRCTL
 # include <sys/prctl.h>
 #endif
@@ -81,15 +80,15 @@ bool stack_trace_enabled = false;
 
 const unsigned int syscall_trap_sig = SIGTRAP | 0x80;
 
-cflag_t cflag = CFLAG_NONE;
+//cflag_t cflag = CFLAG_NONE;
 unsigned int followfork = 0;
 unsigned int ptrace_setoptions = PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXEC;
-unsigned int xflag = 0;
-bool Tflag = 0;
-bool iflag = 0;
-bool count_wallclock = 0;
+//unsigned int xflag = 0;
+//bool Tflag = 0;
+//bool iflag = 0;
+//bool count_wallclock = 0;
 unsigned int qflag = 0;
-static unsigned int tflag = 0;
+//static unsigned int tflag = 0;
 static bool rflag = 0;
 static bool print_pid_pfx = 0;
 
@@ -130,7 +129,7 @@ static int post_attach_sigstop = TCB_IGNORE_ONE_SIGSTOP;
 #endif
 
 /* Sometimes we want to print only succeeding syscalls. */
-bool not_failing_only = 0;
+//bool not_failing_only = 0;
 
 
 /* Show path associated with fd arguments */
@@ -140,7 +139,7 @@ static bool detach_on_execve = 0;
 /* Are we "strace PROG" and need to skip detach on first execve? */
 static bool skip_one_b_execve = 0;
 /* Are we "strace PROG" and need to hide everything until execve? */
-bool hide_log_until_execve = 0;
+//bool hide_log_until_execve = 0;
 
 static int exit_code = 0;
 static int strace_child = 0;
@@ -161,7 +160,7 @@ static FILE *shared_log;
 struct tcb *printing_tcp = NULL;
 static struct tcb *current_tcp;
 
-static hashmap *tcbmap;
+//static hashmap *tcbmap;
 static struct tcb **tcbtab;
 static unsigned int nprocs, tcbtabsize;
 static const char *progname;
@@ -258,11 +257,12 @@ usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
 	exit(exitval);
 }
 
+#if (!UC_ENABLED)
 static void ATTRIBUTE_NORETURN
 die(void)
 {
 	if (strace_tracer_pid == getpid()) {
-		cflag = 0;
+//		cflag = 0;
 		cleanup();
 	}
 	exit(1);
@@ -330,6 +330,7 @@ void perror_msg_and_die(const char *fmt, ...)
 	verror_msg(errno, fmt, p);
 	die();
 }
+#endif
 
 static void
 error_opt_arg(int opt, const char *arg)
@@ -617,35 +618,35 @@ printleader(struct tcb *tcp)
 	else if (nprocs > 1 && !outfname)
 		tprintf("[pid %5u] ", tcp->pid);
 
-	if (tflag) {
-		char str[sizeof("HH:MM:SS")];
-		struct timeval tv, dtv;
-		static struct timeval otv;
-
-		gettimeofday(&tv, NULL);
-		if (rflag) {
-			if (otv.tv_sec == 0)
-				otv = tv;
-			tv_sub(&dtv, &tv, &otv);
-			tprintf("%6ld.%06ld ",
-				(long) dtv.tv_sec, (long) dtv.tv_usec);
-			otv = tv;
-		}
-		else if (tflag > 2) {
-			tprintf("%ld.%06ld ",
-				(long) tv.tv_sec, (long) tv.tv_usec);
-		}
-		else {
-			time_t local = tv.tv_sec;
-			strftime(str, sizeof(str), "%T", localtime(&local));
-			if (tflag > 1)
-				tprintf("%s.%06ld ", str, (long) tv.tv_usec);
-			else
-				tprintf("%s ", str);
-		}
-	}
-	if (iflag)
-		print_pc(tcp);
+//	if (tflag) {
+//		char str[sizeof("HH:MM:SS")];
+//		struct timeval tv, dtv;
+//		static struct timeval otv;
+//
+//		gettimeofday(&tv, NULL);
+//		if (rflag) {
+//			if (otv.tv_sec == 0)
+//				otv = tv;
+//			tv_sub(&dtv, &tv, &otv);
+//			tprintf("%6ld.%06ld ",
+//				(long) dtv.tv_sec, (long) dtv.tv_usec);
+//			otv = tv;
+//		}
+//		else if (tflag > 2) {
+//			tprintf("%ld.%06ld ",
+//				(long) tv.tv_sec, (long) tv.tv_usec);
+//		}
+//		else {
+//			time_t local = tv.tv_sec;
+//			strftime(str, sizeof(str), "%T", localtime(&local));
+//			if (tflag > 1)
+//				tprintf("%s.%06ld ", str, (long) tv.tv_usec);
+//			else
+//				tprintf("%s ", str);
+//		}
+//	}
+//	if (iflag)
+//		print_pc(tcp);
 }
 
 void
@@ -706,7 +707,7 @@ alloctcb(int pid)
 			tcp->pid = pid;
 			int *index = xcalloc(1, sizeof(index[0]));
 			*index = i;
-			hashmapInsert(tcbmap, index, (unsigned long) pid);
+//			hashmapInsert(tcbmap, index, (unsigned long) pid);
 #if SUPPORTED_PERSONALITIES > 1
 			tcp->currpers = current_personality;
 #endif
@@ -754,7 +755,7 @@ droptcb(struct tcb *tcp)
 	if (printing_tcp == tcp)
 		printing_tcp = NULL;
 
-	free(hashmapRemove(tcbmap, (unsigned long) tcp->pid));
+//	free(hashmapRemove(tcbmap, (unsigned long) tcp->pid));
 	memset(tcp, 0, sizeof(*tcp));
 }
 
@@ -1092,7 +1093,7 @@ struct exec_params {
 };
 static struct exec_params params_for_tracee;
 
-static void ATTRIBUTE_NOINLINE ATTRIBUTE_NORETURN
+static void ATTRIBUTE_NOINLINE //ATTRIBUTE_NORETURN
 exec_or_die(void)
 {
 	struct exec_params *params = &params_for_tracee;
@@ -1438,7 +1439,7 @@ init(int argc, char *argv[])
 	/* Allocate the initial tcbtab.  */
 	tcbtabsize = argc;	/* Surely enough for all -p args.  */
 	tcbtab = xcalloc(tcbtabsize, sizeof(tcbtab[0]));
-	tcbmap = hashmapCreate(16);
+//	tcbmap = hashmapCreate(16);
 	tcp = xcalloc(tcbtabsize, sizeof(*tcp));
 	for (tcbi = 0; tcbi < tcbtabsize; tcbi++)
 		tcbtab[tcbi] = tcp++;
@@ -1467,18 +1468,18 @@ init(int argc, char *argv[])
 					optarg);
 			detach_on_execve = 1;
 			break;
-		case 'c':
-			if (cflag == CFLAG_BOTH) {
-				error_msg_and_die("-c and -C are mutually exclusive");
-			}
-			cflag = CFLAG_ONLY_STATS;
-			break;
-		case 'C':
-			if (cflag == CFLAG_ONLY_STATS) {
-				error_msg_and_die("-c and -C are mutually exclusive");
-			}
-			cflag = CFLAG_BOTH;
-			break;
+//		case 'c':
+//			if (cflag == CFLAG_BOTH) {
+//				error_msg_and_die("-c and -C are mutually exclusive");
+//			}
+//			cflag = CFLAG_ONLY_STATS;
+//			break;
+//		case 'C':
+//			if (cflag == CFLAG_ONLY_STATS) {
+//				error_msg_and_die("-c and -C are mutually exclusive");
+//			}
+//			cflag = CFLAG_BOTH;
+//			break;
 		case 'D':
 			daemonized_tracer = 1;
 			break;
@@ -1491,40 +1492,40 @@ init(int argc, char *argv[])
 		case 'h':
 			usage(stdout, 0);
 			break;
-		case 'i':
-			iflag = 1;
-			break;
+//		case 'i':
+//			iflag = 1;
+//			break;
 		case 'q':
 			qflag++;
 			break;
 		case 'r':
 			rflag = 1;
 			/* fall through to tflag++ */
-		case 't':
-			tflag++;
-			break;
-		case 'T':
-			Tflag = 1;
-			break;
-		case 'w':
-			count_wallclock = 1;
-			break;
-		case 'x':
-			xflag++;
-			break;
+//		case 't':
+//			tflag++;
+//			break;
+//		case 'T':
+//			Tflag = 1;
+//			break;
+//		case 'w':
+//			count_wallclock = 1;
+//			break;
+//		case 'x':
+//			xflag++;
+//			break;
 		case 'y':
 			show_fd_path++;
 			break;
-		case 'v':
-			qualify("abbrev=none");
-			break;
-		case 'V':
-			printf("%s -- version %s\n", PACKAGE_NAME, VERSION);
-			exit(0);
-			break;
-		case 'z':
-			not_failing_only = 1;
-			break;
+//		case 'v':
+//			qualify("abbrev=none");
+//			break;
+//		case 'V':
+//			printf("%s -- version %s\n", PACKAGE_NAME, VERSION);
+//			exit(0);
+//			break;
+//		case 'z':
+//			not_failing_only = 1;
+//			break;
 		case 'a':
 			acolumn = string_to_uint(optarg);
 			if (acolumn < 0)
@@ -1613,30 +1614,30 @@ init(int argc, char *argv[])
 #endif
 
 
-	if (followfork >= 2 && cflag) {
-		error_msg_and_die("(-c or -C) and -ff are mutually exclusive");
-	}
+//	if (followfork >= 2 && cflag) {
+//		error_msg_and_die("(-c or -C) and -ff are mutually exclusive");
+//	}
+//
+//	if (count_wallclock && !cflag) {
+//		error_msg_and_die("-w must be given with (-c or -C)");
+//	}
 
-	if (count_wallclock && !cflag) {
-		error_msg_and_die("-w must be given with (-c or -C)");
-	}
-
-	if (cflag == CFLAG_ONLY_STATS) {
-		if (iflag)
-			error_msg("-%c has no effect with -c", 'i');
-#ifdef USE_LIBUNWIND
-		if (stack_trace_enabled)
-			error_msg("-%c has no effect with -c", 'k');
-#endif
-		if (rflag)
-			error_msg("-%c has no effect with -c", 'r');
-		if (tflag)
-			error_msg("-%c has no effect with -c", 't');
-		if (Tflag)
-			error_msg("-%c has no effect with -c", 'T');
-		if (show_fd_path)
-			error_msg("-%c has no effect with -c", 'y');
-	}
+//	if (cflag == CFLAG_ONLY_STATS) {
+//		if (iflag)
+//			error_msg("-%c has no effect with -c", 'i');
+//#ifdef USE_LIBUNWIND
+//		if (stack_trace_enabled)
+//			error_msg("-%c has no effect with -c", 'k');
+//#endif
+//		if (rflag)
+//			error_msg("-%c has no effect with -c", 'r');
+//		if (tflag)
+//			error_msg("-%c has no effect with -c", 't');
+//		if (Tflag)
+//			error_msg("-%c has no effect with -c", 'T');
+//		if (show_fd_path)
+//			error_msg("-%c has no effect with -c", 'y');
+//	}
 
 #ifdef USE_LIBUNWIND
 	if (stack_trace_enabled)
@@ -1717,8 +1718,8 @@ init(int argc, char *argv[])
 	 * in the startup_child() mode we kill the spawned process anyway.
 	 */
 	if (argv[0]) {
-		if (!NOMMU_SYSTEM || daemonized_tracer)
-			hide_log_until_execve = 1;
+//		if (!NOMMU_SYSTEM || daemonized_tracer)
+//			hide_log_until_execve = 1;
 		skip_one_b_execve = 1;
 		startup_child(argv);
 	}
@@ -1769,10 +1770,19 @@ pid2tcb(int pid)
 	if (pid <= 0)
 		return NULL;
 
-	int *j = (int *) hashmapGet(tcbmap, (unsigned long) pid);
-	if (j != NULL) {
-		return tcbtab[*j];
+	unsigned int i;
+	struct tcb *tcp;
+	for (i = 0; i < tcbtabsize; i++) {
+		tcp = tcbtab[i];
+		if (tcp->pid == pid) {
+			return tcp;
+		}
 	}
+
+//	int *j = (int *) hashmapGet(tcbmap, (unsigned long) pid);
+//	if (j != NULL) {
+//		return tcbtab[*j];
+//	}
 
 	return NULL;
 }
@@ -1799,8 +1809,8 @@ cleanup(void)
 		}
 		detach(tcp);
 	}
-	if (cflag)
-		call_summary(shared_log);
+//	if (cflag)
+//		call_summary(shared_log);
 }
 
 static void
@@ -1929,20 +1939,20 @@ maybe_switch_tcbs(struct tcb *tcp, const int pid)
 	/* Switch to the thread, reusing leader's outfile and pid */
 	tcp = execve_thread;
 	tcp->pid = pid;
-	if (cflag != CFLAG_ONLY_STATS) {
-		printleader(tcp);
-		tprintf("+++ superseded by execve in pid %lu +++\n", old_pid);
-		line_ended();
-		tcp->flags |= TCB_REPRINT;
-	}
+//	if (cflag != CFLAG_ONLY_STATS) {
+//		printleader(tcp);
+//		tprintf("+++ superseded by execve in pid %lu +++\n", old_pid);
+//		line_ended();
+//		tcp->flags |= TCB_REPRINT;
+//	}
 
 	return tcp;
 }
 
 #if UC_ENABLED
-#define print_signalled(a,b,c)
-#define print_exited(a,b,c)
-#define print_stopped(a,b,c)
+#define print_signalled(a,b,c) do {} while (0)
+#define print_exited(a,b,c) do {} while (0)
+#define print_stopped(a,b,c) do {} while (0)
 #else
 static void
 print_signalled(struct tcb *tcp, const int pid, int status)
@@ -1952,20 +1962,20 @@ print_signalled(struct tcb *tcp, const int pid, int status)
 		strace_child = 0;
 	}
 
-	if (cflag != CFLAG_ONLY_STATS
-	 && (qual_flags[WTERMSIG(status)] & QUAL_SIGNAL)
-	) {
-		printleader(tcp);
-#ifdef WCOREDUMP
-		tprintf("+++ killed by %s %s+++\n",
-			signame(WTERMSIG(status)),
-			WCOREDUMP(status) ? "(core dumped) " : "");
-#else
-		tprintf("+++ killed by %s +++\n",
-			signame(WTERMSIG(status)));
-#endif
-		line_ended();
-	}
+//	if (cflag != CFLAG_ONLY_STATS
+//	 && (qual_flags[WTERMSIG(status)] & QUAL_SIGNAL)
+//	) {
+//		printleader(tcp);
+//#ifdef WCOREDUMP
+//		tprintf("+++ killed by %s %s+++\n",
+//			signame(WTERMSIG(status)),
+//			WCOREDUMP(status) ? "(core dumped) " : "");
+//#else
+//		tprintf("+++ killed by %s +++\n",
+//			signame(WTERMSIG(status)));
+//#endif
+//		line_ended();
+//	}
 }
 
 static void
@@ -1976,30 +1986,30 @@ print_exited(struct tcb *tcp, const int pid, int status)
 		strace_child = 0;
 	}
 
-	if (cflag != CFLAG_ONLY_STATS &&
-	    qflag < 2) {
-		printleader(tcp);
-		tprintf("+++ exited with %d +++\n", WEXITSTATUS(status));
-		line_ended();
-	}
+//	if (cflag != CFLAG_ONLY_STATS &&
+//	    qflag < 2) {
+//		printleader(tcp);
+//		tprintf("+++ exited with %d +++\n", WEXITSTATUS(status));
+//		line_ended();
+//	}
 }
 
 static void
 print_stopped(struct tcb *tcp, const siginfo_t *si, const unsigned int sig)
 {
-	if (cflag != CFLAG_ONLY_STATS
-	    && !hide_log_until_execve
-	    && (qual_flags[sig] & QUAL_SIGNAL)
-	   ) {
-		printleader(tcp);
-		if (si) {
-			tprintf("--- %s ", signame(sig));
-			printsiginfo(si, verbose(tcp));
-			tprints(" ---\n");
-		} else
-			tprintf("--- stopped by %s ---\n", signame(sig));
-		line_ended();
-	}
+//	if (cflag != CFLAG_ONLY_STATS
+//	    && !hide_log_until_execve
+//	    && (qual_flags[sig] & QUAL_SIGNAL)
+//	   ) {
+//		printleader(tcp);
+//		if (si) {
+//			tprintf("--- %s ", signame(sig));
+//			printsiginfo(si, verbose(tcp));
+//			tprints(" ---\n");
+//		} else
+//			tprintf("--- stopped by %s ---\n", signame(sig));
+//		line_ended();
+//	}
 }
 #endif
 
@@ -2058,7 +2068,7 @@ trace(void)
 
 	if (interactive)
 		sigprocmask(SIG_SETMASK, &empty_set, NULL);
-	pid = wait4(-1, &status, __WALL, (cflag ? &ru : NULL));
+	pid = wait4(-1, &status, __WALL, NULL);
 	wait_errno = errno;
 	if (interactive)
 		sigprocmask(SIG_BLOCK, &blocked_set, NULL);
@@ -2127,10 +2137,10 @@ trace(void)
 	/* Set current output file */
 	current_tcp = tcp;
 
-	if (cflag) {
-		tv_sub(&tcp->dtime, &ru.ru_stime, &tcp->stime);
-		tcp->stime = ru.ru_stime;
-	}
+//	if (cflag) {
+//		tv_sub(&tcp->dtime, &ru.ru_stime, &tcp->stime);
+//		tcp->stime = ru.ru_stime;
+//	}
 
 	if (WIFSIGNALED(status)) {
 		print_signalled(tcp, pid, status);

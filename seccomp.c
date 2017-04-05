@@ -161,69 +161,69 @@ decode_filter(const struct bpf_filter *filter)
 # define BPF_MAXINSNS 4096
 #endif
 
-static void
-decode_fprog(struct tcb *tcp, unsigned short len, unsigned long addr)
-{
-	if (!len || abbrev(tcp)) {
-		tprintf("{len = %u, filter = ", len);
-		printaddr(addr);
-		tprints("}");
-	} else {
-		unsigned int i = 0;
-
-		tprints("[");
-		while (i < len && i < BPF_MAXINSNS) {
-			struct bpf_filter filter;
-
-			if (umove(tcp, addr, &filter) < 0)
-				break;
-			if (i)
-				tprints(", ");
-			decode_filter(&filter);
-
-			addr += sizeof(filter);
-			++i;
-		}
-		if (i < len)
-			tprints("...");
-		tprints("]");
-	}
-}
+//static void
+//decode_fprog(struct tcb *tcp, unsigned short len, unsigned long addr)
+//{
+//	if (!len || abbrev(tcp)) {
+//		tprintf("{len = %u, filter = ", len);
+//		printaddr(addr);
+//		tprints("}");
+//	} else {
+//		unsigned int i = 0;
+//
+//		tprints("[");
+//		while (i < len && i < BPF_MAXINSNS) {
+//			struct bpf_filter filter;
+//
+//			if (umove(tcp, addr, &filter) < 0)
+//				break;
+//			if (i)
+//				tprints(", ");
+//			decode_filter(&filter);
+//
+//			addr += sizeof(filter);
+//			++i;
+//		}
+//		if (i < len)
+//			tprints("...");
+//		tprints("]");
+//	}
+//}
 
 #include "seccomp_fprog.h"
 
 void
 print_seccomp_filter(struct tcb *tcp, unsigned long addr)
 {
-	struct seccomp_fprog fprog;
-
-	if (fetch_seccomp_fprog(tcp, addr, &fprog))
-		decode_fprog(tcp, fprog.len, fprog.filter);
+//	struct seccomp_fprog fprog;
+//
+//	if (fetch_seccomp_fprog(tcp, addr, &fprog))
+//		decode_fprog(tcp, fprog.len, fprog.filter);
 }
 
-static void
-decode_seccomp_set_mode_strict(unsigned int flags, unsigned long addr)
-{
-	tprintf("%u, ", flags);
-	printaddr(addr);
-}
+//static void
+//decode_seccomp_set_mode_strict(unsigned int flags, unsigned long addr)
+//{
+//	tprintf("%u, ", flags);
+//	printaddr(addr);
+//}
 
 SYS_FUNC(seccomp)
 {
-	unsigned int op = tcp->u_arg[0];
-
-	printxval(seccomp_ops, op, "SECCOMP_SET_MODE_???");
-	tprints(", ");
-
-	if (op == SECCOMP_SET_MODE_FILTER) {
-		printflags(seccomp_filter_flags, tcp->u_arg[1],
-			   "SECCOMP_FILTER_FLAG_???");
-		tprints(", ");
-		print_seccomp_filter(tcp, tcp->u_arg[2]);
-	} else {
-		decode_seccomp_set_mode_strict(tcp->u_arg[1],
-					       tcp->u_arg[2]);
-	}
+//	unsigned int op = tcp->u_arg[0];
+//
+//	printxval(seccomp_ops, op, "SECCOMP_SET_MODE_???");
+//	tprints(", ");
+//
+//	if (op == SECCOMP_SET_MODE_FILTER) {
+//		printflags(seccomp_filter_flags, tcp->u_arg[1],
+//			   "SECCOMP_FILTER_FLAG_???");
+//		tprints(", ");
+//		print_seccomp_filter(tcp, tcp->u_arg[2]);
+//	} else {
+//		decode_seccomp_set_mode_strict(tcp->u_arg[1],
+//					       tcp->u_arg[2]);
+//	}
 
 	return RVAL_DECODED;
 }

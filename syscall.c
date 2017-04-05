@@ -840,7 +840,7 @@ trace_syscall_entering(struct tcb *tcp)
 	    || SEN_execv == tcp->s_ent->sen
 # endif
 	   ) {
-		hide_log_until_execve = 0;
+//		hide_log_until_execve = 0;
 	}
 
 #if defined(SYS_socket_subcall) || defined(SYS_ipc_subcall)
@@ -869,10 +869,10 @@ trace_syscall_entering(struct tcb *tcp)
 
 	tcp->flags &= ~TCB_FILTERED;
 
-	if (cflag == CFLAG_ONLY_STATS || hide_log_until_execve) {
-		res = 0;
-		goto ret;
-	}
+//	if (cflag == CFLAG_ONLY_STATS || hide_log_until_execve) {
+//		res = 0;
+//		goto ret;
+//	}
 
 #ifdef USE_LIBUNWIND
 	if (stack_trace_enabled) {
@@ -898,8 +898,8 @@ trace_syscall_entering(struct tcb *tcp)
 	tcp->flags |= TCB_INSYSCALL;
 	tcp->sys_func_rval = res;
 	/* Measure the entrance time as late as possible to avoid errors. */
-	if (Tflag || cflag)
-		gettimeofday(&tcp->etime, NULL);
+//	if (Tflag || cflag)
+//		gettimeofday(&tcp->etime, NULL);
 	return res;
 }
 
@@ -910,12 +910,6 @@ trace_syscall_exiting(struct tcb *tcp)
 	struct timeval tv;
 	int res;
 	long u_error;
-
-#if (!UC_ENABLED)
-	/* Measure the exit time as early as possible to avoid errors. */
-	if (Tflag || cflag)
-		gettimeofday(&tv, NULL);
-#endif
 
 #ifdef USE_LIBUNWIND
 	if (stack_trace_enabled) {
@@ -928,7 +922,7 @@ trace_syscall_exiting(struct tcb *tcp)
 	update_personality(tcp, tcp->currpers);
 #endif
 	res = (get_regs_error ? -1 : get_syscall_result(tcp));
-	if (filtered(tcp) || hide_log_until_execve)
+	if (filtered(tcp))
 		goto ret;
 
 #if (!UC_ENABLED)
@@ -986,8 +980,8 @@ trace_syscall_exiting(struct tcb *tcp)
 	 * whereas the intended result is that open(...) line
 	 * is not shown at all.
 	 */
-		if (not_failing_only && tcp->u_error)
-			goto ret;	/* ignore failed syscalls */
+//		if (not_failing_only && tcp->u_error)
+//			goto ret;	/* ignore failed syscalls */
 		if (tcp->sys_func_rval & RVAL_DECODED)
 			sys_res = tcp->sys_func_rval;
 		else
@@ -1129,11 +1123,11 @@ trace_syscall_exiting(struct tcb *tcp)
 		if ((sys_res & RVAL_STR) && tcp->auxstr)
 			tprintf(" (%s)", tcp->auxstr);
 	}
-	if (Tflag) {
-		tv_sub(&tv, &tv, &tcp->etime);
-		tprintf(" <%ld.%06ld>",
-			(long) tv.tv_sec, (long) tv.tv_usec);
-	}
+//	if (Tflag) {
+//		tv_sub(&tv, &tv, &tcp->etime);
+//		tprintf(" <%ld.%06ld>",
+//			(long) tv.tv_sec, (long) tv.tv_usec);
+//	}
 	tprints("\n");
 	dumpio(tcp);
 	line_ended();

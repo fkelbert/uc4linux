@@ -111,7 +111,7 @@ decode_poll_exiting(struct tcb *tcp, const long pts)
 	if (syserror(tcp))
 		return 0;
 	if (tcp->u_rval == 0) {
-		tcp->auxstr = "Timeout";
+//		tcp->auxstr = "Timeout";
 		return RVAL_STR;
 	}
 
@@ -182,7 +182,7 @@ decode_poll_exiting(struct tcb *tcp, const long pts)
 	if (outptr == outstr)
 		return 0;
 
-	tcp->auxstr = outstr;
+//	tcp->auxstr = outstr;
 	return RVAL_STR;
 #undef end_outstr
 }

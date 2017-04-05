@@ -78,53 +78,53 @@ printflock64(struct tcb *tcp, long addr, int getlk)
 static void
 printflock(struct tcb *tcp, long addr, int getlk)
 {
-	struct flock fl;
-
-#if SUPPORTED_PERSONALITIES > 1
-	if (
-# if SIZEOF_OFF_T > SIZEOF_LONG
-	    current_personality != DEFAULT_PERSONALITY &&
-# endif
-	    current_wordsize != sizeof(fl.l_start)) {
-		if (current_wordsize == 4) {
-			/* 32-bit x86 app on x86_64 and similar cases */
-			struct {
-				short int l_type;
-				short int l_whence;
-				int32_t l_start; /* off_t */
-				int32_t l_len; /* off_t */
-				int32_t l_pid; /* pid_t */
-			} fl32;
-			if (umove_or_printaddr(tcp, addr, &fl32))
-				return;
-			fl.l_type = fl32.l_type;
-			fl.l_whence = fl32.l_whence;
-			fl.l_start = fl32.l_start;
-			fl.l_len = fl32.l_len;
-			fl.l_pid = fl32.l_pid;
-		} else {
-			/* let people know we have a problem here */
-			tprintf("<decode error: unsupported wordsize %d>",
-				current_wordsize);
-			return;
-		}
-	} else
-#endif
-	if (umove_or_printaddr(tcp, addr, &fl))
-		return;
-	tprints("{type=");
-	printxval(lockfcmds, fl.l_type, "F_???");
-	tprints(", whence=");
-	printxval(whence_codes, fl.l_whence, "SEEK_???");
-#if SIZEOF_OFF_T > SIZEOF_LONG
-	tprintf(", start=%lld, len=%lld", fl.l_start, fl.l_len);
-#else
-	tprintf(", start=%ld, len=%ld", fl.l_start, fl.l_len);
-#endif
-	if (getlk)
-		tprintf(", pid=%lu}", (unsigned long) fl.l_pid);
-	else
-		tprints("}");
+//	struct flock fl;
+//
+//#if SUPPORTED_PERSONALITIES > 1
+//	if (
+//# if SIZEOF_OFF_T > SIZEOF_LONG
+//	    current_personality != DEFAULT_PERSONALITY &&
+//# endif
+//	    current_wordsize != sizeof(fl.l_start)) {
+//		if (current_wordsize == 4) {
+//			/* 32-bit x86 app on x86_64 and similar cases */
+//			struct {
+//				short int l_type;
+//				short int l_whence;
+//				int32_t l_start; /* off_t */
+//				int32_t l_len; /* off_t */
+//				int32_t l_pid; /* pid_t */
+//			} fl32;
+//			if (umove_or_printaddr(tcp, addr, &fl32))
+//				return;
+//			fl.l_type = fl32.l_type;
+//			fl.l_whence = fl32.l_whence;
+//			fl.l_start = fl32.l_start;
+//			fl.l_len = fl32.l_len;
+//			fl.l_pid = fl32.l_pid;
+//		} else {
+//			/* let people know we have a problem here */
+//			tprintf("<decode error: unsupported wordsize %d>",
+//				current_wordsize);
+//			return;
+//		}
+//	} else
+//#endif
+//	if (umove_or_printaddr(tcp, addr, &fl))
+//		return;
+//	tprints("{type=");
+//	printxval(lockfcmds, fl.l_type, "F_???");
+//	tprints(", whence=");
+//	printxval(whence_codes, fl.l_whence, "SEEK_???");
+//#if SIZEOF_OFF_T > SIZEOF_LONG
+//	tprintf(", start=%lld, len=%lld", fl.l_start, fl.l_len);
+//#else
+//	tprintf(", start=%ld, len=%ld", fl.l_start, fl.l_len);
+//#endif
+//	if (getlk)
+//		tprintf(", pid=%lu}", (unsigned long) fl.l_pid);
+//	else
+//		tprints("}");
 }
 
 SYS_FUNC(fcntl)
@@ -181,12 +181,12 @@ SYS_FUNC(fcntl)
 		case F_GETFD:
 			if (syserror(tcp) || tcp->u_rval == 0)
 				return 0;
-			tcp->auxstr = sprintflags("flags ", fdflags, tcp->u_rval);
+//			tcp->auxstr = sprintflags("flags ", fdflags, tcp->u_rval);
 			return RVAL_HEX|RVAL_STR;
 		case F_GETFL:
 			if (syserror(tcp))
 				return 0;
-			tcp->auxstr = sprint_open_modes(tcp->u_rval);
+//			tcp->auxstr = sprint_open_modes(tcp->u_rval);
 			return RVAL_HEX|RVAL_STR;
 		case F_GETLK:
 			tprints(", ");
@@ -202,7 +202,7 @@ SYS_FUNC(fcntl)
 		case F_GETLEASE:
 			if (syserror(tcp))
 				return 0;
-			tcp->auxstr = xlookup(lockfcmds, tcp->u_rval);
+//			tcp->auxstr = xlookup(lockfcmds, tcp->u_rval);
 			return RVAL_HEX|RVAL_STR;
 #endif
 		default:

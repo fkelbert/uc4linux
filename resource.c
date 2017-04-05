@@ -120,36 +120,36 @@ decode_rlimit(struct tcb *tcp, unsigned long addr)
 
 SYS_FUNC(getrlimit)
 {
-	if (entering(tcp)) {
-		printxval(resources, tcp->u_arg[0], "RLIMIT_???");
-		tprints(", ");
-	}
-	else {
-		decode_rlimit(tcp, tcp->u_arg[1]);
-	}
+//	if (entering(tcp)) {
+//		printxval(resources, tcp->u_arg[0], "RLIMIT_???");
+//		tprints(", ");
+//	}
+//	else {
+//		decode_rlimit(tcp, tcp->u_arg[1]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(setrlimit)
 {
-	printxval(resources, tcp->u_arg[0], "RLIMIT_???");
-	tprints(", ");
-	decode_rlimit(tcp, tcp->u_arg[1]);
+//	printxval(resources, tcp->u_arg[0], "RLIMIT_???");
+//	tprints(", ");
+//	decode_rlimit(tcp, tcp->u_arg[1]);
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(prlimit64)
 {
-	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
-		printxval(resources, tcp->u_arg[1], "RLIMIT_???");
-		tprints(", ");
-		print_rlimit64(tcp, tcp->u_arg[2]);
-		tprints(", ");
-	} else {
-		print_rlimit64(tcp, tcp->u_arg[3]);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%ld, ", tcp->u_arg[0]);
+//		printxval(resources, tcp->u_arg[1], "RLIMIT_???");
+//		tprints(", ");
+//		print_rlimit64(tcp, tcp->u_arg[2]);
+//		tprints(", ");
+//	} else {
+//		print_rlimit64(tcp, tcp->u_arg[3]);
+//	}
 	return 0;
 }
 
@@ -157,24 +157,24 @@ SYS_FUNC(prlimit64)
 
 SYS_FUNC(getrusage)
 {
-	if (entering(tcp)) {
-		printxval(usagewho, tcp->u_arg[0], "RUSAGE_???");
-		tprints(", ");
-	}
-	else
-		printrusage(tcp, tcp->u_arg[1]);
+//	if (entering(tcp)) {
+//		printxval(usagewho, tcp->u_arg[0], "RUSAGE_???");
+//		tprints(", ");
+//	}
+//	else
+//		printrusage(tcp, tcp->u_arg[1]);
 	return 0;
 }
 
 #ifdef ALPHA
 SYS_FUNC(osf_getrusage)
 {
-	if (entering(tcp)) {
-		printxval(usagewho, tcp->u_arg[0], "RUSAGE_???");
-		tprints(", ");
-	}
-	else
-		printrusage32(tcp, tcp->u_arg[1]);
+//	if (entering(tcp)) {
+//		printxval(usagewho, tcp->u_arg[0], "RUSAGE_???");
+//		tprints(", ");
+//	}
+//	else
+//		printrusage32(tcp, tcp->u_arg[1]);
 	return 0;
 }
 #endif /* ALPHA */
@@ -183,16 +183,16 @@ SYS_FUNC(osf_getrusage)
 
 SYS_FUNC(getpriority)
 {
-	printxval(priorities, tcp->u_arg[0], "PRIO_???");
-	tprintf(", %lu", tcp->u_arg[1]);
+//	printxval(priorities, tcp->u_arg[0], "PRIO_???");
+//	tprintf(", %lu", tcp->u_arg[1]);
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(setpriority)
 {
-	printxval(priorities, tcp->u_arg[0], "PRIO_???");
-	tprintf(", %lu, %d", tcp->u_arg[1], (int) tcp->u_arg[2]);
+//	printxval(priorities, tcp->u_arg[0], "PRIO_???");
+//	tprintf(", %lu, %d", tcp->u_arg[1], (int) tcp->u_arg[2]);
 
 	return RVAL_DECODED;
 }

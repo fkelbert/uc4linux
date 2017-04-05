@@ -144,20 +144,20 @@ SYS_FUNC(osf_wait4)
 
 SYS_FUNC(waitid)
 {
-	if (entering(tcp)) {
-		printxval(waitid_types, tcp->u_arg[0], "P_???");
-		tprintf(", %ld, ", tcp->u_arg[1]);
-	} else {
-		/* siginfo */
-		printsiginfo_at(tcp, tcp->u_arg[2]);
-		/* options */
-		tprints(", ");
-		printflags(wait4_options, tcp->u_arg[3], "W???");
-		if (tcp->s_ent->nargs > 4) {
-			/* usage */
-			tprints(", ");
-			printrusage(tcp, tcp->u_arg[4]);
-		}
-	}
+//	if (entering(tcp)) {
+//		printxval(waitid_types, tcp->u_arg[0], "P_???");
+//		tprintf(", %ld, ", tcp->u_arg[1]);
+//	} else {
+//		/* siginfo */
+//		printsiginfo_at(tcp, tcp->u_arg[2]);
+//		/* options */
+//		tprints(", ");
+//		printflags(wait4_options, tcp->u_arg[3], "W???");
+//		if (tcp->s_ent->nargs > 4) {
+//			/* usage */
+//			tprints(", ");
+//			printrusage(tcp, tcp->u_arg[4]);
+//		}
+//	}
 	return 0;
 }

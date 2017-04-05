@@ -54,7 +54,7 @@ SYS_FUNC(ioprio_get)
 		if (syserror(tcp))
 			return 0;
 
-		tcp->auxstr = sprint_ioprio(tcp->u_rval);
+//		tcp->auxstr = sprint_ioprio(tcp->u_rval);
 		return RVAL_STR;
 	}
 }

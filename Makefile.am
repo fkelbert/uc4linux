@@ -70,7 +70,6 @@ strace_SOURCES =	\
 	getcpu.c	\
 	getcwd.c	\
 	getrandom.c	\
-	hashmap.c	\
 	hostname.c	\
 	inotify.c	\
 	io.c		\

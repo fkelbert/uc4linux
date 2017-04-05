@@ -39,30 +39,30 @@
 
 SYS_FUNC(shmget)
 {
-	if (tcp->u_arg[0])
-		tprintf("%#lx", tcp->u_arg[0]);
-	else
-		tprints("IPC_PRIVATE");
-	tprintf(", %lu, ", tcp->u_arg[1]);
-	if (printflags(shm_resource_flags, tcp->u_arg[2] & ~0777, NULL) != 0)
-		tprints("|");
-	tprintf("%#lo", tcp->u_arg[2] & 0777);
+//	if (tcp->u_arg[0])
+//		tprintf("%#lx", tcp->u_arg[0]);
+//	else
+//		tprints("IPC_PRIVATE");
+//	tprintf(", %lu, ", tcp->u_arg[1]);
+//	if (printflags(shm_resource_flags, tcp->u_arg[2] & ~0777, NULL) != 0)
+//		tprints("|");
+//	tprintf("%#lo", tcp->u_arg[2] & 0777);
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(shmat)
 {
 	if (entering(tcp)) {
-		tprintf("%lu, ", tcp->u_arg[0]);
-		if (indirect_ipccall(tcp)) {
-			printaddr(tcp->u_arg[3]);
-			tprints(", ");
-			printflags(shm_flags, tcp->u_arg[1], "SHM_???");
-		} else {
-			printaddr(tcp->u_arg[1]);
-			tprints(", ");
-			printflags(shm_flags, tcp->u_arg[2], "SHM_???");
-		}
+//		tprintf("%lu, ", tcp->u_arg[0]);
+//		if (indirect_ipccall(tcp)) {
+//			printaddr(tcp->u_arg[3]);
+//			tprints(", ");
+//			printflags(shm_flags, tcp->u_arg[1], "SHM_???");
+//		} else {
+//			printaddr(tcp->u_arg[1]);
+//			tprints(", ");
+//			printflags(shm_flags, tcp->u_arg[2], "SHM_???");
+//		}
 		return 0;
 	} else {
 		if (syserror(tcp))
@@ -79,6 +79,6 @@ SYS_FUNC(shmat)
 
 SYS_FUNC(shmdt)
 {
-	printaddr(tcp->u_arg[indirect_ipccall(tcp) ? 3 : 0]);
+//	printaddr(tcp->u_arg[indirect_ipccall(tcp) ? 3 : 0]);
 	return RVAL_DECODED;
 }

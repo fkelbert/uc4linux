@@ -347,12 +347,12 @@ struct tcb {
 	int sys_func_rval;	/* Syscall entry parser's return value */
 	int curcol;		/* Output column for this process */
 	FILE *outf;		/* Output file for this process */
-	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
+//	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
 	const struct_sysent *s_ent; /* sysent[scno] or dummy struct for bad scno */
 	const struct_sysent *s_prev_ent; /* for "resuming interrupted SYSCALL" msg */
-	struct timeval stime;	/* System time usage as of last process wait */
-	struct timeval dtime;	/* Delta for system time usage */
-	struct timeval etime;	/* Syscall entry time */
+//	struct timeval stime;	/* System time usage as of last process wait */
+//	struct timeval dtime;	/* Delta for system time usage */
+//	struct timeval etime;	/* Syscall entry time */
 
 #ifdef USE_LIBUNWIND
 	struct UPT_info* libunwind_ui;
@@ -403,8 +403,8 @@ typedef uint8_t qualbits_t;
 #define entering(tcp)	(!((tcp)->flags & TCB_INSYSCALL))
 #define exiting(tcp)	((tcp)->flags & TCB_INSYSCALL)
 #define syserror(tcp)	((tcp)->u_error != 0)
-#define verbose(tcp)	((tcp)->qual_flg & QUAL_VERBOSE)
-#define abbrev(tcp)	((tcp)->qual_flg & QUAL_ABBREV)
+#define verbose(tcp)	0//((tcp)->qual_flg & QUAL_VERBOSE)
+#define abbrev(tcp)		0//((tcp)->qual_flg & QUAL_ABBREV)
 #define filtered(tcp)	((tcp)->flags & TCB_FILTERED)
 
 struct xlat {
@@ -474,23 +474,23 @@ extern const struct xlat whence_codes[];
 # define NEED_UID16_PARSERS 0
 #endif
 
-typedef enum {
-	CFLAG_NONE = 0,
-	CFLAG_ONLY_STATS,
-	CFLAG_BOTH
-} cflag_t;
-extern cflag_t cflag;
-extern bool Tflag;
-extern bool iflag;
-extern bool count_wallclock;
+//typedef enum {
+//	CFLAG_NONE = 0,
+//	CFLAG_ONLY_STATS,
+//	CFLAG_BOTH
+//} cflag_t;
+//extern cflag_t cflag;
+//extern bool Tflag;
+//extern bool iflag;
+//extern bool count_wallclock;
 extern unsigned int qflag;
-extern bool not_failing_only;
+//extern bool not_failing_only;
 extern unsigned int show_fd_path;
-extern bool hide_log_until_execve;
+//extern bool hide_log_until_execve;
 /* are we filtering traces based on paths? */
 extern const char **paths_selected;
 #define tracing_paths (paths_selected != NULL)
-extern unsigned xflag;
+//extern unsigned xflag;
 extern unsigned followfork;
 #ifdef USE_LIBUNWIND
 /* if this is true do the stack trace for every system call */
@@ -502,13 +502,20 @@ extern unsigned os_release;
 #undef KERNEL_VERSION
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
+#if UC_ENABLED
+#define error_msg(f, ...) do {} while(0)
+#define perror_msg(f, ...) do {} while(0)
+#define error_msg_and_die(f, ...) do {} while(0)
+#define perror_msg_and_die(f, ...) do {} while(0)
+#else
 void error_msg(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
 void perror_msg(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
 void error_msg_and_die(const char *fmt, ...)
 	ATTRIBUTE_FORMAT((printf, 1, 2)) ATTRIBUTE_NORETURN;
 void perror_msg_and_die(const char *fmt, ...)
 	ATTRIBUTE_FORMAT((printf, 1, 2)) ATTRIBUTE_NORETURN;
-void die_out_of_memory(void) ATTRIBUTE_NORETURN;
+#endif
+void die_out_of_memory(void);
 
 void *xmalloc(size_t size) ATTRIBUTE_MALLOC ATTRIBUTE_ALLOC_SIZE((1));
 void *xcalloc(size_t nmemb, size_t size)
@@ -600,7 +607,7 @@ extern int printllval(struct tcb *, const char *, int)
 
 extern void printaddr(long);
 #if UC_ENABLED
-#define printxvals(a, b, c, ...)
+#define printxvals(a, b, c, ...) do {} while(0)
 #else
 extern void printxvals(const unsigned int, const char *, const struct xlat *, ...);
 #endif
@@ -621,8 +628,8 @@ extern void dumpiov_in_msghdr(struct tcb *, long);
 extern void dumpiov_in_mmsghdr(struct tcb *, long);
 extern void dumpiov(struct tcb *, int, long);
 #if UC_ENABLED
-#define dumpstr(a,b,c)
-#define printstr(t, a, b)
+#define dumpstr(a,b,c) do {} while(0)
+#define printstr(t, a, b) do {} while(0)
 #else
 extern void dumpstr(struct tcb *, long, int);
 extern void printstr(struct tcb *, long, long);
@@ -665,8 +672,8 @@ extern bool printpair_int(struct tcb *, long, const char *)
 extern bool printpair_int64(struct tcb *, long, const char *)
 	ATTRIBUTE_FORMAT((printf, 3, 0));
 #if UC_ENABLED
-#define printpath(t, a)
-#define printpathn(t, a, b)
+#define printpath(t, a) do {} while(0)
+#define printpathn(t, a, b) do {} while(0)
 #else
 extern void printpath(struct tcb *, long);
 extern void printpathn(struct tcb *, long, unsigned int);
@@ -692,9 +699,9 @@ extern const char *sprintsigmask_n(const char *, const void *, unsigned int);
 	tprints(sprintsigmask_n((prefix), (mask), sizeof(mask)))
 extern void printsignal(int);
 #if UC_ENABLED
-#define tprint_iov(a,b,c,d)
-#define tprint_iov_upto(a,b,c,d,e)
-#define tprint_open_modes(a)
+#define tprint_iov(a,b,c,d) do {} while(0)
+#define tprint_iov_upto(a,b,c,d,e) do {} while(0)
+#define tprint_open_modes(a) do {} while(0)
 #else
 extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);
 extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long, int decode_iov, unsigned long);
@@ -753,16 +760,11 @@ extern struct tcb *printing_tcp;
 
 #include "ucSettings.h"
 #if UC_ENABLED || STRACE_SILENT
-//extern void printleader(struct tcb *);
-//extern void line_ended(void);
-//extern void tabto(void);
-//extern void tprintf(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
-//extern void tprints(const char *str);
-#define printleader(tcb)
-#define line_ended()
-#define tabto(void)
-#define tprintf(fmt, ...)
-#define tprints(str)
+#define printleader(tcb) do {} while(0)
+#define line_ended() do {} while(0)
+#define tabto(void) do {} while(0)
+#define tprintf(fmt, ...) do {} while(0)
+#define tprints(str) do {} while(0)
 #else
 extern void printleader(struct tcb *);
 extern void line_ended(void);

@@ -32,14 +32,14 @@
 
 SYS_FUNC(close)
 {
-	printfd(tcp, tcp->u_arg[0]);
+//	printfd(tcp, tcp->u_arg[0]);
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(dup)
 {
-	printfd(tcp, tcp->u_arg[0]);
+//	printfd(tcp, tcp->u_arg[0]);
 
 	return RVAL_DECODED | RVAL_FD;
 }
@@ -47,13 +47,13 @@ SYS_FUNC(dup)
 static int
 do_dup2(struct tcb *tcp, int flags_arg)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printfd(tcp, tcp->u_arg[1]);
-	if (flags_arg >= 0) {
-		tprints(", ");
-		printflags(open_mode_flags, tcp->u_arg[flags_arg], "O_???");
-	}
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printfd(tcp, tcp->u_arg[1]);
+//	if (flags_arg >= 0) {
+//		tprints(", ");
+//		printflags(open_mode_flags, tcp->u_arg[flags_arg], "O_???");
+//	}
 
 	return RVAL_DECODED | RVAL_FD;
 }
@@ -142,7 +142,7 @@ decode_select(struct tcb *tcp, long *args,
 
 		ready_fds = tcp->u_rval;
 		if (ready_fds == 0) {
-			tcp->auxstr = "Timeout";
+//			tcp->auxstr = "Timeout";
 			return RVAL_STR;
 		}
 
@@ -190,7 +190,7 @@ decode_select(struct tcb *tcp, long *args,
 			}
 		}
 		*outptr = '\0';
-		tcp->auxstr = outstr;
+//		tcp->auxstr = outstr;
 		return RVAL_STR;
 #undef end_outstr
 	}
@@ -236,17 +236,17 @@ SYS_FUNC(select)
 SYS_FUNC(pselect6)
 {
 	int rc = decode_select(tcp, tcp->u_arg, print_timespec, sprint_timespec);
-	if (entering(tcp)) {
-		unsigned long data[2];
-
-		tprints(", ");
-		if (!umove_ulong_array_or_printaddr(tcp, tcp->u_arg[5], data,
-						    ARRAY_SIZE(data))) {
-			tprints("{");
-			/* NB: kernel requires data[1] == NSIG / 8 */
-			print_sigset_addr_len(tcp, data[0], data[1]);
-			tprintf(", %lu}", data[1]);
-		}
-	}
+//	if (entering(tcp)) {
+//		unsigned long data[2];
+//
+//		tprints(", ");
+//		if (!umove_ulong_array_or_printaddr(tcp, tcp->u_arg[5], data,
+//						    ARRAY_SIZE(data))) {
+//			tprints("{");
+//			/* NB: kernel requires data[1] == NSIG / 8 */
+//			print_sigset_addr_len(tcp, data[0], data[1]);
+//			tprintf(", %lu}", data[1]);
+//		}
+//	}
 	return rc;
 }

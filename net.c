@@ -682,19 +682,19 @@ SYS_FUNC(socket)
 
 SYS_FUNC(bind)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printsock(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu", tcp->u_arg[2]);
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printsock(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//	tprintf(", %lu", tcp->u_arg[2]);
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(listen)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	tprintf("%lu", tcp->u_arg[1]);
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	tprintf("%lu", tcp->u_arg[1]);
 
 	return RVAL_DECODED;
 }
@@ -702,28 +702,28 @@ SYS_FUNC(listen)
 static int
 do_sockname(struct tcb *tcp, int flags_arg)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		return 0;
-	}
-
-	int len;
-	if (!tcp->u_arg[2] || !verbose(tcp) || syserror(tcp) ||
-	    umove(tcp, tcp->u_arg[2], &len) < 0) {
-		printaddr(tcp->u_arg[1]);
-		tprints(", ");
-		printaddr(tcp->u_arg[2]);
-	} else {
-		printsock(tcp, tcp->u_arg[1], len);
-		tprintf(", [%d]", len);
-	}
-
-	if (flags_arg >= 0) {
-		tprints(", ");
-		printflags(sock_type_flags, tcp->u_arg[flags_arg],
-			   "SOCK_???");
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//		return 0;
+//	}
+//
+//	int len;
+//	if (!tcp->u_arg[2] || !verbose(tcp) || syserror(tcp) ||
+//	    umove(tcp, tcp->u_arg[2], &len) < 0) {
+//		printaddr(tcp->u_arg[1]);
+//		tprints(", ");
+//		printaddr(tcp->u_arg[2]);
+//	} else {
+//		printsock(tcp, tcp->u_arg[1], len);
+//		tprintf(", [%d]", len);
+//	}
+//
+//	if (flags_arg >= 0) {
+//		tprints(", ");
+//		printflags(sock_type_flags, tcp->u_arg[flags_arg],
+//			   "SOCK_???");
+//	}
 	return 0;
 }
 
@@ -741,29 +741,29 @@ SYS_FUNC(accept4)
 
 SYS_FUNC(send)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu, ", tcp->u_arg[2]);
-	/* flags */
-	printflags(msg_flags, tcp->u_arg[3], "MSG_???");
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//	tprintf(", %lu, ", tcp->u_arg[2]);
+//	/* flags */
+//	printflags(msg_flags, tcp->u_arg[3], "MSG_???");
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(sendto)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu, ", tcp->u_arg[2]);
-	/* flags */
-	printflags(msg_flags, tcp->u_arg[3], "MSG_???");
-	/* to address */
-	tprints(", ");
-	printsock(tcp, tcp->u_arg[4], tcp->u_arg[5]);
-	/* to length */
-	tprintf(", %lu", tcp->u_arg[5]);
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//	tprintf(", %lu, ", tcp->u_arg[2]);
+//	/* flags */
+//	printflags(msg_flags, tcp->u_arg[3], "MSG_???");
+//	/* to address */
+//	tprints(", ");
+//	printsock(tcp, tcp->u_arg[4], tcp->u_arg[5]);
+//	/* to length */
+//	tprintf(", %lu", tcp->u_arg[5]);
 
 	return RVAL_DECODED;
 }
@@ -772,31 +772,31 @@ SYS_FUNC(sendto)
 
 SYS_FUNC(sendmsg)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printmsghdr(tcp, tcp->u_arg[1], (unsigned long) -1L);
-	/* flags */
-	tprints(", ");
-	printflags(msg_flags, tcp->u_arg[2], "MSG_???");
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printmsghdr(tcp, tcp->u_arg[1], (unsigned long) -1L);
+//	/* flags */
+//	tprints(", ");
+//	printflags(msg_flags, tcp->u_arg[2], "MSG_???");
 
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(sendmmsg)
 {
-	if (entering(tcp)) {
-		/* sockfd */
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		if (!verbose(tcp)) {
-			tprintf("%#lx, %u, ",
-				tcp->u_arg[1], (unsigned int) tcp->u_arg[2]);
-			printflags(msg_flags, tcp->u_arg[3], "MSG_???");
-		}
-	} else {
-		if (verbose(tcp))
-			decode_mmsg(tcp, (unsigned long) -1L);
-	}
+//	if (entering(tcp)) {
+//		/* sockfd */
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//		if (!verbose(tcp)) {
+//			tprintf("%#lx, %u, ",
+//				tcp->u_arg[1], (unsigned int) tcp->u_arg[2]);
+//			printflags(msg_flags, tcp->u_arg[3], "MSG_???");
+//		}
+//	} else {
+//		if (verbose(tcp))
+//			decode_mmsg(tcp, (unsigned long) -1L);
+//	}
 	return 0;
 }
 
@@ -804,53 +804,53 @@ SYS_FUNC(sendmmsg)
 
 SYS_FUNC(recv)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		if (syserror(tcp))
-			printaddr(tcp->u_arg[1]);
-		else
-			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
-
-		tprintf(", %lu, ", tcp->u_arg[2]);
-		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		if (syserror(tcp))
+//			printaddr(tcp->u_arg[1]);
+//		else
+//			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
+//
+//		tprintf(", %lu, ", tcp->u_arg[2]);
+//		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
+//	}
 	return 0;
 }
 
 SYS_FUNC(recvfrom)
 {
-	int fromlen;
-
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		/* buf */
-		if (syserror(tcp)) {
-			printaddr(tcp->u_arg[1]);
-		} else {
-			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
-		}
-		/* len */
-		tprintf(", %lu, ", tcp->u_arg[2]);
-		/* flags */
-		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
-		tprints(", ");
-		if (syserror(tcp) || !tcp->u_arg[4] || !tcp->u_arg[5] ||
-		    umove(tcp, tcp->u_arg[5], &fromlen) < 0) {
-			/* from address, len */
-			printaddr(tcp->u_arg[4]);
-			tprints(", ");
-			printaddr(tcp->u_arg[5]);
-			return 0;
-		}
-		/* from address */
-		printsock(tcp, tcp->u_arg[4], fromlen);
-		/* from length */
-		tprintf(", [%u]", fromlen);
-	}
+//	int fromlen;
+//
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		/* buf */
+//		if (syserror(tcp)) {
+//			printaddr(tcp->u_arg[1]);
+//		} else {
+//			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
+//		}
+//		/* len */
+//		tprintf(", %lu, ", tcp->u_arg[2]);
+//		/* flags */
+//		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
+//		tprints(", ");
+//		if (syserror(tcp) || !tcp->u_arg[4] || !tcp->u_arg[5] ||
+//		    umove(tcp, tcp->u_arg[5], &fromlen) < 0) {
+//			/* from address, len */
+//			printaddr(tcp->u_arg[4]);
+//			tprints(", ");
+//			printaddr(tcp->u_arg[5]);
+//			return 0;
+//		}
+//		/* from address */
+//		printsock(tcp, tcp->u_arg[4], fromlen);
+//		/* from length */
+//		tprintf(", [%u]", fromlen);
+//	}
 	return 0;
 }
 
@@ -858,18 +858,18 @@ SYS_FUNC(recvfrom)
 
 SYS_FUNC(recvmsg)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		if (syserror(tcp))
-			printaddr(tcp->u_arg[1]);
-		else
-			printmsghdr(tcp, tcp->u_arg[1], tcp->u_rval);
-		/* flags */
-		tprints(", ");
-		printflags(msg_flags, tcp->u_arg[2], "MSG_???");
-	}
+//	if (entering(tcp)) {
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//	} else {
+//		if (syserror(tcp))
+//			printaddr(tcp->u_arg[1]);
+//		else
+//			printmsghdr(tcp, tcp->u_arg[1], tcp->u_rval);
+//		/* flags */
+//		tprints(", ");
+//		printflags(msg_flags, tcp->u_arg[2], "MSG_???");
+//	}
 	return 0;
 }
 
@@ -878,40 +878,40 @@ SYS_FUNC(recvmmsg)
 	static char str[sizeof("left") + TIMESPEC_TEXT_BUFSIZE];
 
 	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		if (verbose(tcp)) {
-			/* Abusing tcp->auxstr as temp storage.
-			 * Will be used and cleared on syscall exit.
-			 */
-			tcp->auxstr = sprint_timespec(tcp, tcp->u_arg[4]);
-		} else {
-			tprintf("%#lx, %ld, ", tcp->u_arg[1], tcp->u_arg[2]);
-			printflags(msg_flags, tcp->u_arg[3], "MSG_???");
-			tprints(", ");
-			print_timespec(tcp, tcp->u_arg[4]);
-		}
+//		printfd(tcp, tcp->u_arg[0]);
+//		tprints(", ");
+//		if (verbose(tcp)) {
+//			/* Abusing tcp->auxstr as temp storage.
+//			 * Will be used and cleared on syscall exit.
+//			 */
+////			tcp->auxstr = sprint_timespec(tcp, tcp->u_arg[4]);
+//		} else {
+//			tprintf("%#lx, %ld, ", tcp->u_arg[1], tcp->u_arg[2]);
+//			printflags(msg_flags, tcp->u_arg[3], "MSG_???");
+//			tprints(", ");
+//			print_timespec(tcp, tcp->u_arg[4]);
+//		}
 		return 0;
 	} else {
-		if (verbose(tcp)) {
-			decode_mmsg(tcp, 0);
-			tprints(", ");
-			/* timeout on entrance */
-			tprints(tcp->auxstr);
-			tcp->auxstr = NULL;
-		}
-		if (syserror(tcp))
-			return 0;
-		if (tcp->u_rval == 0) {
-			tcp->auxstr = "Timeout";
-			return RVAL_STR;
-		}
-		if (!verbose(tcp))
-			return 0;
-		/* timeout on exit */
-		snprintf(str, sizeof(str), "left %s",
-			 sprint_timespec(tcp, tcp->u_arg[4]));
-		tcp->auxstr = str;
+//		if (verbose(tcp)) {
+//			decode_mmsg(tcp, 0);
+//			tprints(", ");
+//			/* timeout on entrance */
+//			tprints(tcp->auxstr);
+////			tcp->auxstr = NULL;
+//		}
+//		if (syserror(tcp))
+//			return 0;
+//		if (tcp->u_rval == 0) {
+////			tcp->auxstr = "Timeout";
+//			return RVAL_STR;
+//		}
+//		if (!verbose(tcp))
+//			return 0;
+//		/* timeout on exit */
+//		snprintf(str, sizeof(str), "left %s",
+//			 sprint_timespec(tcp, tcp->u_arg[4]));
+////		tcp->auxstr = str;
 		return RVAL_STR;
 	}
 }
@@ -922,9 +922,9 @@ SYS_FUNC(recvmmsg)
 
 SYS_FUNC(shutdown)
 {
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printxval(shutdown_modes, tcp->u_arg[1], "SHUT_???");
+//	printfd(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	printxval(shutdown_modes, tcp->u_arg[1], "SHUT_???");
 
 	return RVAL_DECODED;
 }
@@ -989,15 +989,15 @@ SYS_FUNC(pipe2)
 
 SYS_FUNC(socketpair)
 {
-	if (entering(tcp)) {
-		printxval(domains, tcp->u_arg[0], "PF_???");
-		tprints(", ");
-		tprint_sock_type(tcp->u_arg[1]);
-		tprintf(", %lu", tcp->u_arg[2]);
-	} else {
-		tprints(", ");
-		decode_pair_fd(tcp, tcp->u_arg[3]);
-	}
+//	if (entering(tcp)) {
+//		printxval(domains, tcp->u_arg[0], "PF_???");
+//		tprints(", ");
+//		tprint_sock_type(tcp->u_arg[1]);
+//		tprintf(", %lu", tcp->u_arg[2]);
+//	} else {
+//		tprints(", ");
+//		decode_pair_fd(tcp, tcp->u_arg[3]);
+//	}
 	return 0;
 }
 
@@ -1014,86 +1014,86 @@ SYS_FUNC(socketpair)
 #include "xlat/socksctpoptions.h"
 #include "xlat/socktcpoptions.h"
 
-static void
-print_sockopt_fd_level_name(struct tcb *tcp, int fd, int level, int name, bool is_getsockopt)
-{
-	printfd(tcp, fd);
-	tprints(", ");
-	printxval(socketlayers, level, "SOL_??");
-	tprints(", ");
+//static void
+//print_sockopt_fd_level_name(struct tcb *tcp, int fd, int level, int name, bool is_getsockopt)
+//{
+//	printfd(tcp, fd);
+//	tprints(", ");
+//	printxval(socketlayers, level, "SOL_??");
+//	tprints(", ");
+//
+//	switch (level) {
+//	case SOL_SOCKET:
+//		printxval(sockoptions, name, "SO_???");
+//		break;
+//	case SOL_IP:
+//		printxvals(name, "IP_???", sockipoptions,
+//			is_getsockopt ? getsockipoptions : setsockipoptions, NULL);
+//		break;
+//	case SOL_IPV6:
+//		printxvals(name, "IPV6_???", sockipv6options,
+//			is_getsockopt ? getsockipv6options : setsockipv6options, NULL);
+//		break;
+//	case SOL_IPX:
+//		printxval(sockipxoptions, name, "IPX_???");
+//		break;
+//	case SOL_PACKET:
+//		printxval(sockpacketoptions, name, "PACKET_???");
+//		break;
+//	case SOL_TCP:
+//		printxval(socktcpoptions, name, "TCP_???");
+//		break;
+//	case SOL_SCTP:
+//		printxval(socksctpoptions, name, "SCTP_???");
+//		break;
+//	case SOL_RAW:
+//		printxval(sockrawoptions, name, "RAW_???");
+//		break;
+//
+//		/* Other SOL_* protocol levels still need work. */
+//
+//	default:
+//		tprintf("%u", name);
+//	}
+//
+//	tprints(", ");
+//}
 
-	switch (level) {
-	case SOL_SOCKET:
-		printxval(sockoptions, name, "SO_???");
-		break;
-	case SOL_IP:
-		printxvals(name, "IP_???", sockipoptions,
-			is_getsockopt ? getsockipoptions : setsockipoptions, NULL);
-		break;
-	case SOL_IPV6:
-		printxvals(name, "IPV6_???", sockipv6options,
-			is_getsockopt ? getsockipv6options : setsockipv6options, NULL);
-		break;
-	case SOL_IPX:
-		printxval(sockipxoptions, name, "IPX_???");
-		break;
-	case SOL_PACKET:
-		printxval(sockpacketoptions, name, "PACKET_???");
-		break;
-	case SOL_TCP:
-		printxval(socktcpoptions, name, "TCP_???");
-		break;
-	case SOL_SCTP:
-		printxval(socksctpoptions, name, "SCTP_???");
-		break;
-	case SOL_RAW:
-		printxval(sockrawoptions, name, "RAW_???");
-		break;
+//#ifdef SO_LINGER
+//static void
+//print_linger(struct tcb *tcp, long addr, int len)
+//{
+//	struct linger linger;
+//
+//	if (len != sizeof(linger) ||
+//	    umove(tcp, addr, &linger) < 0) {
+//		printaddr(addr);
+//		return;
+//	}
+//
+//	tprintf("{onoff=%d, linger=%d}",
+//		linger.l_onoff,
+//		linger.l_linger);
+//}
+//#endif /* SO_LINGER */
 
-		/* Other SOL_* protocol levels still need work. */
-
-	default:
-		tprintf("%u", name);
-	}
-
-	tprints(", ");
-}
-
-#ifdef SO_LINGER
-static void
-print_linger(struct tcb *tcp, long addr, int len)
-{
-	struct linger linger;
-
-	if (len != sizeof(linger) ||
-	    umove(tcp, addr, &linger) < 0) {
-		printaddr(addr);
-		return;
-	}
-
-	tprintf("{onoff=%d, linger=%d}",
-		linger.l_onoff,
-		linger.l_linger);
-}
-#endif /* SO_LINGER */
-
-#ifdef SO_PEERCRED
-static void
-print_ucred(struct tcb *tcp, long addr, int len)
-{
-	struct ucred uc;
-
-	if (len != sizeof(uc) ||
-	    umove(tcp, addr, &uc) < 0) {
-		printaddr(addr);
-	} else {
-		tprintf("{pid=%u, uid=%u, gid=%u}",
-			(unsigned) uc.pid,
-			(unsigned) uc.uid,
-			(unsigned) uc.gid);
-	}
-}
-#endif /* SO_PEERCRED */
+//#ifdef SO_PEERCRED
+//static void
+//print_ucred(struct tcb *tcp, long addr, int len)
+//{
+//	struct ucred uc;
+//
+//	if (len != sizeof(uc) ||
+//	    umove(tcp, addr, &uc) < 0) {
+//		printaddr(addr);
+//	} else {
+//		tprintf("{pid=%u, uid=%u, gid=%u}",
+//			(unsigned) uc.pid,
+//			(unsigned) uc.uid,
+//			(unsigned) uc.gid);
+//	}
+//}
+//#endif /* SO_PEERCRED */
 
 #ifdef PACKET_STATISTICS
 static void
@@ -1132,185 +1132,185 @@ print_icmp_filter(struct tcb *tcp, long addr, int len)
 }
 #endif /* ICMP_FILTER */
 
-static void
-print_getsockopt(struct tcb *tcp, int level, int name, long addr, int len)
-{
-	if (addr && verbose(tcp))
-	switch (level) {
-	case SOL_SOCKET:
-		switch (name) {
-#ifdef SO_LINGER
-		case SO_LINGER:
-			print_linger(tcp, addr, len);
-			goto done;
-#endif
-#ifdef SO_PEERCRED
-		case SO_PEERCRED:
-			print_ucred(tcp, addr, len);
-			goto done;
-#endif
-		}
-		break;
-
-	case SOL_PACKET:
-		switch (name) {
-#ifdef PACKET_STATISTICS
-		case PACKET_STATISTICS:
-			print_tpacket_stats(tcp, addr, len);
-			goto done;
-#endif
-		}
-		break;
-
-	case SOL_RAW:
-		switch (name) {
-#ifdef ICMP_FILTER
-		case ICMP_FILTER:
-			print_icmp_filter(tcp, addr, len);
-			goto done;
-#endif
-		}
-		break;
-	}
-
-	/* default arg printing */
-
-	if (verbose(tcp)) {
-		if (len == sizeof(int)) {
-			printnum_int(tcp, addr, "%d");
-		} else {
-			printstr(tcp, addr, len);
-		}
-	} else {
-		printaddr(addr);
-	}
-done:
-	tprintf(", [%d]", len);
-}
+//static void
+//print_getsockopt(struct tcb *tcp, int level, int name, long addr, int len)
+//{
+//	if (addr && verbose(tcp))
+//	switch (level) {
+//	case SOL_SOCKET:
+//		switch (name) {
+//#ifdef SO_LINGER
+//		case SO_LINGER:
+//			print_linger(tcp, addr, len);
+//			goto done;
+//#endif
+//#ifdef SO_PEERCRED
+//		case SO_PEERCRED:
+//			print_ucred(tcp, addr, len);
+//			goto done;
+//#endif
+//		}
+//		break;
+//
+//	case SOL_PACKET:
+//		switch (name) {
+//#ifdef PACKET_STATISTICS
+//		case PACKET_STATISTICS:
+//			print_tpacket_stats(tcp, addr, len);
+//			goto done;
+//#endif
+//		}
+//		break;
+//
+//	case SOL_RAW:
+//		switch (name) {
+//#ifdef ICMP_FILTER
+//		case ICMP_FILTER:
+//			print_icmp_filter(tcp, addr, len);
+//			goto done;
+//#endif
+//		}
+//		break;
+//	}
+//
+//	/* default arg printing */
+//
+//	if (verbose(tcp)) {
+//		if (len == sizeof(int)) {
+//			printnum_int(tcp, addr, "%d");
+//		} else {
+//			printstr(tcp, addr, len);
+//		}
+//	} else {
+//		printaddr(addr);
+//	}
+//done:
+//	tprintf(", [%d]", len);
+//}
 
 SYS_FUNC(getsockopt)
 {
-	if (entering(tcp)) {
-		print_sockopt_fd_level_name(tcp, tcp->u_arg[0],
-					    tcp->u_arg[1], tcp->u_arg[2], true);
-	} else {
-		int len;
-
-		if (syserror(tcp) || umove(tcp, tcp->u_arg[4], &len) < 0) {
-			tprintf("%#lx, %#lx",
-				tcp->u_arg[3], tcp->u_arg[4]);
-		} else {
-			print_getsockopt(tcp, tcp->u_arg[1], tcp->u_arg[2],
-					 tcp->u_arg[3], len);
-		}
-	}
+//	if (entering(tcp)) {
+//		print_sockopt_fd_level_name(tcp, tcp->u_arg[0],
+//					    tcp->u_arg[1], tcp->u_arg[2], true);
+//	} else {
+//		int len;
+//
+//		if (syserror(tcp) || umove(tcp, tcp->u_arg[4], &len) < 0) {
+//			tprintf("%#lx, %#lx",
+//				tcp->u_arg[3], tcp->u_arg[4]);
+//		} else {
+//			print_getsockopt(tcp, tcp->u_arg[1], tcp->u_arg[2],
+//					 tcp->u_arg[3], len);
+//		}
+//	}
 	return 0;
 }
 
-#ifdef IP_ADD_MEMBERSHIP
-static void
-print_mreq(struct tcb *tcp, long addr, unsigned int len)
-{
-	struct ip_mreq mreq;
+//#ifdef IP_ADD_MEMBERSHIP
+//static void
+//print_mreq(struct tcb *tcp, long addr, unsigned int len)
+//{
+//	struct ip_mreq mreq;
+//
+//	if (len < sizeof(mreq)) {
+//		printstr(tcp, addr, len);
+//		return;
+//	}
+//	if (umove_or_printaddr(tcp, addr, &mreq))
+//		return;
+//
+//	tprints("{imr_multiaddr=inet_addr(");
+//	print_quoted_string(inet_ntoa(mreq.imr_multiaddr),
+//			    16, QUOTE_0_TERMINATED);
+//	tprints("), imr_interface=inet_addr(");
+//	print_quoted_string(inet_ntoa(mreq.imr_interface),
+//			    16, QUOTE_0_TERMINATED);
+//	tprints(")}");
+//}
+//#endif /* IP_ADD_MEMBERSHIP */
 
-	if (len < sizeof(mreq)) {
-		printstr(tcp, addr, len);
-		return;
-	}
-	if (umove_or_printaddr(tcp, addr, &mreq))
-		return;
+//#ifdef IPV6_ADD_MEMBERSHIP
+//static void
+//print_mreq6(struct tcb *tcp, long addr, unsigned int len)
+//{
+//	struct ipv6_mreq mreq;
+//
+//	if (len < sizeof(mreq))
+//		goto fail;
+//
+//	if (umove_or_printaddr(tcp, addr, &mreq))
+//		return;
+//
+//#ifdef HAVE_INET_NTOP
+//	const struct in6_addr *in6 = &mreq.ipv6mr_multiaddr;
+//	char address[INET6_ADDRSTRLEN];
+//
+//	if (!inet_ntop(AF_INET6, in6, address, sizeof(address)))
+//		goto fail;
+//
+//	tprints("{ipv6mr_multiaddr=inet_pton(");
+//	print_quoted_string(address, sizeof(address), QUOTE_0_TERMINATED);
+//	tprints("), ipv6mr_interface=");
+//	print_ifindex(mreq.ipv6mr_interface);
+//	tprints("}");
+//	return;
+//#endif /* HAVE_INET_NTOP */
+//
+//fail:
+//	printstr(tcp, addr, len);
+//}
+//#endif /* IPV6_ADD_MEMBERSHIP */
 
-	tprints("{imr_multiaddr=inet_addr(");
-	print_quoted_string(inet_ntoa(mreq.imr_multiaddr),
-			    16, QUOTE_0_TERMINATED);
-	tprints("), imr_interface=inet_addr(");
-	print_quoted_string(inet_ntoa(mreq.imr_interface),
-			    16, QUOTE_0_TERMINATED);
-	tprints(")}");
-}
-#endif /* IP_ADD_MEMBERSHIP */
-
-#ifdef IPV6_ADD_MEMBERSHIP
-static void
-print_mreq6(struct tcb *tcp, long addr, unsigned int len)
-{
-	struct ipv6_mreq mreq;
-
-	if (len < sizeof(mreq))
-		goto fail;
-
-	if (umove_or_printaddr(tcp, addr, &mreq))
-		return;
-
-#ifdef HAVE_INET_NTOP
-	const struct in6_addr *in6 = &mreq.ipv6mr_multiaddr;
-	char address[INET6_ADDRSTRLEN];
-
-	if (!inet_ntop(AF_INET6, in6, address, sizeof(address)))
-		goto fail;
-
-	tprints("{ipv6mr_multiaddr=inet_pton(");
-	print_quoted_string(address, sizeof(address), QUOTE_0_TERMINATED);
-	tprints("), ipv6mr_interface=");
-	print_ifindex(mreq.ipv6mr_interface);
-	tprints("}");
-	return;
-#endif /* HAVE_INET_NTOP */
-
-fail:
-	printstr(tcp, addr, len);
-}
-#endif /* IPV6_ADD_MEMBERSHIP */
-
-#ifdef MCAST_JOIN_GROUP
-static void
-print_group_req(struct tcb *tcp, long addr, int len)
-{
-	struct group_req greq;
-
-	if (len != sizeof(greq) ||
-	    umove(tcp, addr, &greq) < 0) {
-		printaddr(addr);
-		return;
-	}
-
-	union {
-		struct sockaddr *sa;
-		struct sockaddr_in *sin;
-#ifdef HAVE_INET_NTOP
-		struct sockaddr_in6 *sin6;
-#endif
-	} a = { .sa = (struct sockaddr *) &greq.gr_group };
-#ifdef HAVE_INET_NTOP
-	char str[INET6_ADDRSTRLEN];
-#endif
-
-	tprintf("{gr_interface=%u, gr_group={sa_family=", greq.gr_interface);
-	printxval(addrfams, a.sa->sa_family, "AF_???");
-
-	switch (a.sa->sa_family) {
-	case AF_INET:
-		tprintf(", sin_port=htons(%u), sin_addr=inet_addr(\"%s\")}}",
-			ntohs(a.sin->sin_port),
-			inet_ntoa(a.sin->sin_addr));
-		return;
-#ifdef HAVE_INET_NTOP
-	case AF_INET6:
-		if (!inet_ntop(AF_INET6, &a.sin6->sin6_addr, str, sizeof(str)))
-			break;
-		tprintf(", sin6_port=htons(%u)"
-			", inet_pton(AF_INET6, \"%s\", &sin6_addr)}}",
-			ntohs(a.sin6->sin6_port), str);
-		return;
-#endif /* HAVE_INET_NTOP */
-	}
-
-	tprints(", sa_data=");
-	print_quoted_string(a.sa->sa_data, sizeof(a.sa->sa_data), 0);
-	tprintf("}}");
-
-}
-#endif /* MCAST_JOIN_GROUP */
+//#ifdef MCAST_JOIN_GROUP
+//static void
+//print_group_req(struct tcb *tcp, long addr, int len)
+//{
+//	struct group_req greq;
+//
+//	if (len != sizeof(greq) ||
+//	    umove(tcp, addr, &greq) < 0) {
+//		printaddr(addr);
+//		return;
+//	}
+//
+//	union {
+//		struct sockaddr *sa;
+//		struct sockaddr_in *sin;
+//#ifdef HAVE_INET_NTOP
+//		struct sockaddr_in6 *sin6;
+//#endif
+//	} a = { .sa = (struct sockaddr *) &greq.gr_group };
+//#ifdef HAVE_INET_NTOP
+//	char str[INET6_ADDRSTRLEN];
+//#endif
+//
+//	tprintf("{gr_interface=%u, gr_group={sa_family=", greq.gr_interface);
+//	printxval(addrfams, a.sa->sa_family, "AF_???");
+//
+//	switch (a.sa->sa_family) {
+//	case AF_INET:
+//		tprintf(", sin_port=htons(%u), sin_addr=inet_addr(\"%s\")}}",
+//			ntohs(a.sin->sin_port),
+//			inet_ntoa(a.sin->sin_addr));
+//		return;
+//#ifdef HAVE_INET_NTOP
+//	case AF_INET6:
+//		if (!inet_ntop(AF_INET6, &a.sin6->sin6_addr, str, sizeof(str)))
+//			break;
+//		tprintf(", sin6_port=htons(%u)"
+//			", inet_pton(AF_INET6, \"%s\", &sin6_addr)}}",
+//			ntohs(a.sin6->sin6_port), str);
+//		return;
+//#endif /* HAVE_INET_NTOP */
+//	}
+//
+//	tprints(", sa_data=");
+//	print_quoted_string(a.sa->sa_data, sizeof(a.sa->sa_data), 0);
+//	tprintf("}}");
+//
+//}
+//#endif /* MCAST_JOIN_GROUP */
 
 #ifdef PACKET_RX_RING
 static void
@@ -1358,106 +1358,106 @@ print_packet_mreq(struct tcb *tcp, long addr, int len)
 }
 #endif /* PACKET_ADD_MEMBERSHIP */
 
-static void
-print_setsockopt(struct tcb *tcp, int level, int name, long addr, int len)
-{
-	if (addr && verbose(tcp))
-	switch (level) {
-	case SOL_SOCKET:
-		switch (name) {
-#ifdef SO_LINGER
-		case SO_LINGER:
-			print_linger(tcp, addr, len);
-			goto done;
-#endif
-		}
-		break;
-
-	case SOL_IP:
-		switch (name) {
-#ifdef IP_ADD_MEMBERSHIP
-		case IP_ADD_MEMBERSHIP:
-		case IP_DROP_MEMBERSHIP:
-			print_mreq(tcp, addr, len);
-			goto done;
-#endif /* IP_ADD_MEMBERSHIP */
-#ifdef MCAST_JOIN_GROUP
-		case MCAST_JOIN_GROUP:
-		case MCAST_LEAVE_GROUP:
-			print_group_req(tcp, addr, len);
-			goto done;
-#endif /* MCAST_JOIN_GROUP */
-		}
-		break;
-
-	case SOL_IPV6:
-		switch (name) {
-#ifdef IPV6_ADD_MEMBERSHIP
-		case IPV6_ADD_MEMBERSHIP:
-		case IPV6_DROP_MEMBERSHIP:
-# ifdef IPV6_JOIN_ANYCAST
-		case IPV6_JOIN_ANYCAST:
-# endif
-# ifdef IPV6_LEAVE_ANYCAST
-		case IPV6_LEAVE_ANYCAST:
-# endif
-			print_mreq6(tcp, addr, len);
-			goto done;
-#endif /* IPV6_ADD_MEMBERSHIP */
-		}
-		break;
-
-	case SOL_PACKET:
-		switch (name) {
-#ifdef PACKET_RX_RING
-		case PACKET_RX_RING:
-# ifdef PACKET_TX_RING
-		case PACKET_TX_RING:
-# endif
-			print_tpacket_req(tcp, addr, len);
-			goto done;
-#endif /* PACKET_RX_RING */
-#ifdef PACKET_ADD_MEMBERSHIP
-		case PACKET_ADD_MEMBERSHIP:
-		case PACKET_DROP_MEMBERSHIP:
-			print_packet_mreq(tcp, addr, len);
-			goto done;
-#endif /* PACKET_ADD_MEMBERSHIP */
-		}
-		break;
-
-	case SOL_RAW:
-		switch (name) {
-#ifdef ICMP_FILTER
-		case ICMP_FILTER:
-			print_icmp_filter(tcp, addr, len);
-			goto done;
-#endif
-		}
-		break;
-	}
-
-	/* default arg printing */
-
-	if (verbose(tcp)) {
-		if (len == sizeof(int)) {
-			printnum_int(tcp, addr, "%d");
-		} else {
-			printstr(tcp, addr, len);
-		}
-	} else {
-		printaddr(addr);
-	}
-done:
-	tprintf(", %d", len);
-}
+//static void
+//print_setsockopt(struct tcb *tcp, int level, int name, long addr, int len)
+//{
+//	if (addr && verbose(tcp))
+//	switch (level) {
+//	case SOL_SOCKET:
+//		switch (name) {
+//#ifdef SO_LINGER
+//		case SO_LINGER:
+//			print_linger(tcp, addr, len);
+//			goto done;
+//#endif
+//		}
+//		break;
+//
+//	case SOL_IP:
+//		switch (name) {
+//#ifdef IP_ADD_MEMBERSHIP
+//		case IP_ADD_MEMBERSHIP:
+//		case IP_DROP_MEMBERSHIP:
+//			print_mreq(tcp, addr, len);
+//			goto done;
+//#endif /* IP_ADD_MEMBERSHIP */
+//#ifdef MCAST_JOIN_GROUP
+//		case MCAST_JOIN_GROUP:
+//		case MCAST_LEAVE_GROUP:
+//			print_group_req(tcp, addr, len);
+//			goto done;
+//#endif /* MCAST_JOIN_GROUP */
+//		}
+//		break;
+//
+//	case SOL_IPV6:
+//		switch (name) {
+//#ifdef IPV6_ADD_MEMBERSHIP
+//		case IPV6_ADD_MEMBERSHIP:
+//		case IPV6_DROP_MEMBERSHIP:
+//# ifdef IPV6_JOIN_ANYCAST
+//		case IPV6_JOIN_ANYCAST:
+//# endif
+//# ifdef IPV6_LEAVE_ANYCAST
+//		case IPV6_LEAVE_ANYCAST:
+//# endif
+//			print_mreq6(tcp, addr, len);
+//			goto done;
+//#endif /* IPV6_ADD_MEMBERSHIP */
+//		}
+//		break;
+//
+//	case SOL_PACKET:
+//		switch (name) {
+//#ifdef PACKET_RX_RING
+//		case PACKET_RX_RING:
+//# ifdef PACKET_TX_RING
+//		case PACKET_TX_RING:
+//# endif
+//			print_tpacket_req(tcp, addr, len);
+//			goto done;
+//#endif /* PACKET_RX_RING */
+//#ifdef PACKET_ADD_MEMBERSHIP
+//		case PACKET_ADD_MEMBERSHIP:
+//		case PACKET_DROP_MEMBERSHIP:
+//			print_packet_mreq(tcp, addr, len);
+//			goto done;
+//#endif /* PACKET_ADD_MEMBERSHIP */
+//		}
+//		break;
+//
+//	case SOL_RAW:
+//		switch (name) {
+//#ifdef ICMP_FILTER
+//		case ICMP_FILTER:
+//			print_icmp_filter(tcp, addr, len);
+//			goto done;
+//#endif
+//		}
+//		break;
+//	}
+//
+//	/* default arg printing */
+//
+//	if (verbose(tcp)) {
+//		if (len == sizeof(int)) {
+//			printnum_int(tcp, addr, "%d");
+//		} else {
+//			printstr(tcp, addr, len);
+//		}
+//	} else {
+//		printaddr(addr);
+//	}
+//done:
+//	tprintf(", %d", len);
+//}
 
 SYS_FUNC(setsockopt)
 {
-	print_sockopt_fd_level_name(tcp, tcp->u_arg[0],
-				    tcp->u_arg[1], tcp->u_arg[2], false);
-	print_setsockopt(tcp, tcp->u_arg[1], tcp->u_arg[2],
-			 tcp->u_arg[3], tcp->u_arg[4]);
+//	print_sockopt_fd_level_name(tcp, tcp->u_arg[0],
+//				    tcp->u_arg[1], tcp->u_arg[2], false);
+//	print_setsockopt(tcp, tcp->u_arg[1], tcp->u_arg[2],
+//			 tcp->u_arg[3], tcp->u_arg[4]);
 
 	return RVAL_DECODED;
 }

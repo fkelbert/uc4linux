@@ -49,26 +49,26 @@ MPERS_PRINTER_DECL(int, print_timex)(struct tcb *tcp, const long addr)
 	if (umove_or_printaddr(tcp, addr, &tx))
 		return -1;
 
-	tprints("{modes=");
-	printflags(adjtimex_modes, tx.modes, "ADJ_???");
-	tprintf(", offset=%jd, freq=%jd, maxerror=%ju, esterror=%ju, status=",
-		(intmax_t) tx.offset, (intmax_t) tx.freq,
-		(uintmax_t) tx.maxerror, (uintmax_t) tx.esterror);
-	printflags(adjtimex_status, tx.status, "STA_???");
-	tprintf(", constant=%jd, precision=%ju, tolerance=%jd",
-		(intmax_t) tx.constant, (uintmax_t) tx.precision,
-		(intmax_t) tx.tolerance);
-	tprintf(", time={%jd, %jd}",
-		(intmax_t) tx.time.tv_sec, (intmax_t) tx.time.tv_usec);
-	tprintf(", tick=%jd, ppsfreq=%jd, jitter=%jd",
-		(intmax_t) tx.tick, (intmax_t) tx.ppsfreq, (intmax_t) tx.jitter);
-	tprintf(", shift=%d, stabil=%jd, jitcnt=%jd",
-		tx.shift, (intmax_t) tx.stabil, (intmax_t) tx.jitcnt);
-	tprintf(", calcnt=%jd, errcnt=%jd, stbcnt=%jd",
-		(intmax_t) tx.calcnt, (intmax_t) tx.errcnt, (intmax_t) tx.stbcnt);
-#ifdef HAVE_STRUCT_TIMEX_TAI
-	tprintf(", tai=%d", tx.tai);
-#endif
-	tprints("}");
+//	tprints("{modes=");
+//	printflags(adjtimex_modes, tx.modes, "ADJ_???");
+//	tprintf(", offset=%jd, freq=%jd, maxerror=%ju, esterror=%ju, status=",
+//		(intmax_t) tx.offset, (intmax_t) tx.freq,
+//		(uintmax_t) tx.maxerror, (uintmax_t) tx.esterror);
+//	printflags(adjtimex_status, tx.status, "STA_???");
+//	tprintf(", constant=%jd, precision=%ju, tolerance=%jd",
+//		(intmax_t) tx.constant, (uintmax_t) tx.precision,
+//		(intmax_t) tx.tolerance);
+//	tprintf(", time={%jd, %jd}",
+//		(intmax_t) tx.time.tv_sec, (intmax_t) tx.time.tv_usec);
+//	tprintf(", tick=%jd, ppsfreq=%jd, jitter=%jd",
+//		(intmax_t) tx.tick, (intmax_t) tx.ppsfreq, (intmax_t) tx.jitter);
+//	tprintf(", shift=%d, stabil=%jd, jitcnt=%jd",
+//		tx.shift, (intmax_t) tx.stabil, (intmax_t) tx.jitcnt);
+//	tprintf(", calcnt=%jd, errcnt=%jd, stbcnt=%jd",
+//		(intmax_t) tx.calcnt, (intmax_t) tx.errcnt, (intmax_t) tx.stbcnt);
+//#ifdef HAVE_STRUCT_TIMEX_TAI
+//	tprintf(", tai=%d", tx.tai);
+//#endif
+//	tprints("}");
 	return 0;
 }

@@ -178,80 +178,80 @@ SYS_FUNC(io_submit)
 				break;
 			}
 
-			tprints("{");
-			if (!umove_or_printaddr(tcp, iocbp, &cb))
-				print_iocb(tcp, &cb);
-			tprints("}");
+//			tprints("{");
+//			if (!umove_or_printaddr(tcp, iocbp, &cb))
+//				print_iocb(tcp, &cb);
+//			tprints("}");
 		}
 	}
 	tprints("]");
 	return RVAL_DECODED;
 }
 
-static int
-print_io_event(struct tcb *tcp, const long addr)
-{
-	struct io_event event;
-
-	if (umove_or_printaddr(tcp, addr, &event))
-		return -1;
-	tprintf("{data=%#" PRIx64 ", obj=%#" PRIx64
-		", res=%" PRId64 ", res2=%" PRId64 "}",
-		(uint64_t) event.data, (uint64_t) event.obj,
-		(int64_t) event.res, (int64_t) event.res2);
-	return 0;
-}
+//static int
+//print_io_event(struct tcb *tcp, const long addr)
+//{
+//	struct io_event event;
+//
+//	if (umove_or_printaddr(tcp, addr, &event))
+//		return -1;
+//	tprintf("{data=%#" PRIx64 ", obj=%#" PRIx64
+//		", res=%" PRId64 ", res2=%" PRId64 "}",
+//		(uint64_t) event.data, (uint64_t) event.obj,
+//		(int64_t) event.res, (int64_t) event.res2);
+//	return 0;
+//}
 
 SYS_FUNC(io_cancel)
 {
-	if (entering(tcp)) {
-		tprintf("%lu, ", tcp->u_arg[0]);
-		struct iocb cb;
-
-		if (!umove_or_printaddr(tcp, tcp->u_arg[1], &cb)) {
-			tprints("{");
-			print_iocb_header(&cb);
-			tprints("}");
-		}
-		tprints(", ");
-	} else {
-		print_io_event(tcp, tcp->u_arg[2]);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%lu, ", tcp->u_arg[0]);
+//		struct iocb cb;
+//
+//		if (!umove_or_printaddr(tcp, tcp->u_arg[1], &cb)) {
+//			tprints("{");
+//			print_iocb_header(&cb);
+//			tprints("}");
+//		}
+//		tprints(", ");
+//	} else {
+//		print_io_event(tcp, tcp->u_arg[2]);
+//	}
 	return 0;
 }
 
 SYS_FUNC(io_getevents)
 {
-	if (entering(tcp)) {
-		tprintf("%lu, %ld, %ld, ",
-			tcp->u_arg[0], tcp->u_arg[1], tcp->u_arg[2]);
-	} else {
-		if (tcp->u_rval == 0) {
-			tprints("[]");
-		} else {
-			struct io_event *events = (void *)tcp->u_arg[3];
-			long i, nr = tcp->u_rval;
-
-			for (i = 0; i < nr; i++, events++) {
-				if (i == 0)
-					tprints("[");
-				else
-					tprints(", ");
-
-				if (print_io_event(tcp, (long)events))
-					break;
-			}
-			tprints("], ");
-		}
-
-		/*
-		 * Since the timeout parameter is read by the kernel
-		 * on entering syscall, it has to be decoded the same way
-		 * whether the syscall has failed or not.
-		 */
-		temporarily_clear_syserror(tcp);
-		print_timespec(tcp, tcp->u_arg[4]);
-		restore_cleared_syserror(tcp);
-	}
+//	if (entering(tcp)) {
+//		tprintf("%lu, %ld, %ld, ",
+//			tcp->u_arg[0], tcp->u_arg[1], tcp->u_arg[2]);
+//	} else {
+//		if (tcp->u_rval == 0) {
+//			tprints("[]");
+//		} else {
+//			struct io_event *events = (void *)tcp->u_arg[3];
+//			long i, nr = tcp->u_rval;
+//
+//			for (i = 0; i < nr; i++, events++) {
+//				if (i == 0)
+//					tprints("[");
+//				else
+//					tprints(", ");
+//
+//				if (print_io_event(tcp, (long)events))
+//					break;
+//			}
+//			tprints("], ");
+//		}
+//
+//		/*
+//		 * Since the timeout parameter is read by the kernel
+//		 * on entering syscall, it has to be decoded the same way
+//		 * whether the syscall has failed or not.
+//		 */
+//		temporarily_clear_syserror(tcp);
+//		print_timespec(tcp, tcp->u_arg[4]);
+//		restore_cleared_syserror(tcp);
+//	}
 	return 0;
 }

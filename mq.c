@@ -31,60 +31,60 @@
 
 SYS_FUNC(mq_open)
 {
-	printpath(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	/* flags */
-	tprint_open_modes(tcp->u_arg[1]);
-	if (tcp->u_arg[1] & O_CREAT) {
-		/* mode */
-		tprintf(", %#lo, ", tcp->u_arg[2]);
-		printmqattr(tcp, tcp->u_arg[3]);
-	}
+//	printpath(tcp, tcp->u_arg[0]);
+//	tprints(", ");
+//	/* flags */
+//	tprint_open_modes(tcp->u_arg[1]);
+//	if (tcp->u_arg[1] & O_CREAT) {
+//		/* mode */
+//		tprintf(", %#lo, ", tcp->u_arg[2]);
+//		printmqattr(tcp, tcp->u_arg[3]);
+//	}
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(mq_timedsend)
 {
-	tprintf("%ld, ", tcp->u_arg[0]);
-	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu, %ld, ", tcp->u_arg[2], tcp->u_arg[3]);
-	print_timespec(tcp, tcp->u_arg[4]);
+//	tprintf("%ld, ", tcp->u_arg[0]);
+//	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//	tprintf(", %lu, %ld, ", tcp->u_arg[2], tcp->u_arg[3]);
+//	print_timespec(tcp, tcp->u_arg[4]);
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(mq_timedreceive)
 {
-	if (entering(tcp))
-		tprintf("%ld, ", tcp->u_arg[0]);
-	else {
-		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %lu, %ld, ", tcp->u_arg[2], tcp->u_arg[3]);
-		/*
-		 * Since the timeout parameter is read by the kernel
-		 * on entering syscall, it has to be decoded the same way
-		 * whether the syscall has failed or not.
-		 */
-		temporarily_clear_syserror(tcp);
-		print_timespec(tcp, tcp->u_arg[4]);
-		restore_cleared_syserror(tcp);
-	}
+//	if (entering(tcp))
+//		tprintf("%ld, ", tcp->u_arg[0]);
+//	else {
+//		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+//		tprintf(", %lu, %ld, ", tcp->u_arg[2], tcp->u_arg[3]);
+//		/*
+//		 * Since the timeout parameter is read by the kernel
+//		 * on entering syscall, it has to be decoded the same way
+//		 * whether the syscall has failed or not.
+//		 */
+//		temporarily_clear_syserror(tcp);
+//		print_timespec(tcp, tcp->u_arg[4]);
+//		restore_cleared_syserror(tcp);
+//	}
 	return 0;
 }
 
 SYS_FUNC(mq_notify)
 {
-	tprintf("%ld, ", tcp->u_arg[0]);
-	print_sigevent(tcp, tcp->u_arg[1]);
+//	tprintf("%ld, ", tcp->u_arg[0]);
+//	print_sigevent(tcp, tcp->u_arg[1]);
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(mq_getsetattr)
 {
-	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
-		printmqattr(tcp, tcp->u_arg[1]);
-		tprints(", ");
-	} else
-		printmqattr(tcp, tcp->u_arg[2]);
+//	if (entering(tcp)) {
+//		tprintf("%ld, ", tcp->u_arg[0]);
+//		printmqattr(tcp, tcp->u_arg[1]);
+//		tprints(", ");
+//	} else
+//		printmqattr(tcp, tcp->u_arg[2]);
 	return 0;
 }
