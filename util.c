@@ -557,31 +557,31 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
 		eol = 0x100; /* this can never match a char */
 
 	usehex = 0;
-	if (xflag > 1)
-		usehex = 1;
-	else if (xflag) {
-		/* Check for presence of symbol which require
-		   to hex-quote the whole string. */
-		for (i = 0; i < size; ++i) {
-			c = ustr[i];
-			/* Check for NUL-terminated string. */
-			if (c == eol)
-				break;
-
-			/* Force hex unless c is printable or whitespace */
-			if (c > 0x7e) {
-				usehex = 1;
-				break;
-			}
-			/* In ASCII isspace is only these chars: "\t\n\v\f\r".
-			 * They happen to have ASCII codes 9,10,11,12,13.
-			 */
-			if (c < ' ' && (unsigned)(c - 9) >= 5) {
-				usehex = 1;
-				break;
-			}
-		}
-	}
+//	if (xflag > 1)
+//		usehex = 1;
+//	else if (xflag) {
+//		/* Check for presence of symbol which require
+//		   to hex-quote the whole string. */
+//		for (i = 0; i < size; ++i) {
+//			c = ustr[i];
+//			/* Check for NUL-terminated string. */
+//			if (c == eol)
+//				break;
+//
+//			/* Force hex unless c is printable or whitespace */
+//			if (c > 0x7e) {
+//				usehex = 1;
+//				break;
+//			}
+//			/* In ASCII isspace is only these chars: "\t\n\v\f\r".
+//			 * They happen to have ASCII codes 9,10,11,12,13.
+//			 */
+//			if (c < ' ' && (unsigned)(c - 9) >= 5) {
+//				usehex = 1;
+//				break;
+//			}
+//		}
+//	}
 
 	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
 		*s++ = '\"';

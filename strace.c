@@ -56,7 +56,7 @@ extern char *optarg;
 
 #ifdef USE_LIBUNWIND
 /* if this is true do the stack trace for every system call */
-bool stack_trace_enabled = false;
+//bool stack_trace_enabled = false;
 #endif
 
 #if defined __NR_tkill
@@ -199,63 +199,63 @@ strerror(int err_no)
 
 #endif /* HAVE_STERRROR */
 
-static void
-usage(FILE *ofp, int exitval)
-{
-	fprintf(ofp, "\
-usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
-              [-a column] [-o file] [-s strsize] [-P path]...\n\
-              -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
-   or: strace -c[df] [-I n] [-e expr]... [-O overhead] [-S sortby]\n\
-              -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
--c -- count time, calls, and errors for each syscall and report summary\n\
--C -- like -c but also print regular output\n\
--w -- summarise syscall latency (default is system time)\n\
--d -- enable debug output to stderr\n\
--D -- run tracer process as a detached grandchild, not as parent\n\
--f -- follow forks, -ff -- with output into separate files\n\
--i -- print instruction pointer at time of syscall\n\
--q -- suppress messages about attaching, detaching, etc.\n\
--r -- print relative timestamp, -t -- absolute timestamp, -tt -- with usecs\n\
--T -- print time spent in each syscall\n\
--v -- verbose mode: print unabbreviated argv, stat, termios, etc. args\n\
--x -- print non-ascii strings in hex, -xx -- print all strings in hex\n\
--y -- print paths associated with file descriptor arguments\n\
--yy -- print ip:port pairs associated with socket file descriptors\n\
--h -- print help message, -V -- print version\n\
--a column -- alignment COLUMN for printing syscall results (default %d)\n\
--b execve -- detach on this syscall\n\
--e expr -- a qualifying expression: option=[!]all or option=[!]val1[,val2]...\n\
-   options: trace, abbrev, verbose, raw, signal, read, write\n\
--I interruptible --\n\
-   1: no signals are blocked\n\
-   2: fatal signals are blocked while decoding syscall (default)\n\
-   3: fatal signals are always blocked (default if '-o FILE PROG')\n\
-   4: fatal signals and SIGTSTP (^Z) are always blocked\n\
-      (useful to make 'strace -o FILE PROG' not stop on ^Z)\n\
--o file -- send trace output to FILE instead of stderr\n\
--O overhead -- set overhead for tracing syscalls to OVERHEAD usecs\n\
--p pid -- trace process with process id PID, may be repeated\n\
--s strsize -- limit length of print strings to STRSIZE chars (default %d)\n\
--S sortby -- sort syscall counts by: time, calls, name, nothing (default %s)\n\
--u username -- run command as username handling setuid and/or setgid\n\
--E var=val -- put var=val in the environment for command\n\
--E var -- remove var from the environment for command\n\
--P path -- trace accesses to path\n\
-"
-#ifdef USE_LIBUNWIND
-"-k obtain stack trace between each syscall (experimental)\n\
-"
-#endif
-/* ancient, no one should use it
--F -- attempt to follow vforks (deprecated, use -f)\n\
- */
-/* this is broken, so don't document it
--z -- print only succeeding syscalls\n\
- */
-, DEFAULT_ACOLUMN, DEFAULT_STRLEN, DEFAULT_SORTBY);
-	exit(exitval);
-}
+//static void
+//usage(FILE *ofp, int exitval)
+//{
+//	fprintf(ofp, "\
+//usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
+//              [-a column] [-o file] [-s strsize] [-P path]...\n\
+//              -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
+//   or: strace -c[df] [-I n] [-e expr]... [-O overhead] [-S sortby]\n\
+//              -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
+//-c -- count time, calls, and errors for each syscall and report summary\n\
+//-C -- like -c but also print regular output\n\
+//-w -- summarise syscall latency (default is system time)\n\
+//-d -- enable debug output to stderr\n\
+//-D -- run tracer process as a detached grandchild, not as parent\n\
+//-f -- follow forks, -ff -- with output into separate files\n\
+//-i -- print instruction pointer at time of syscall\n\
+//-q -- suppress messages about attaching, detaching, etc.\n\
+//-r -- print relative timestamp, -t -- absolute timestamp, -tt -- with usecs\n\
+//-T -- print time spent in each syscall\n\
+//-v -- verbose mode: print unabbreviated argv, stat, termios, etc. args\n\
+//-x -- print non-ascii strings in hex, -xx -- print all strings in hex\n\
+//-y -- print paths associated with file descriptor arguments\n\
+//-yy -- print ip:port pairs associated with socket file descriptors\n\
+//-h -- print help message, -V -- print version\n\
+//-a column -- alignment COLUMN for printing syscall results (default %d)\n\
+//-b execve -- detach on this syscall\n\
+//-e expr -- a qualifying expression: option=[!]all or option=[!]val1[,val2]...\n\
+//   options: trace, abbrev, verbose, raw, signal, read, write\n\
+//-I interruptible --\n\
+//   1: no signals are blocked\n\
+//   2: fatal signals are blocked while decoding syscall (default)\n\
+//   3: fatal signals are always blocked (default if '-o FILE PROG')\n\
+//   4: fatal signals and SIGTSTP (^Z) are always blocked\n\
+//      (useful to make 'strace -o FILE PROG' not stop on ^Z)\n\
+//-o file -- send trace output to FILE instead of stderr\n\
+//-O overhead -- set overhead for tracing syscalls to OVERHEAD usecs\n\
+//-p pid -- trace process with process id PID, may be repeated\n\
+//-s strsize -- limit length of print strings to STRSIZE chars (default %d)\n\
+//-S sortby -- sort syscall counts by: time, calls, name, nothing (default %s)\n\
+//-u username -- run command as username handling setuid and/or setgid\n\
+//-E var=val -- put var=val in the environment for command\n\
+//-E var -- remove var from the environment for command\n\
+//-P path -- trace accesses to path\n\
+//"
+//#ifdef USE_LIBUNWIND
+//"-k obtain stack trace between each syscall (experimental)\n\
+//"
+//#endif
+///* ancient, no one should use it
+//-F -- attempt to follow vforks (deprecated, use -f)\n\
+// */
+///* this is broken, so don't document it
+//-z -- print only succeeding syscalls\n\
+// */
+//, DEFAULT_ACOLUMN, DEFAULT_STRLEN, DEFAULT_SORTBY);
+//	exit(exitval);
+//}
 
 #if (!UC_ENABLED)
 static void ATTRIBUTE_NORETURN
@@ -332,11 +332,11 @@ void perror_msg_and_die(const char *fmt, ...)
 }
 #endif
 
-static void
-error_opt_arg(int opt, const char *arg)
-{
-	error_msg_and_die("Invalid -%c argument: '%s'", opt, arg);
-}
+//static void
+//error_opt_arg(int opt, const char *arg)
+//{
+//	error_msg_and_die("Invalid -%c argument: '%s'", opt, arg);
+//}
 
 #if USE_SEIZE
 static int
@@ -392,14 +392,14 @@ ptrace_restart(int op, struct tcb *tcp, int sig)
 	 * 10252 died after we retrieved syscall exit data,
 	 * but before we tried to restart it. Log looks ugly.
 	 */
-	if (current_tcp && current_tcp->curcol != 0) {
-		tprintf(" <ptrace(%s):%s>\n", msg, strerror(err));
-		line_ended();
-	}
+//	if (current_tcp && current_tcp->curcol != 0) {
+//		tprintf(" <ptrace(%s):%s>\n", msg, strerror(err));
+//		line_ended();
+//	}
 	if (err == ESRCH)
 		return 0;
 	errno = err;
-	perror_msg("ptrace(PTRACE_%s,pid:%d,sig:%d)", msg, tcp->pid, sig);
+//	perror_msg("ptrace(PTRACE_%s,pid:%d,sig:%d)", msg, tcp->pid, sig);
 	return -1;
 }
 
@@ -713,8 +713,8 @@ alloctcb(int pid)
 #endif
 
 #ifdef USE_LIBUNWIND
-			if (stack_trace_enabled)
-				unwind_tcb_init(tcp);
+//			if (stack_trace_enabled)
+//				unwind_tcb_init(tcp);
 #endif
 
 			nprocs++;
@@ -731,9 +731,9 @@ droptcb(struct tcb *tcp)
 		return;
 
 #ifdef USE_LIBUNWIND
-	if (stack_trace_enabled) {
-		unwind_tcb_fin(tcp);
-	}
+//	if (stack_trace_enabled) {
+//		unwind_tcb_fin(tcp);
+//	}
 #endif
 
 	nprocs--;
@@ -1489,9 +1489,9 @@ init(int argc, char *argv[])
 		case 'f':
 			followfork++;
 			break;
-		case 'h':
-			usage(stdout, 0);
-			break;
+//		case 'h':
+//			usage(stdout, 0);
+//			break;
 //		case 'i':
 //			iflag = 1;
 //			break;
@@ -1526,35 +1526,35 @@ init(int argc, char *argv[])
 //		case 'z':
 //			not_failing_only = 1;
 //			break;
-		case 'a':
-			acolumn = string_to_uint(optarg);
-			if (acolumn < 0)
-				error_opt_arg(c, optarg);
-			break;
+//		case 'a':
+//			acolumn = string_to_uint(optarg);
+//			if (acolumn < 0)
+//				error_opt_arg(c, optarg);
+//			break;
 		case 'e':
 			qualify(optarg);
 			break;
 		case 'o':
 			outfname = xstrdup(optarg);
 			break;
-		case 'O':
-			i = string_to_uint(optarg);
-			if (i < 0)
-				error_opt_arg(c, optarg);
-			set_overhead(i);
-			break;
+//		case 'O':
+//			i = string_to_uint(optarg);
+//			if (i < 0)
+//				error_opt_arg(c, optarg);
+//			set_overhead(i);
+//			break;
 		case 'p':
 			process_opt_p_list(optarg);
 			break;
 		case 'P':
 			pathtrace_select(optarg);
 			break;
-		case 's':
-			i = string_to_uint(optarg);
-			if (i < 0)
-				error_opt_arg(c, optarg);
-			max_strlen = i;
-			break;
+//		case 's':
+//			i = string_to_uint(optarg);
+//			if (i < 0)
+//				error_opt_arg(c, optarg);
+//			max_strlen = i;
+//			break;
 		case 'S':
 			set_sortby(optarg);
 			break;
@@ -1562,21 +1562,21 @@ init(int argc, char *argv[])
 			username = xstrdup(optarg);
 			break;
 #ifdef USE_LIBUNWIND
-		case 'k':
-			stack_trace_enabled = true;
-			break;
+//		case 'k':
+//			stack_trace_enabled = true;
+//			break;
 #endif
 		case 'E':
 			if (putenv(optarg) < 0)
 				die_out_of_memory();
 			break;
-		case 'I':
-			opt_intr = string_to_uint(optarg);
-			if (opt_intr <= 0 || opt_intr >= NUM_INTR_OPTS)
-				error_opt_arg(c, optarg);
-			break;
+//		case 'I':
+//			opt_intr = string_to_uint(optarg);
+//			if (opt_intr <= 0 || opt_intr >= NUM_INTR_OPTS)
+//				error_opt_arg(c, optarg);
+//			break;
 		default:
-			usage(stderr, 1);
+//			usage(stderr, 1);
 			break;
 		}
 	}
@@ -1588,8 +1588,8 @@ init(int argc, char *argv[])
 	acolumn_spaces[acolumn] = '\0';
 
 	/* Must have PROG [ARGS], or -p PID. Not both. */
-	if (!argv[0] == !nprocs)
-		usage(stderr, 1);
+//	if (!argv[0] == !nprocs)
+//		usage(stderr, 1);
 
 	if (nprocs != 0 && daemonized_tracer) {
 		error_msg_and_die("-D and -p are mutually exclusive");
@@ -1640,8 +1640,8 @@ init(int argc, char *argv[])
 //	}
 
 #ifdef USE_LIBUNWIND
-	if (stack_trace_enabled)
-		unwind_init();
+//	if (stack_trace_enabled)
+//		unwind_init();
 #endif
 
 	/* See if they want to run as another user. */
@@ -2040,7 +2040,7 @@ trace(void)
 	unsigned int sig;
 	unsigned int event;
 	struct tcb *tcp;
-	struct rusage ru;
+//	struct rusage ru;
 
 	if (interrupted)
 		return false;
@@ -2143,13 +2143,13 @@ trace(void)
 //	}
 
 	if (WIFSIGNALED(status)) {
-		print_signalled(tcp, pid, status);
+//		print_signalled(tcp, pid, status);
 		droptcb(tcp);
 		return true;
 	}
 
 	if (WIFEXITED(status)) {
-		print_exited(tcp, pid, status);
+//		print_exited(tcp, pid, status);
 		droptcb(tcp);
 		return true;
 	}
@@ -2219,7 +2219,7 @@ trace(void)
 #if USE_SEIZE
 show_stopsig:
 #endif
-		print_stopped(tcp, stopped ? NULL : &si, sig);
+//		print_stopped(tcp, stopped ? NULL : &si, sig);
 
 		if (!stopped)
 			/* It's signal-delivery-stop. Inject the signal */

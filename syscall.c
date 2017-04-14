@@ -925,15 +925,6 @@ trace_syscall_exiting(struct tcb *tcp)
 	if (filtered(tcp))
 		goto ret;
 
-#if (!UC_ENABLED)
-	if (cflag) {
-		count_syscall(tcp, &tv);
-		if (cflag == CFLAG_ONLY_STATS) {
-			goto ret;
-		}
-	}
-#endif
-
 	/* If not in -ff mode, and printing_tcp != tcp,
 	 * then the log currently does not end with output
 	 * of _our syscall entry_, but with something else.
@@ -958,10 +949,10 @@ trace_syscall_exiting(struct tcb *tcp)
 	tcp->s_prev_ent = NULL;
 	if (res != 1) {
 		/* There was error in one of prior ptrace ops */
-		tprints(") ");
-		tabto();
-		tprints("= ? <unavailable>\n");
-		line_ended();
+//		tprints(") ");
+//		tabto();
+//		tprints("= ? <unavailable>\n");
+//		line_ended();
 		tcp->flags &= ~TCB_INSYSCALL;
 		tcp->sys_func_rval = 0;
 		return res;
@@ -1063,8 +1054,8 @@ trace_syscall_exiting(struct tcb *tcp)
 					strerror(u_error));
 			break;
 		}
-		if ((sys_res & RVAL_STR) && tcp->auxstr)
-			tprintf(" (%s)", tcp->auxstr);
+//		if ((sys_res & RVAL_STR) && tcp->auxstr)
+//			tprintf(" (%s)", tcp->auxstr);
 	}
 	else {
 		if (sys_res & RVAL_NONE)
@@ -1120,8 +1111,8 @@ trace_syscall_exiting(struct tcb *tcp)
 				break;
 			}
 		}
-		if ((sys_res & RVAL_STR) && tcp->auxstr)
-			tprintf(" (%s)", tcp->auxstr);
+//		if ((sys_res & RVAL_STR) && tcp->auxstr)
+//			tprintf(" (%s)", tcp->auxstr);
 	}
 //	if (Tflag) {
 //		tv_sub(&tv, &tv, &tcp->etime);

@@ -168,7 +168,7 @@ extern char *stpcpy(char *dst, const char *src);
  * Experimental code using PTRACE_SEIZE can be enabled here.
  * This needs Linux kernel 3.4.x or later to work.
  */
-#define USE_SEIZE 1
+#define USE_SEIZE 0
 /* To force NOMMU build, set to 1 */
 #define NOMMU_SYSTEM 0
 /*
@@ -619,7 +619,7 @@ extern void addflags(const struct xlat *, int);
 #if UC_ENABLED
 #define printflags(a, b, c) ({int i; i=0; i;})
 #else
-extern int printflags(const struct xlat *, int, const char *)
+extern int printflags(const struct xlat *, int, const char *);
 #endif
 extern const char *sprintflags(const char *, const struct xlat *, int);
 extern const char *sprintmode(int);
