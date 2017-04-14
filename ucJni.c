@@ -20,18 +20,20 @@ pthread_t jvmStarter;
 
 void *threadJvmStarter(void *args) {
 	JNIEnv *env;
-    JavaVMInitArgs vm_args;
+	JavaVMInitArgs vm_args;
 
-	int nOptions = 4;
+	int nOptions = 3;
 	JavaVMOption options[nOptions];
-	options[0].optionString = "-Djava.class.path=" USER_CLASSPATH; //Path to the java source code
-	options[1].optionString = "-Djava.compiler=NONE";
-	options[2].optionString = "-Xms2048m";
-	options[3].optionString = "-Xmx2048m";
+	int i = 0;
+	options[i++].optionString = "-Djava.class.path=" USER_CLASSPATH; //Path to the java source code
+//	options[i++].optionString = "-Djava.compiler=NONE";
+	options[i++].optionString = "-Xms2048m";
+	options[i++].optionString = "-Xmx2048m";
+//	options[i++].optionString = "-agentpath:/home/user/perf-map-agent/out/libperfmap.so";
 
 	vm_args.version = JNI_VERSION_1_8; //JDK version. This indicates version 1.6
 	vm_args.nOptions = nOptions;
-    vm_args.options = options;
+	vm_args.options = options;
 	vm_args.ignoreUnrecognized = 1;
 
     jmethodID mainMethod;
