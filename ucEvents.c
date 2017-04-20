@@ -550,10 +550,13 @@ event *ucSemantics_socket(struct tcb *tcp) {
 		return NULL;
 	}
 
-	getfdpath(tcp, tcp->u_rval, socketname, sizeof(socketname));
-
 	// cf. strace:net.c
 	char *domain = (char*) xlookup(domains, tcp->u_arg[0]);
+	if (strcmp(domain+3,"NETLINK") == 0 || strcmp(domain+3,"LOCAL") == 0) {
+		return NULL;
+	}
+
+	getfdpath(tcp, tcp->u_rval, socketname, sizeof(socketname));
 
 	// cf. strace:net.c: SOCK_TYPE_MASK == 0xf
 	char *type = (char*) xlookup(socktypes, tcp->u_arg[1] & 0xf);
@@ -647,7 +650,7 @@ event *do_open(struct tcb *tcp, char *absFilename, int flags) {
 
 	event *ev = createEventWithStdParams(EVENT_NAME_OPEN, 4);
 	return addParamPid(tcp->pid)
-		&& addParamFd(tcp->u_arg[0])
+		&& addParamFd(tcp->u_rval)
 		&& addParamFilename(absFilename)
 		&& addParamTrunc(trunc) ?
 		ev :
